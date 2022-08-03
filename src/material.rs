@@ -1,8 +1,17 @@
-#[derive(Clone, PartialEq)]
+use std::fmt;
+use std::fmt::{Display, Formatter};
+
+#[derive(Clone, PartialEq, Hash)]
 pub struct Material<'a> {
     pub name: &'a str,
     pub category: &'a str,
     pub display_symbol: &'a str,
+}
+
+impl Display for Material<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
 }
 
 pub mod materials {

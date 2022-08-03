@@ -9,17 +9,16 @@ mod tile;
 mod block;
 mod material;
 mod player;
+mod inventory;
+mod hash_map_storable;
 
 fn main() {
-    let mut player = Player{
-        x: 4,
-        y: 4,
-        z: 3,
-    };
+    let mut player = Player::new();
     let mut field = init_field();
     println!("Welcome to minecraft (very alpha version)");
     loop {
         field.render(&player);
+        player.render_inventory();
         println!("input action type");
         let action: String = read!();
         match action.as_str() {
