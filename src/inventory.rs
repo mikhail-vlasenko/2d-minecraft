@@ -49,16 +49,25 @@ impl Inventory {
         self.items.contains_key(&into_key(item))
     }
 
-    pub fn drop(&mut self, item: impl Key + Eq + Hash + 'static + Display) -> bool {
+    pub fn count<T: Key + Eq + Hash + 'static + Display>(&self, item: T) -> u32 {
+        match self.items.get(&into_key(item)) {
+            None => 0,
+            Some(v) => *v
+        }
+    }
+
+    pub fn drop(&mut self, item: impl Key + Eq + Hash + 'static + Display, count: u32) -> bool {
         let entry = self.items.entry(into_key(item));
         match entry {
             Entry::Vacant(_) => false,
             Entry::Occupied(mut o) => {
                 let value = o.get_mut();
-                if *value == 1 {
+                if *value > count {
+                    panic!("too much to drop");
+                } else if *value == count {
                     o.remove();
                 } else {
-                    *value -= 1;
+                    *value -= count;
                 }
                 true
             }

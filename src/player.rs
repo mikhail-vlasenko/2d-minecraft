@@ -1,8 +1,10 @@
 use crate::block::Block;
 use crate::{Field, Material};
-use crate::hash_map_storable::into_key;
 use crate::inventory::Inventory;
 use crate::material::materials;
+use std::collections::HashMap;
+use crate::hash_map_storable::{into_key, Key};
+use crate::items::{possible_items, Storable};
 
 
 pub struct Player {
@@ -40,7 +42,7 @@ impl Player {
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
         let placement_block = Block { material: &material };
-        if self.inventory.drop(into_key(placement_block.clone())) {
+        if self.inventory.drop(into_key(placement_block.clone()), 1) {
             tile.top += 1;
             tile.blocks[tile.top] = placement_block;
             println!("{} placed", material.name);
@@ -58,6 +60,26 @@ impl Player {
             _ => println!("unknown direction")
         }
     }
+
+    // // memory leak on this 'static?
+    // fn can_craft(&self, item: &'static Box<dyn Storable>) -> bool {
+    //     let mut possible = true;
+    //     for (key, value) in item.craft_requirements() {
+    //         if self.inventory.count(&into_key(key)) < *value {
+    //             possible = false;
+    //             break
+    //         }
+    //     }
+    //     possible
+    // }
+    //
+    // fn craft(&mut self, item: &'static Box<dyn Storable>) -> &'static Box<dyn Storable> {
+    //     assert!(self.can_craft(item));
+    //     for (key, value) in item.craft_requirements() {
+    //         self.inventory.drop(into_key(key), *value);
+    //     }
+    //     item
+    // }
 
     pub fn render_inventory(&self) {
         self.inventory.render();

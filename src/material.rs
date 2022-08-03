@@ -29,6 +29,18 @@ pub mod materials {
         display_symbol: "d",
     };
 
+    pub static LOG: Material = Material {
+        name: "tree log",
+        category: "wood",
+        display_symbol: "T",
+    };
+
+    pub static WOOD_PLANKS: Material = Material {
+        name: "wood planks",
+        category: "wood",
+        display_symbol: "W",
+    };
+
     pub static STONE: Material = Material {
         name: "stone",
         category: "stone",

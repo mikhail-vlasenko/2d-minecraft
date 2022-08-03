@@ -1,6 +1,6 @@
 #[macro_use] extern crate text_io;
 
-use crate::field::{Field, init_field};
+use crate::field::Field;
 use crate::material::{Material, materials};
 use crate::player::Player;
 
@@ -11,10 +11,12 @@ mod material;
 mod player;
 mod inventory;
 mod hash_map_storable;
+mod crafting;
+mod items;
 
 fn main() {
     let mut player = Player::new();
-    let mut field = init_field();
+    let mut field = Field::new();
     println!("Welcome to minecraft (very alpha version)");
     loop {
         field.render(&player);
