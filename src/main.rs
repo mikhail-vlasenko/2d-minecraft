@@ -10,9 +10,9 @@ mod block;
 mod material;
 mod player;
 mod inventory;
-mod hash_map_storable;
 mod crafting;
 mod items;
+mod lol;
 
 fn main() {
     let mut player = Player::new();

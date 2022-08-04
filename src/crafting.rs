@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-use crate::hash_map_storable::{into_key, Key};
-use crate::items::{possible_items, Storable};
+use crate::items::{Item, possible_items, Storable};
 
 
-fn item_by_name(name: &str) -> Box<dyn Storable> {
+pub fn item_by_name(name: &str) -> Option<Item> {
     match name {
-        "wood" => Box::new(possible_items::WOOD.clone()),
-        "plank" => Box::new(possible_items::PLANK.clone()),
-        _ => panic!()
+        "wood" => Some(possible_items::WOOD.clone()),
+        "plank" => Some(possible_items::PLANK.clone()),
+        _ => None
     }
 }

@@ -3,18 +3,17 @@ use crate::{Field, Material};
 use crate::inventory::Inventory;
 use crate::material::materials;
 use std::collections::HashMap;
-use crate::hash_map_storable::{into_key, Key};
-use crate::items::{possible_items, Storable};
+use crate::items::{Item, possible_items, Storable};
 
 
-pub struct Player {
+pub struct Player<'a> {
     pub x: i32,
     pub y: i32,
     pub z: i32,
-    inventory: Inventory,
+    inventory: Inventory<'a>,
 }
 
-impl Player {
+impl Player<'_> {
     pub fn new() -> Self {
         Self {
             x: 4,
@@ -31,7 +30,7 @@ impl Player {
             println!("cannot mine bedrock");
         } else {
             println!("{} mined", tile.blocks[tile.top].material.name);
-            self.inventory.pickup(into_key(tile.blocks[tile.top].clone()));
+            self.inventory.pickup(Item::from(tile.blocks[tile.top].clone()));
             tile.blocks[tile.top] = Block { material: &materials::AIR };
             tile.top -= 1;
         }
@@ -42,7 +41,7 @@ impl Player {
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
         let placement_block = Block { material: &material };
-        if self.inventory.drop(into_key(placement_block.clone()), 1) {
+        if self.inventory.drop(Item::from(placement_block.clone()), 1) {
             tile.top += 1;
             tile.blocks[tile.top] = placement_block;
             println!("{} placed", material.name);

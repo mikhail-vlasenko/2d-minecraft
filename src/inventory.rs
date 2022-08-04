@@ -3,71 +3,81 @@ use std::any::{Any, TypeId};
 use std::collections::hash_map::{DefaultHasher, Entry};
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
-use crate::hash_map_storable::{into_key, Key};
+use crate::block::Block;
+use crate::crafting::item_by_name;
+use crate::items::{Item, Storable};
 
 
-pub struct Inventory {
-    items: HashMap<Box<dyn Key>, u32>
+pub struct Inventory<'a> {
+    items: Vec<(Item<'a>, u32)>
 }
 
-// pub trait Storable: Hash + Eq + 'static {
-//     fn store(&self);
-// }
-//
-// impl PartialEq for Box<dyn Storable> {
-//     fn eq(&self, other: &Self) -> bool {
-//         Storable::eq(self.as_ref(), other.as_ref())
-//     }
-// }
-//
-// impl Eq for Box<dyn Storable> {}
-//
-// impl Hash for Box<dyn Storable> {
-//     fn hash<H: Hasher>(&self, state: &mut H) {
-//         let key_hash = Storable::hash(self.as_ref());
-//         state.write_u64(key_hash);
-//     }
-// }
-//
-// fn into_key(key: impl Eq + Hash + 'static) -> Box<dyn Storable> {
-//     Box::new(key)
-// }
-
-impl Inventory {
+impl Inventory<'_> {
     pub fn new() -> Self {
         Self {
-            items: HashMap::new()
-        }
-    }
-    pub fn pickup(&mut self, item: impl Key + Eq + Hash + 'static + Display) {
-        self.items.entry(into_key(item))
-            .and_modify(|e| { *e += 1 })
-            .or_insert(1);
-    }
-
-    pub fn contains(&self, item: impl Key + Eq + Hash + 'static + Display) -> bool {
-        self.items.contains_key(&into_key(item))
-    }
-
-    pub fn count<T: Key + Eq + Hash + 'static + Display>(&self, item: T) -> u32 {
-        match self.items.get(&into_key(item)) {
-            None => 0,
-            Some(v) => *v
+            items: Vec::new()
         }
     }
 
-    pub fn drop(&mut self, item: impl Key + Eq + Hash + 'static + Display, count: u32) -> bool {
-        let entry = self.items.entry(into_key(item));
-        match entry {
-            Entry::Vacant(_) => false,
-            Entry::Occupied(mut o) => {
-                let value = o.get_mut();
-                if *value > count {
-                    panic!("too much to drop");
-                } else if *value == count {
-                    o.remove();
+    fn get(&self, item: Item) -> Option<u32> {
+        for mut pair in self.items.iter() {
+            if item == pair.0 {
+                return Some(pair.1);
+            }
+        }
+        None
+    }
+
+    fn get_idx(&self, item: Item) -> Option<usize> {
+        for i in 0..self.items.len() {
+            if self.items[i].0 == item {
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    // this just doesnt work as i hoped it would
+    // fn get_mut(&mut self, item: Item) -> Option<&mut u32> {
+    //     for i in 0..self.items.len() {
+    //         if self.items[i].0 == item {
+    //             return Some(&mut self.items[i].1);
+    //         }
+    //     }
+    //     None
+    // }
+
+    pub fn pickup(&mut self, item: Item) {
+        let idx = self.get_idx(item);
+        match idx {
+            None => self.items.push((Item::new(), 1)),
+            Some(i) => self.items[i].1 += 1
+        }
+    }
+
+    pub fn contains(&self, item: Item) -> bool {
+        match self.get(item) {
+            Some(_) => true,
+            None => false
+        }
+    }
+
+    pub fn count(&self, item: Item) -> u32 {
+        match self.get(item) {
+            Some(value) => value,
+            None => 0
+        }
+    }
+
+    pub fn drop(&mut self, item: Item, count: u32) -> bool {
+        let idx = self.get_idx(item);
+        match idx {
+            None => panic!("you dont have enough to drop"),
+            Some(i) => {
+                if self.items[i].1 > count {
+                    panic!("you dont have enough to drop");
                 } else {
-                    *value -= count;
+                    self.items[i].1 -= count;
                 }
                 true
             }
