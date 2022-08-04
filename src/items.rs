@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use crate::block::Block;
 use crate::crafting::item_by_name;
+use crate::Material;
 
 pub trait Storable: Eq + Display {
     fn name(&self) -> &str;
@@ -29,6 +30,15 @@ impl Item<'_> {
             craft_requirements: &[]
         }
     }
+    pub fn from_material(material: &'static Material) -> Self {
+        Self {
+            name: material.name,
+            is_placeable: true,
+            is_craftable: false,
+            tool_type: "",
+            craft_requirements: &[]
+        }
+    }
 }
 
 impl PartialEq<Self> for Item<'_> {
@@ -45,21 +55,22 @@ impl Display for Item<'_> {
     }
 }
 
-impl From<Block<'_>> for Item<'_> {
-    fn from(block: Block) -> Self {
-        let item = item_by_name(block.material.name);
-        match item {
-            Some(_) => panic!(),
-            None => Self {
-                name: "qwe",
-                is_placeable: true,
-                is_craftable: false,
-                tool_type: "",
-                craft_requirements: &[]
-            }
-        }
-    }
-}
+// unsuccessful better solution
+// impl From<Block<'_>> for Item<'_> {
+    // fn from(block: Block) -> Self {
+    //     let item = item_by_name(block.material.name);
+    //     match item {
+    //         Some(i) => panic!(),
+    //         None => Self {
+    //             name: block.material.name,
+    //             is_placeable: true,
+    //             is_craftable: false,
+    //             tool_type: "",
+    //             craft_requirements: &[]
+    //         }
+    //     }
+    // }
+// }
 
 impl Storable for Item<'_> {
     fn name(&self) -> &str {

@@ -1,4 +1,5 @@
 #[macro_use] extern crate text_io;
+extern crate core;
 
 use crate::field::Field;
 use crate::material::{Material, materials};

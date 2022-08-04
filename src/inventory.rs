@@ -37,20 +37,10 @@ impl Inventory<'_> {
         None
     }
 
-    // this just doesnt work as i hoped it would
-    // fn get_mut(&mut self, item: Item) -> Option<&mut u32> {
-    //     for i in 0..self.items.len() {
-    //         if self.items[i].0 == item {
-    //             return Some(&mut self.items[i].1);
-    //         }
-    //     }
-    //     None
-    // }
-
     pub fn pickup(&mut self, item: Item) {
         let idx = self.get_idx(item);
         match idx {
-            None => self.items.push((Item::new(), 1)),
+            None => self.items.push((Item::new(), 1)), // todo
             Some(i) => self.items[i].1 += 1
         }
     }

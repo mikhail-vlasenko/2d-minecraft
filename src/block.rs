@@ -5,7 +5,7 @@ use crate::material::Material;
 
 #[derive(Clone, Hash)]
 pub struct Block<'a> {
-    pub material: &'a Material<'a>,
+    pub material: &'a Material<'a>, // todo: what if 'static here?
 }
 
 

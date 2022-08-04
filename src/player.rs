@@ -3,6 +3,7 @@ use crate::{Field, Material};
 use crate::inventory::Inventory;
 use crate::material::materials;
 use std::collections::HashMap;
+use crate::crafting::item_by_name;
 use crate::items::{Item, possible_items, Storable};
 
 
@@ -29,8 +30,13 @@ impl Player<'_> {
         if tile.blocks[tile.top].material == &materials::BEDROCK {
             println!("cannot mine bedrock");
         } else {
-            println!("{} mined", tile.blocks[tile.top].material.name);
-            self.inventory.pickup(Item::from(tile.blocks[tile.top].clone()));
+            let mat = tile.blocks[tile.top].material;
+            println!("{} mined", mat.name);
+            let mined_item = match item_by_name(mat.name) {
+                Some(i) => i,
+                None => Item::from_material(mat)
+            };
+            self.inventory.pickup(mined_item);
             tile.blocks[tile.top] = Block { material: &materials::AIR };
             tile.top -= 1;
         }
@@ -41,7 +47,11 @@ impl Player<'_> {
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
         let placement_block = Block { material: &material };
-        if self.inventory.drop(Item::from(placement_block.clone()), 1) {
+        let mined_item = match item_by_name(material.name) {
+            Some(i) => i,
+            None => Item::from_material(material)
+        };
+        if self.inventory.drop(mined_item, 1) {
             tile.top += 1;
             tile.blocks[tile.top] = placement_block;
             println!("{} placed", material.name);
