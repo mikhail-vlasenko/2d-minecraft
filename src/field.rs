@@ -3,12 +3,12 @@ use crate::material::materials;
 use crate::Player;
 use crate::tile::Tile;
 
-pub struct Field<'a> {
-    pub tiles: Vec<Vec<Tile<'a>>>,
+pub struct Field {
+    pub tiles: Vec<Vec<Tile>>,
 }
 
 
-impl Field<'_> {
+impl Field {
     pub fn new() -> Self {
         let tile = Tile {
             blocks: vec![Block { material: &materials::BEDROCK },

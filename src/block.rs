@@ -4,22 +4,22 @@ use std::fmt::{Display, Formatter};
 use crate::material::Material;
 
 #[derive(Clone, Hash)]
-pub struct Block<'a> {
-    pub material: &'a Material<'a>, // todo: what if 'static here?
+pub struct Block {
+    pub material: &'static Material<'static>, // todo: what if 'static here?
 }
 
 
-impl Display for Block<'_> {
+impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.material)
     }
 }
 
 
-impl PartialEq<Self> for Block<'_> {
+impl PartialEq<Self> for Block {
     fn eq(&self, other: &Self) -> bool {
         self.material.name == other.material.name
     }
 }
 
-impl Eq for Block<'_> {}
+impl Eq for Block {}

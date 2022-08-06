@@ -23,7 +23,7 @@ impl Player<'_> {
             inventory: Inventory::new()
         }
     }
-    pub fn mine(&mut self, field: &mut Field<'static>, x: i32, y: i32) {
+    pub fn mine(&mut self, field: &mut Field, x: i32, y: i32) {
         let tile_x = (self.x + x) as usize;
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
@@ -42,7 +42,7 @@ impl Player<'_> {
         }
     }
 
-    pub fn place(&mut self, field: &mut Field<'static>, x: i32, y: i32, material: &'static Material) {
+    pub fn place(&mut self, field: &mut Field, x: i32, y: i32, material: &'static Material) {
         let tile_x = (self.x + x) as usize;
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];

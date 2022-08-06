@@ -3,12 +3,12 @@ use std::fmt::Display;
 use crate::block::Block;
 
 #[derive(Clone)]
-pub struct Tile<'a> {
-    pub blocks: Vec<Block<'a>>,
+pub struct Tile {
+    pub blocks: Vec<Block>,
     pub top: usize
 }
 
-impl Display for Tile<'_> {
+impl Display for Tile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.blocks[self.top].material.display_symbol)
     }
