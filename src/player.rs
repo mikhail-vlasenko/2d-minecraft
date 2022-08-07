@@ -2,7 +2,6 @@ use crate::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
 use crate::material::materials;
-use std::collections::HashMap;
 use crate::crafting::item_by_name;
 use crate::items::{Item, possible_items, Storable};
 
