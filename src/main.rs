@@ -41,12 +41,11 @@ fn main() {
                 let x: i32 = read!();
                 let y: i32 = read!();
                 let material_string: String = read!();
-                let material = match material_string.as_str() {
-                    "dirt" => &materials::DIRT,
-                    "stone" => &materials::STONE,
-                    _ => &materials::AIR,
-                };
-                player.place(&mut field, x, y, material);
+                let material = Material::from_string(&material_string);
+                match material {
+                    None => println!("unrecognized material"),
+                    Some(material) => player.place(&mut field, x, y, material)
+                }
             },
             "c" => {
                 println!("input the item to craft");
