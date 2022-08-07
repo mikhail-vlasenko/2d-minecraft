@@ -29,7 +29,7 @@ pub mod materials {
         display_symbol: "d",
     };
 
-    pub static LOG: Material = Material {
+    pub static TREE_LOG: Material = Material {
         name: "tree log",
         category: "wood",
         display_symbol: "T",

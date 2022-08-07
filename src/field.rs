@@ -22,8 +22,8 @@ impl Field {
             blocks: vec![Block { material: &materials::BEDROCK },
                          Block { material: &materials::STONE },
                          Block { material: &materials::DIRT },
-                         Block { material: &materials::LOG },
-                         Block { material: &materials::LOG }],
+                         Block { material: &materials::TREE_LOG },
+                         Block { material: &materials::TREE_LOG }],
             top: 4,
         };
         let mut field = Field{

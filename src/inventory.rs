@@ -14,7 +14,7 @@ impl<'a> Inventory<'a> {
     }
 
     fn get(&self, item: &Item) -> Option<u32> {
-        for mut pair in self.items.iter() {
+        for pair in self.items.iter() {
             if *item == pair.0 {
                 return Some(pair.1);
             }
@@ -31,11 +31,11 @@ impl<'a> Inventory<'a> {
         None
     }
 
-    pub fn pickup(&mut self, item: Item<'a>) {
+    pub fn pickup(&mut self, item: Item<'a>, amount: u32) {
         let idx = self.get_idx(&item);
         match idx {
-            None => self.items.push((item, 1)),
-            Some(i) => self.items[i].1 += 1
+            None => self.items.push((item, amount)),
+            Some(i) => self.items[i].1 += amount
         }
     }
 
@@ -46,22 +46,22 @@ impl<'a> Inventory<'a> {
         }
     }
 
-    pub fn count(&self, item: Item) -> u32 {
-        match self.get(&item) {
+    pub fn count(&self, item: &Item) -> u32 {
+        match self.get(item) {
             Some(value) => value,
             None => 0
         }
     }
 
-    pub fn drop(&mut self, item: Item, count: u32) -> bool {
-        let idx = self.get_idx(&item);
+    pub fn drop(&mut self, item: &Item, amount: u32) -> bool {
+        let idx = self.get_idx(item);
         match idx {
             None => panic!("you dont have enough to drop"),
             Some(i) => {
-                if self.items[i].1 < count {
+                if self.items[i].1 < amount {
                     panic!("you dont have enough to drop");
                 } else {
-                    self.items[i].1 -= count;
+                    self.items[i].1 -= amount;
                 }
                 true
             }

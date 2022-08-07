@@ -2,8 +2,7 @@ use crate::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
 use crate::material::materials;
-use crate::crafting::item_by_name;
-use crate::items::{Item, possible_items, Storable};
+use crate::items::{Item, item_by_name, possible_items, Storable};
 
 
 pub struct Player<'a> {
@@ -13,7 +12,7 @@ pub struct Player<'a> {
     inventory: Inventory<'a>,
 }
 
-impl Player<'_> {
+impl<'a> Player<'a> {
     pub fn new() -> Self {
         Self {
             x: 4,
@@ -35,7 +34,7 @@ impl Player<'_> {
                 Some(i) => i,
                 None => Item::from_material(mat)
             };
-            self.inventory.pickup(mined_item);
+            self.inventory.pickup(mined_item, 1);
             tile.blocks[tile.top] = Block { material: &materials::AIR };
             tile.top -= 1;
         }
@@ -50,7 +49,7 @@ impl Player<'_> {
             Some(i) => i,
             None => Item::from_material(material)
         };
-        if self.inventory.drop(mined_item, 1) {
+        if self.inventory.drop(&mined_item, 1) {
             tile.top += 1;
             tile.blocks[tile.top] = placement_block;
             println!("{} placed", material.name);
@@ -61,33 +60,33 @@ impl Player<'_> {
 
     pub fn walk(&mut self, direction: &str) {
         match direction {
-            "n" => self.x -= 1,
-            "e" => self.y += 1,
+            "w" => self.x -= 1,
+            "a" => self.y -= 1,
             "s" => self.x += 1,
-            "w" => self.y -= 1,
+            "d" => self.y += 1,
             _ => println!("unknown direction")
         }
     }
 
-    // // memory leak on this 'static?
-    // fn can_craft(&self, item: &'static Box<dyn Storable>) -> bool {
-    //     let mut possible = true;
-    //     for (key, value) in item.craft_requirements() {
-    //         if self.inventory.count(&into_key(key)) < *value {
-    //             possible = false;
-    //             break
-    //         }
-    //     }
-    //     possible
-    // }
-    //
-    // fn craft(&mut self, item: &'static Box<dyn Storable>) -> &'static Box<dyn Storable> {
-    //     assert!(self.can_craft(item));
-    //     for (key, value) in item.craft_requirements() {
-    //         self.inventory.drop(into_key(key), *value);
-    //     }
-    //     item
-    // }
+    pub fn can_craft(&self, item: &Item) -> bool {
+        let mut possible = true;
+        for (req, amount) in item.craft_requirements() {
+            if self.inventory.count(&req) < *amount {
+                possible = false;
+                break
+            }
+        }
+        possible && item.is_craftable()
+    }
+
+    pub fn craft(&mut self, item: Item<'a>) {
+        assert!(self.can_craft(&item));
+        for (req, amount) in item.craft_requirements() {
+            self.inventory.drop(req, *amount);
+        }
+        let craft_yield = item.craft_yield();
+        self.inventory.pickup(item, craft_yield)
+    }
 
     pub fn render_inventory(&self) {
         self.inventory.render();

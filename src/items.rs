@@ -1,7 +1,6 @@
 use std::fmt;
 use std::fmt::Display;
 use crate::block::Block;
-use crate::crafting::item_by_name;
 use crate::Material;
 
 pub trait Storable: Eq + Display {
@@ -9,6 +8,7 @@ pub trait Storable: Eq + Display {
     fn is_placeable(&self) -> bool;
     fn is_craftable(&self) -> bool;
     fn craft_requirements(&self) -> &[(&Item, u32)];
+    fn craft_yield(&self) -> u32;
 }
 
 #[derive(Clone)]
@@ -18,6 +18,7 @@ pub struct Item<'a> {
     is_craftable: bool,
     tool_type: &'a str,
     craft_requirements: &'a [(&'a Item<'a>, u32)],
+    craft_yield: u32,
 }
 
 impl Item<'_> {
@@ -27,7 +28,8 @@ impl Item<'_> {
             is_placeable: false,
             is_craftable: false,
             tool_type: "",
-            craft_requirements: &[]
+            craft_requirements: &[],
+            craft_yield: 0
         }
     }
     pub fn from_material(material: &'static Material) -> Self {
@@ -36,7 +38,8 @@ impl Item<'_> {
             is_placeable: true,
             is_craftable: false,
             tool_type: "",
-            craft_requirements: &[]
+            craft_requirements: &[],
+            craft_yield: 0,
         }
     }
 }
@@ -85,24 +88,41 @@ impl Storable for Item<'_> {
     fn craft_requirements(&self) -> &[(&Item, u32)] {
         &self.craft_requirements
     }
+    fn craft_yield(&self) -> u32 {
+        self.craft_yield
+    }
+}
+
+pub fn item_by_name<'a>(name: &str) -> Option<Item<'a>> {
+    // none means probably a block
+    match name {
+        "tree log" => Some(possible_items::TREE_LOG.clone()),
+        "plank" => Some(possible_items::PLANK.clone()),
+        "stick" => Some(possible_items::STICK.clone()),
+        "wooden pickaxe" => Some(possible_items::WOOD_PICKAXE.clone()),
+        _ => None
+    }
 }
 
 pub mod possible_items {
     use crate::items::Item;
+    use crate::materials;
 
-    pub static WOOD: Item = Item {
-        name: "wood",
+    pub static TREE_LOG: Item = Item {
+        name: materials::TREE_LOG.name,
         is_placeable: true,
         is_craftable: false,
         tool_type: "",
         craft_requirements: &[],
+        craft_yield: 0,
     };
     pub static PLANK: Item = Item {
-        name: "planks",
+        name: "plank",
         is_placeable: true,
         is_craftable: true,
         tool_type: "",
-        craft_requirements: &[(&WOOD, 1)],
+        craft_requirements: &[(&TREE_LOG, 1)],
+        craft_yield: 4,
     };
     pub static STICK: Item = Item {
         name: "stick",
@@ -110,12 +130,14 @@ pub mod possible_items {
         is_craftable: true,
         tool_type: "",
         craft_requirements: &[(&PLANK, 1)],
+        craft_yield: 2,
     };
     pub static WOOD_PICKAXE: Item = Item {
         name: "wooden pickaxe",
         is_placeable: false,
         is_craftable: true,
         tool_type: "pickaxe",
-        craft_requirements: &[(&PLANK, 3), (&STICK, 2)]
+        craft_requirements: &[(&PLANK, 3), (&STICK, 2)],
+        craft_yield: 1,
     };
 }
