@@ -1,7 +1,6 @@
-use crate::block::Block;
-use crate::material::materials;
 use crate::Player;
-use crate::tile::Tile;
+use crate::tile::{randomly_add, Tile};
+use rand::prelude::*;
 
 pub struct Field {
     pub tiles: Vec<Vec<Tile>>,
@@ -10,27 +9,16 @@ pub struct Field {
 
 impl Field {
     pub fn new() -> Self {
-        let tile = Tile {
-            blocks: vec![Block { material: &materials::BEDROCK },
-                         Block { material: &materials::STONE },
-                         Block { material: &materials::DIRT },
-                         Block { material: &materials::AIR },
-                         Block { material: &materials::AIR }],
-            top: 2,
-        };
-        let tree = Tile {
-            blocks: vec![Block { material: &materials::BEDROCK },
-                         Block { material: &materials::STONE },
-                         Block { material: &materials::DIRT },
-                         Block { material: &materials::TREE_LOG },
-                         Block { material: &materials::TREE_LOG }],
-            top: 4,
-        };
-        let mut field = Field{
-            tiles: vec![vec![tile; 10]; 10],
-        };
-        field.tiles[5][6] = tree;
-        field
+        let mut tiles = Vec::new();
+        for i in 0..10 {
+            tiles.push(Vec::new());
+            for j in 0..10 {
+                tiles[i].push(Self::gen_tile());
+            }
+        }
+        Self{
+            tiles
+        }
     }
     pub fn render(&self, player: &Player) {
         for i in 0..self.tiles.len() {
@@ -42,6 +30,18 @@ impl Field {
                 }
             }
             println!();
+        }
+    }
+
+    pub fn gen_tile() -> Tile {
+        let num: f32 = random();
+        match num {
+            _ if num < 0.95 => {
+                let mut t = Tile::make_dirt();
+                randomly_add(&mut t, &Tile::add_tree, 0.2);
+                t
+            },
+            _ => Tile::make_stone()
         }
     }
 }

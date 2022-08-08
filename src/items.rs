@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::Display;
-use crate::block::Block;
 use crate::Material;
 
 pub trait Storable: Eq + Display {

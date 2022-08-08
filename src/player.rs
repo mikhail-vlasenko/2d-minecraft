@@ -25,18 +25,17 @@ impl<'a> Player<'a> {
         let tile_x = (self.x + x) as usize;
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
-        if tile.blocks[tile.top].material == &materials::BEDROCK {
+        if tile.top().material == &materials::BEDROCK {
             println!("cannot mine bedrock");
         } else {
-            let mat = tile.blocks[tile.top].material;
+            let mat = tile.top().material;
             println!("{} mined", mat.name);
             let mined_item = match item_by_name(mat.name) {
                 Some(i) => i,
                 None => Item::from_material(mat)
             };
             self.inventory.pickup(mined_item, 1);
-            tile.blocks[tile.top] = Block { material: &materials::AIR };
-            tile.top -= 1;
+            tile.pop();
         }
     }
 
@@ -50,8 +49,7 @@ impl<'a> Player<'a> {
             None => Item::from_material(material)
         };
         if self.inventory.drop(&mined_item, 1) {
-            tile.top += 1;
-            tile.blocks[tile.top] = placement_block;
+            tile.push(placement_block);
             println!("{} placed", material.name);
         } else {
             println!("You do not have a block of {}", material.name);

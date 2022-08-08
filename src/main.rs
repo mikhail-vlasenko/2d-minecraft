@@ -13,7 +13,6 @@ mod material;
 mod player;
 mod inventory;
 mod items;
-mod lol;
 
 fn main() {
     let mut player = Player::new();
