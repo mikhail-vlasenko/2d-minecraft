@@ -26,7 +26,6 @@ impl Item {
         match self {
             Stick => &[(&M(Material::Plank), 1)],
             WoodenPickaxe => &[(&M(Material::Plank), 3), (&I(Stick), 2)],
-            _ => &[]
         }
     }
 
@@ -34,7 +33,6 @@ impl Item {
         match self {
             Stick => 2,
             WoodenPickaxe => 1,
-            _ => 0
         }
     }
 }

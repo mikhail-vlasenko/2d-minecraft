@@ -2,7 +2,6 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use crate::items::Item;
 use Material::*;
 use crate::Storable;
 use Storable::*;

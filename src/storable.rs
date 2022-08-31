@@ -42,12 +42,12 @@ impl TryFrom<String> for Storable {
     type Error = &'static str;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let mut res = Material::try_from(value.clone());
+        let res = Material::try_from(value.clone());
         match res {
             Ok(mat) => return Ok(M(mat)),
             _ => 0
         };
-        let mut res = Item::try_from(value.clone());
+        let res = Item::try_from(value.clone());
         match res {
             Ok(item) => return Ok(I(item)),
             _ => 0
