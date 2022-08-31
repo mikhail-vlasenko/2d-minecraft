@@ -2,81 +2,55 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use crate::items::{Item, Storable};
 
-#[derive(Clone, PartialEq, Hash)]
-pub struct Material<'a> {
-    pub name: &'a str,
-    pub category: &'a str,
-    pub display_symbol: &'a str,
+
+#[derive(PartialEq, Copy, Clone, Hash)]
+pub enum Material {
+    Dirt,
+    TreeLog,
+    Plank,
+    Stone,
+    Bedrock
 }
 
-impl Display for Material<'_> {
+pub enum MaterialCategory {
+    Stone,
+    Soil,
+    Wood
+}
+
+impl Material {
+    pub fn from_string(name: &str) -> Option<Material> {
+        use Material::*;
+        match name {
+            "dirt" => Some(Dirt),
+            "stone" => Some(Stone),
+            "tree log" => Some(TreeLog),
+            "bedrock" => Some(Bedrock),
+            "plank" => Some(Plank),
+            _ => None
+        }
+    }
+    pub fn glyph(&self) -> String {
+        use Material::*;
+        match self {
+            Dirt => String::from("d"),
+            Stone => String::from("s"),
+            TreeLog => String::from("T"),
+            Bedrock => String::from("b"),
+            Plank => String::from("w"),
+        }
+    }
+}
+
+impl Display for Material {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        use Material::*;
+        write!(f, "{}", match self {
+            Dirt => "dirt",
+            Stone => "stone",
+            TreeLog => "tree log",
+            Bedrock => "bedrock",
+            Plank => "plank",
+        })
     }
-}
-
-impl Material<'_> {
-    pub fn from_item(item: Item) -> Option<&Material> {
-        if item.is_placeable() {
-            for mat in materials::ALL {
-                if mat.name == item.name() {
-                    return Some(&mat);
-                }
-            }
-            None
-        } else {
-            None
-        }
-    }
-    pub fn from_string(name: &str) -> Option<&'static Material<'static>> {
-        for mat in materials::ALL {
-            if mat.name == name {
-                return Some(&mat);
-            }
-        }
-        None
-    }
-}
-
-
-
-pub mod materials {
-    use crate::Material;
-
-    pub static AIR: Material = Material {
-        name: "air",
-        category: "air",
-        display_symbol: " ",
-    };
-
-    pub static DIRT: Material = Material {
-        name: "dirt",
-        category: "soil",
-        display_symbol: "d",
-    };
-
-    pub static TREE_LOG: Material = Material {
-        name: "tree log",
-        category: "wood",
-        display_symbol: "T",
-    };
-
-    pub static PLANK: Material = Material {
-        name: "plank",
-        category: "wood",
-        display_symbol: "W",
-    };
-
-    pub static STONE: Material = Material {
-        name: "stone",
-        category: "stone",
-        display_symbol: "s",
-    };
-
-    pub static BEDROCK: Material = Material {
-        name: "bedrock",
-        category: "stone",
-        display_symbol: "b",
-    };
-    pub static ALL: [&Material; 6] = [&AIR, &DIRT, &TREE_LOG, &PLANK, &STONE, &BEDROCK];
 }

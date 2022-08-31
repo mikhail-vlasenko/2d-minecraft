@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
 use crate::block::Block;
-use crate::materials::*;
+use crate::Material::*;
 
 #[derive(Clone)]
 pub struct Tile {
@@ -10,7 +10,7 @@ pub struct Tile {
 
 impl Display for Tile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.blocks.last().unwrap().material.display_symbol)
+        write!(f, "{}", self.blocks.last().unwrap().material.glyph())
     }
 }
 
@@ -26,22 +26,22 @@ impl Tile {
     }
     pub fn make_dirt() -> Tile {
         return Tile {
-            blocks: vec![Block { material: &BEDROCK },
-                         Block { material: &STONE },
-                         Block { material: &DIRT }],
+            blocks: vec![Block { material: Bedrock },
+                         Block { material: Stone },
+                         Block { material: Dirt }],
         };
     }
     pub fn make_stone() -> Tile {
         return Tile {
-            blocks: vec![Block { material: &BEDROCK },
-                         Block { material: &STONE },
-                         Block { material: &STONE }],
+            blocks: vec![Block { material: Bedrock },
+                         Block { material: Stone },
+                         Block { material: Stone }],
         };
     }
     pub fn add_tree(tile: &mut Tile) {
-        if tile.top().material == &DIRT {
-            tile.blocks.push(Block { material: &TREE_LOG });
-            tile.blocks.push(Block { material: &TREE_LOG });
+        if tile.top().material == Dirt {
+            tile.blocks.push(Block { material: TreeLog });
+            tile.blocks.push(Block { material: TreeLog });
         }
     }
 }

@@ -44,4 +44,7 @@ impl Field {
             _ => Tile::make_stone()
         }
     }
+    pub fn extend(&mut self) {
+
+    }
 }

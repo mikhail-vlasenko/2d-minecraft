@@ -3,7 +3,7 @@ extern crate core;
 
 use crate::field::Field;
 use crate::items::item_by_name;
-use crate::material::{Material, materials};
+use crate::material::Material;
 use crate::player::Player;
 
 mod field;

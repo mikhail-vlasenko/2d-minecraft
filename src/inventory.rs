@@ -2,11 +2,11 @@ use std::fmt::Display;
 use crate::items::{Item};
 
 
-pub struct Inventory<'a> {
-    items: Vec<(Item<'a>, u32)>
+pub struct Inventory {
+    items: Vec<(Item, u32)>
 }
 
-impl<'a> Inventory<'a> {
+impl Inventory {
     pub fn new() -> Self {
         Self {
             items: Vec::new()
@@ -31,7 +31,7 @@ impl<'a> Inventory<'a> {
         None
     }
 
-    pub fn pickup(&mut self, item: Item<'a>, amount: u32) {
+    pub fn pickup(&mut self, item: Item, amount: u32) {
         let idx = self.get_idx(&item);
         match idx {
             None => self.items.push((item, amount)),
@@ -71,7 +71,9 @@ impl<'a> Inventory<'a> {
     pub fn render(&self) {
         println!("You have: ");
         for item in self.items.iter() {
-            println!("{}: {}", item.0, item.1);
+            if item.1 != 0 {
+                println!("{}: {}", item.0, item.1);
+            }
         }
     }
 }

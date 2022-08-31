@@ -1,18 +1,18 @@
 use crate::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
-use crate::material::materials;
-use crate::items::{Item, item_by_name, possible_items, Storable};
+use crate::material::Material::*;
+use crate::items::{Item, item_by_name, Storable};
 
 
-pub struct Player<'a> {
+pub struct Player {
     pub x: i32,
     pub y: i32,
     pub z: i32,
-    inventory: Inventory<'a>,
+    inventory: Inventory,
 }
 
-impl<'a> Player<'a> {
+impl Player {
     pub fn new() -> Self {
         Self {
             x: 4,
@@ -25,34 +25,34 @@ impl<'a> Player<'a> {
         let tile_x = (self.x + x) as usize;
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
-        if tile.top().material == &materials::BEDROCK {
+        if tile.top().material == Bedrock {
             println!("cannot mine bedrock");
         } else {
             let mat = tile.top().material;
-            println!("{} mined", mat.name);
-            let mined_item = match item_by_name(mat.name) {
+            println!("{} mined", mat.to_string());
+            let mined_item = match item_by_name(mat.to_string().as_str()) {
                 Some(i) => i,
-                None => Item::from_material(mat)
+                None => Item::try_from(mat).unwrap()
             };
             self.inventory.pickup(mined_item, 1);
             tile.pop();
         }
     }
 
-    pub fn place(&mut self, field: &mut Field, x: i32, y: i32, material: &'static Material) {
+    pub fn place(&mut self, field: &mut Field, x: i32, y: i32, material: Material) {
         let tile_x = (self.x + x) as usize;
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
-        let placement_block = Block { material: &material };
-        let mined_item = match item_by_name(material.name) {
+        let placement_block = Block { material };
+        let mined_item = match item_by_name(material.to_string().as_str()) {
             Some(i) => i,
-            None => Item::from_material(material)
+            None => Item::try_from(material).unwrap()
         };
         if self.inventory.drop(&mined_item, 1) {
             tile.push(placement_block);
-            println!("{} placed", material.name);
+            println!("{} placed", material.to_string());
         } else {
-            println!("You do not have a block of {}", material.name);
+            println!("You do not have a block of {}", material.to_string());
         }
     }
 
@@ -77,7 +77,7 @@ impl<'a> Player<'a> {
         possible && item.is_craftable()
     }
 
-    pub fn craft(&mut self, item: Item<'a>) {
+    pub fn craft(&mut self, item: Item) {
         assert!(self.can_craft(&item));
         for (req, amount) in item.craft_requirements() {
             self.inventory.drop(req, *amount);

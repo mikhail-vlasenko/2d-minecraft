@@ -5,7 +5,7 @@ use crate::material::Material;
 
 #[derive(Clone, Hash)]
 pub struct Block {
-    pub material: &'static Material<'static>,
+    pub material: Material,
 }
 
 
@@ -18,7 +18,7 @@ impl Display for Block {
 
 impl PartialEq<Self> for Block {
     fn eq(&self, other: &Self) -> bool {
-        self.material.name == other.material.name
+        self.material == other.material
     }
 }
 
