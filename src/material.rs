@@ -1,9 +1,14 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use crate::items::{Item, Storable};
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+use crate::items::Item;
+use Material::*;
+use crate::Storable;
+use Storable::*;
 
 
-#[derive(PartialEq, Copy, Clone, Hash)]
+#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
 pub enum Material {
     Dirt,
     TreeLog,
@@ -19,17 +24,16 @@ pub enum MaterialCategory {
 }
 
 impl Material {
-    pub fn from_string(name: &str) -> Option<Material> {
-        use Material::*;
-        match name {
-            "dirt" => Some(Dirt),
-            "stone" => Some(Stone),
-            "tree log" => Some(TreeLog),
-            "bedrock" => Some(Bedrock),
-            "plank" => Some(Plank),
-            _ => None
+    pub fn name(&self) -> &str {
+        match self {
+            Dirt => "dirt",
+            Stone => "stone",
+            TreeLog => "tree log",
+            Bedrock => "bedrock",
+            Plank => "plank",
         }
     }
+
     pub fn glyph(&self) -> String {
         use Material::*;
         match self {
@@ -40,17 +44,37 @@ impl Material {
             Plank => String::from("w"),
         }
     }
+
+    pub fn craft_requirements(&self) -> &[(&Storable, u32)] {
+        match self {
+            Plank => &[(&M(TreeLog), 1)],
+            _ => &[]
+        }
+    }
+
+    pub fn craft_yield(&self) -> u32 {
+        match self {
+            Plank => 4,
+            _ => 0
+        }
+    }
+}
+
+impl TryFrom<String> for Material {
+    type Error = &'static str;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        for m in Material::iter() {
+            if m.name() == value {
+                return Ok(m)
+            }
+        }
+        return Err("unknown material")
+    }
 }
 
 impl Display for Material {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        use Material::*;
-        write!(f, "{}", match self {
-            Dirt => "dirt",
-            Stone => "stone",
-            TreeLog => "tree log",
-            Bedrock => "bedrock",
-            Plank => "plank",
-        })
+        write!(f, "{}", self.name())
     }
 }

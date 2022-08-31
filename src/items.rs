@@ -1,13 +1,15 @@
 use std::fmt;
 use std::fmt::Display;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 use crate::items::Item::*;
 use crate::Material;
+use crate::storable::Storable;
+use Storable::*;
 
 
-#[derive(PartialEq, Copy, Clone, Hash)]
+#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
 pub enum Item {
-    TreeLog,
-    Plank,
     Stick,
     WoodenPickaxe
 }
@@ -15,53 +17,38 @@ pub enum Item {
 impl Item {
     pub fn name(&self) -> &str {
         match self {
-            TreeLog => "tree log",
-            Plank => "plank",
             Stick => "stick",
             WoodenPickaxe => "wooden pickaxe"
         }
     }
 
-    pub fn is_placeable(&self) -> bool {
+    pub fn craft_requirements(&self) -> &[(&Storable, u32)] {
         match self {
-            TreeLog => true,
-            Plank => true,
-            _ => false
-        }
-    }
-
-    pub fn craft_requirements(&self) -> &[(&Item, u32)] {
-        match self {
-            Plank => &[(&TreeLog, 1)],
-            Stick => &[(&Plank, 1)],
-            WoodenPickaxe => &[(&Plank, 3), (&Stick, 2)],
+            Stick => &[(&M(Material::Plank), 1)],
+            WoodenPickaxe => &[(&M(Material::Plank), 3), (&I(Stick), 2)],
             _ => &[]
         }
     }
 
     pub fn craft_yield(&self) -> u32 {
         match self {
-            Plank => 4,
             Stick => 2,
             WoodenPickaxe => 1,
             _ => 0
         }
     }
-
-    pub fn is_craftable(&self) -> bool {
-        self.craft_yield() > 0
-    }
 }
 
-impl TryFrom<Material> for Item {
+impl TryFrom<String> for Item {
     type Error = &'static str;
 
-    fn try_from(value: Material) -> Result<Self, Self::Error> {
-        match value {
-            Material::TreeLog => Ok(TreeLog),
-            Material::Plank => Ok(Plank),
-            _ => Err("no corresponding item for the material")
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        for i in Item::iter() {
+            if i.name() == value {
+                return Ok(i)
+            }
         }
+        return Err("unknown item")
     }
 }
 
@@ -71,13 +58,3 @@ impl Display for Item {
     }
 }
 
-pub fn item_by_name(name: &str) -> Option<Item> {
-    // none means probably a block
-    match name {
-        "tree log" => Some(TreeLog),
-        "plank" => Some(Plank),
-        "stick" => Some(Stick),
-        "wooden pickaxe" => Some(WoodenPickaxe),
-        _ => None
-    }
-}

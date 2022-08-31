@@ -2,9 +2,9 @@
 extern crate core;
 
 use crate::field::Field;
-use crate::items::item_by_name;
 use crate::material::Material;
 use crate::player::Player;
+use crate::storable::Storable;
 
 mod field;
 mod tile;
@@ -13,6 +13,7 @@ mod material;
 mod player;
 mod inventory;
 mod items;
+mod storable;
 
 fn main() {
     let mut player = Player::new();
@@ -40,19 +41,20 @@ fn main() {
                 let x: i32 = read!();
                 let y: i32 = read!();
                 let material_string: String = read!();
-                let material = Material::from_string(&material_string);
+                // only try material, cause we want to place it
+                let material = Material::try_from(material_string);
                 match material {
-                    None => println!("unrecognized material"),
-                    Some(material) => player.place(&mut field, x, y, material)
+                    Err(_) => println!("unrecognized material"),
+                    Ok(material) => player.place(&mut field, x, y, material)
                 }
             },
             "c" => {
                 println!("input the item to craft");
                 let item_string: String = read!("{}\n");
-                let inferred_item = item_by_name(&item_string);
+                let inferred_item = Storable::try_from(item_string);
                 match inferred_item {
-                    None => println!("unknown item (material != item)"),
-                    Some(item) => {
+                    Err(_) => println!("unknown item (material != item)"),
+                    Ok(item) => {
                         if !player.can_craft(&item) {
                             println!("you cannot craft that")
                         } else {
