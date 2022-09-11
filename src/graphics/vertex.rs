@@ -1,3 +1,5 @@
+use crate::graphics::state::DISP_COEF;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
@@ -19,7 +21,7 @@ impl Vertex {
                 wgpu::VertexAttribute {
                     offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
                     shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x2, // NEW!
+                    format: wgpu::VertexFormat::Float32x2,
                 },
             ],
         }
@@ -36,4 +38,12 @@ pub const VERTICES: &[Vertex] = &[
 pub const INDICES: &[u16] = &[
     0, 1, 2,
     2, 3, 0,
+];
+
+pub const PLAYER_VERTICES: &[Vertex] = &[
+    // player square, always in one place
+    Vertex { position: [0.0 + DISP_COEF, 0.0 + DISP_COEF, 0.0], tex_coords: [0.0, 1.0], },
+    Vertex { position: [1.0 - DISP_COEF, 0.0 + DISP_COEF, 0.0], tex_coords: [1.0, 1.0], },
+    Vertex { position: [1.0 - DISP_COEF, 1.0 - DISP_COEF, 0.0], tex_coords: [1.0, 0.0], },
+    Vertex { position: [0.0 + DISP_COEF, 1.0 - DISP_COEF, 0.0], tex_coords: [0.0, 0.0], },
 ];

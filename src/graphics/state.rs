@@ -1,7 +1,6 @@
 use std::iter;
-use std::ops::Range;
 use cgmath::{InnerSpace, Rotation3, Zero};
-use wgpu::{BindGroup, BindGroupLayout, Device, include_wgsl, Queue, RenderPass};
+use wgpu::{BindGroup, BindGroupLayout, include_wgsl, RenderPass};
 use wgpu::util::DeviceExt;
 
 
@@ -14,13 +13,13 @@ use winit::dpi::PhysicalSize;
 use crate::{Field, Player};
 use crate::graphics::instance::*;
 use crate::graphics::texture::Texture;
-use crate::graphics::vertex::{INDICES, Vertex, VERTICES};
+use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::material::Material;
 
 
-const TILES_PER_ROW: u32 = 5;
-const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
-const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
+pub const TILES_PER_ROW: u32 = 9;
+pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
+pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
     -1.0,
     0.0,
@@ -31,10 +30,11 @@ pub struct State {
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
-    size: winit::dpi::PhysicalSize<u32>,
+    size: PhysicalSize<u32>,
     clear_color: wgpu::Color,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
+    player_vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
     instances: Vec<Instance>,
@@ -42,6 +42,7 @@ pub struct State {
     grass_bind_group: BindGroup,
     stone_bind_group: BindGroup,
     tree_log_bind_group: BindGroup,
+    player_bind_group: BindGroup,
     field: Field,
     player: Player,
 }
@@ -106,23 +107,27 @@ impl State {
 
         let grass_bytes = include_bytes!("../../res/mc_grass.png");
         let grass_texture = Texture::from_bytes(&device, &queue, grass_bytes, "mc_grass.png").unwrap();
-
         let grass_bind_group = State::make_bind_group(
             "grass_bind_group", &grass_texture, &device, &texture_bind_group_layout
         );
 
         let stone_bytes = include_bytes!("../../res/mc_stone.png");
         let stone_texture = Texture::from_bytes(&device, &queue, stone_bytes, "mc_stone.png").unwrap();
-
         let stone_bind_group = State::make_bind_group(
             "stone_bind_group", &stone_texture, &device, &texture_bind_group_layout
         );
 
         let tree_log_bytes = include_bytes!("../../res/mc_tree_log.png");
         let tree_log_texture = Texture::from_bytes(&device, &queue, tree_log_bytes, "mc_tree_log.png").unwrap();
-
         let tree_log_bind_group = State::make_bind_group(
             "tree_log_bind_group", &tree_log_texture, &device, &texture_bind_group_layout
+        );
+
+        let player_texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png"
+        ).unwrap();
+        let player_bind_group = State::make_bind_group(
+            "player_bind_group", &player_texture, &device, &texture_bind_group_layout
         );
 
         let instances = (0..TILES_PER_ROW).flat_map(|y| {
@@ -209,6 +214,14 @@ impl State {
             }
         );
 
+        let player_vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Player Buffer"),
+                contents: bytemuck::cast_slice(PLAYER_VERTICES),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+
         let index_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Index Buffer"),
@@ -246,8 +259,10 @@ impl State {
             grass_bind_group,
             stone_bind_group,
             tree_log_bind_group,
+            player_bind_group,
             field,
             player,
+            player_vertex_buffer,
         }
     }
 
@@ -256,7 +271,7 @@ impl State {
     }
 
     fn make_bind_group(
-        label: &str, texture: &Texture, device: &Device, texture_bind_group_layout: &BindGroupLayout
+        label: &str, texture: &Texture, device: &wgpu::Device, texture_bind_group_layout: &BindGroupLayout
     ) -> BindGroup {
         device.create_bind_group(
             &wgpu::BindGroupDescriptor {
@@ -276,7 +291,7 @@ impl State {
         )
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+    pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
             self.config.width = new_size.width;
@@ -346,16 +361,10 @@ impl State {
 
             self.render_field(&mut render_pass);
 
-            // render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
-            // render_pass.draw_indexed(0..self.num_indices, 0, 4..6);
-            //
-            //
-            // render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
-            // render_pass.draw_indexed(0..self.num_indices, 0, 24..25);
-            //
-            // render_pass.set_bind_group(0, &self.tree_log_bind_group, &[]);
-            // render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
-            // render_pass.draw_indexed(0..self.num_indices, 0, 21..23);
+            render_pass.set_vertex_buffer(0, self.player_vertex_buffer.slice(..));
+            render_pass.set_bind_group(0, &self.player_bind_group, &[]);
+            let idx = State::convert_index(0, 0);
+            render_pass.draw_indexed(0..self.num_indices, 0, idx..idx+1);
         }
 
         self.queue.submit(iter::once(encoder.finish()));
