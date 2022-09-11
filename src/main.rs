@@ -18,6 +18,7 @@ mod items;
 mod storable;
 mod graphics;
 mod cli_event_loop;
+mod input_decoding;
 
 
 fn main() {

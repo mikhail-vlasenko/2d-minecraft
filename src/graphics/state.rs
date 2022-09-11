@@ -14,10 +14,11 @@ use crate::{Field, Player};
 use crate::graphics::instance::*;
 use crate::graphics::texture::Texture;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
+use crate::input_decoding::act;
 use crate::material::Material;
 
 
-pub const TILES_PER_ROW: u32 = 9;
+pub const TILES_PER_ROW: u32 = 11;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
 pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
@@ -239,7 +240,7 @@ impl State {
             a: 1.0,
         };
 
-        let player = Player::new();
+        let player = Player::new(25, 25);
         let field = Field::new();
         field.render(&player);
 
@@ -314,12 +315,12 @@ impl State {
             WindowEvent::KeyboardInput {
                 input: KeyboardInput{
                     state: ElementState::Pressed,
-                    virtual_keycode: Some(VirtualKeyCode::Space),
+                    virtual_keycode,
                     ..
                 },
                 ..
             } => {
-                println!("space pressed");
+                act(virtual_keycode, &mut self.player);
                 true
             }
             _ => false,

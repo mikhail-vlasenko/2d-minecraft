@@ -9,10 +9,11 @@ pub struct Field {
 
 impl Field {
     pub fn new() -> Self {
+        let init_size = 50;
         let mut tiles = Vec::new();
-        for i in 0..10 {
+        for i in 0..init_size {
             tiles.push(Vec::new());
-            for j in 0..10 {
+            for j in 0..init_size {
                 tiles[i].push(Self::gen_tile());
             }
         }

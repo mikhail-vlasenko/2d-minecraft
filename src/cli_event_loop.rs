@@ -2,7 +2,7 @@ use crate::{Field, Material, Player, Storable};
 
 
 pub fn cli_event_loop() {
-    let mut player = Player::new();
+    let mut player = Player::new(25, 25);
     let mut field = Field::new();
     loop {
         field.render(&player);

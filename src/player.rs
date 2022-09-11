@@ -13,10 +13,10 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new() -> Self {
+    pub fn new(x: i32, y: i32) -> Self {
         Self {
-            x: 4,
-            y: 4,
+            x,
+            y,
             z: 3,
             inventory: Inventory::new()
         }
