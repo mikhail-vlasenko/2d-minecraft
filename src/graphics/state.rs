@@ -9,12 +9,14 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
+use winit::dpi::PhysicalSize;
+use crate::{Field, Player};
 use crate::graphics::texture;
 use crate::graphics::instance::*;
 use crate::graphics::vertex::{INDICES, Vertex, VERTICES};
 
 
-const NUM_INSTANCES_PER_ROW: u32 = 15;
+const NUM_INSTANCES_PER_ROW: u32 = 5;
 const DISP_COEF: f32 = 2.0 / NUM_INSTANCES_PER_ROW as f32;
 const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
@@ -22,7 +24,7 @@ const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     0.0,
 );
 
-struct State {
+pub struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -37,14 +39,15 @@ struct State {
     instance_buffer: wgpu::Buffer,
     diffuse_bind_group: wgpu::BindGroup,
     diffuse_texture: texture::Texture,
-    grass_bind_group: wgpu::BindGroup,
-    grass_texture: texture::Texture,
-    is_space_pressed: bool,
+    stone_bind_group: wgpu::BindGroup,
+    stone_texture: texture::Texture,
+    field: Field,
+    player: Player,
 }
 
 impl State {
     // Creating some of the wgpu types requires async code
-    async fn new(window: &Window) -> Self {
+    pub async fn new(window: &Window) -> Self {
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -120,20 +123,20 @@ impl State {
             }
         );
 
-        let grass_bytes = include_bytes!("../../res/mc_stone.png");
-        let grass_texture = texture::Texture::from_bytes(&device, &queue, grass_bytes, "mc_stone.png").unwrap();
+        let stone_bytes = include_bytes!("../../res/mc_stone.png");
+        let stone_texture = texture::Texture::from_bytes(&device, &queue, stone_bytes, "mc_stone.png").unwrap();
 
-        let grass_bind_group = device.create_bind_group(
+        let stone_bind_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
                 layout: &texture_bind_group_layout,
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&grass_texture.view),
+                        resource: wgpu::BindingResource::TextureView(&stone_texture.view),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&grass_texture.sampler),
+                        resource: wgpu::BindingResource::Sampler(&stone_texture.sampler),
                     }
                 ],
                 label: Some("grass_bind_group"),
@@ -240,6 +243,10 @@ impl State {
             b: 0.3,
             a: 1.0,
         };
+
+        let player = Player::new();
+        let field = Field::new();
+
         Self {
             surface,
             device,
@@ -255,13 +262,18 @@ impl State {
             instance_buffer,
             diffuse_bind_group,
             diffuse_texture,
-            grass_bind_group,
-            grass_texture,
-            is_space_pressed: false,
+            stone_bind_group,
+            stone_texture,
+            field,
+            player,
         }
     }
 
-    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+    pub fn get_size(&self) -> PhysicalSize<u32> {
+        self.size
+    }
+
+    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
             self.config.width = new_size.width;
@@ -270,7 +282,7 @@ impl State {
         }
     }
 
-    fn input(&mut self, event: &WindowEvent) -> bool {
+    pub fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
             WindowEvent::CursorMoved { position, .. } => {
                 self.clear_color = wgpu::Color {
@@ -283,13 +295,13 @@ impl State {
             }
             WindowEvent::KeyboardInput {
                 input: KeyboardInput{
-                    state,
+                    state: ElementState::Pressed,
                     virtual_keycode: Some(VirtualKeyCode::Space),
                     ..
                 },
                 ..
             } => {
-                self.is_space_pressed = *state == ElementState::Pressed;
+                println!("space pressed");
                 true
             }
             _ => false,
@@ -325,11 +337,7 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            if self.is_space_pressed {
-                render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
-            } else {
-                render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
-            }
+            render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
@@ -341,59 +349,4 @@ impl State {
 
         Ok(())
     }
-}
-
-pub async fn run() {
-    env_logger::init();
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
-
-    let mut state = State::new(&window).await;
-
-    event_loop.run(move |event, _, control_flow| {
-        match event {
-            Event::WindowEvent {
-                ref event,
-                window_id,
-            } if window_id == window.id() => if !state.input(event) { // UPDATED!
-                match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
-                        input:
-                        KeyboardInput {
-                            state: ElementState::Pressed,
-                            virtual_keycode: Some(VirtualKeyCode::Escape),
-                            ..
-                        },
-                        ..
-                    } => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(physical_size) => {
-                        state.resize(*physical_size);
-                    }
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        state.resize(**new_inner_size);
-                    }
-                    _ => {}
-                }
-            }
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                state.update();
-                match state.render() {
-                    Ok(_) => {}
-                    // Reconfigure the surface if lost
-                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                    // The system is out of memory, we should probably quit
-                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                    // All other errors (Outdated, Timeout) should be resolved by the next frame
-                    Err(e) => eprintln!("{:?}", e),
-                }
-            }
-            Event::MainEventsCleared => {
-                // RedrawRequested will only trigger once, unless we manually
-                // request it.
-                window.request_redraw();
-            }
-            _ => {}
-        }
-    });
 }
