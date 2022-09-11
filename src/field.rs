@@ -1,4 +1,4 @@
-use crate::Player;
+use crate::{Material, Player};
 use crate::tile::{randomly_add, Tile};
 use rand::prelude::*;
 
@@ -31,6 +31,32 @@ impl Field {
             }
             println!();
         }
+    }
+
+
+    /// Makes a list of positions of blocks of given material around the player.
+    /// Useful for rendering if blocks of same type are rendered simultaneously.
+    /// Positions are centered on the player.
+    /// [positive, positive] is bottom right.
+    /// first coord is vertical.
+    ///
+    /// # Arguments
+    ///
+    /// * `player`: the player
+    /// * `material`: index only blocks of this material
+    /// * `radius`: how far field from player is included
+    ///
+    /// returns: ()
+    pub fn texture_indices(&self, player: &Player, material: Material, radius: usize) -> Vec<(i32, i32)> {
+        let mut res: Vec<(i32, i32)> = Vec::new();
+        for i in (player.x as usize - radius)..=(player.x as usize + radius) {
+            for j in (player.y as usize - radius)..=(player.y as usize + radius) {
+                if self.tiles[i][j].top().material == material {
+                    res.push((i as i32 - player.x, j as i32 - player.y));
+                }
+            }
+        }
+        res
     }
 
     pub fn gen_tile() -> Tile {

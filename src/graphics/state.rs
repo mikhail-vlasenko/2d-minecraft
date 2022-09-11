@@ -15,10 +15,11 @@ use crate::{Field, Player};
 use crate::graphics::instance::*;
 use crate::graphics::texture::Texture;
 use crate::graphics::vertex::{INDICES, Vertex, VERTICES};
+use crate::material::Material;
 
 
-const NUM_INSTANCES_PER_ROW: u32 = 5;
-const DISP_COEF: f32 = 2.0 / NUM_INSTANCES_PER_ROW as f32;
+const TILES_PER_ROW: u32 = 5;
+const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
 const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
     -1.0,
@@ -124,8 +125,8 @@ impl State {
             "tree_log_bind_group", &tree_log_texture, &device, &texture_bind_group_layout
         );
 
-        let instances = (0..NUM_INSTANCES_PER_ROW).flat_map(|y| {
-            (0..NUM_INSTANCES_PER_ROW).map(move |x| {
+        let instances = (0..TILES_PER_ROW).flat_map(|y| {
+            (0..TILES_PER_ROW).map(move |x| {
                 let position =
                     cgmath::Vector3 { x: x as f32 * DISP_COEF, y: y as f32 * DISP_COEF, z: 0.0 }
                         + INITIAL_POS;
@@ -227,6 +228,7 @@ impl State {
 
         let player = Player::new();
         let field = Field::new();
+        field.render(&player);
 
         Self {
             surface,
@@ -342,16 +344,18 @@ impl State {
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-            render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
-            render_pass.draw_indexed(0..self.num_indices, 0, 4..6);
+            self.render_field(&mut render_pass);
 
-
-            render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
-            render_pass.draw_indexed(0..self.num_indices, 0, 24..25);
-
-            render_pass.set_bind_group(0, &self.tree_log_bind_group, &[]);
-            render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
-            render_pass.draw_indexed(0..self.num_indices, 0, 21..23);
+            // render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
+            // render_pass.draw_indexed(0..self.num_indices, 0, 4..6);
+            //
+            //
+            // render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
+            // render_pass.draw_indexed(0..self.num_indices, 0, 24..25);
+            //
+            // render_pass.set_bind_group(0, &self.tree_log_bind_group, &[]);
+            // render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
+            // render_pass.draw_indexed(0..self.num_indices, 0, 21..23);
         }
 
         self.queue.submit(iter::once(encoder.finish()));
@@ -360,7 +364,33 @@ impl State {
         Ok(())
     }
 
-    fn render_field(&self, render_pass: &RenderPass) {
+    fn convert_index(x: i32, y: i32) -> u32 {
+        let radius = (TILES_PER_ROW - 1) / 2;
+        (y + radius as i32) as u32 * TILES_PER_ROW + (x + radius as i32) as u32
+    }
 
+    fn draw_at_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass) {
+        for pos in indices {
+            // Here we want x to be horizontal, like mathematical coords
+            // Also, second component should be greater when higher (so negate it)
+            let idx = State::convert_index(pos.1, -pos.0);
+            render_pass.draw_indexed(0..self.num_indices, 0, idx..idx+1);
+        }
+    }
+
+    fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        let radius = (TILES_PER_ROW - 1) / 2;
+
+        render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
+        let grass = self.field.texture_indices(&self.player, Material::Dirt, radius as usize);
+        self.draw_at_indices(grass, &mut *render_pass);
+
+        render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
+        let stone = self.field.texture_indices(&self.player, Material::Stone, radius as usize);
+        self.draw_at_indices(stone, &mut *render_pass);
+
+        render_pass.set_bind_group(0, &self.tree_log_bind_group, &[]);
+        let tree = self.field.texture_indices(&self.player, Material::TreeLog, radius as usize);
+        self.draw_at_indices(tree, &mut *render_pass);
     }
 }
