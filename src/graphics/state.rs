@@ -1,6 +1,7 @@
 use std::iter;
+use std::ops::Range;
 use cgmath::{InnerSpace, Rotation3, Zero};
-use wgpu::{include_wgsl};
+use wgpu::{BindGroup, BindGroupLayout, Device, include_wgsl, Queue};
 use wgpu::util::DeviceExt;
 
 
@@ -11,8 +12,8 @@ use winit::{
 };
 use winit::dpi::PhysicalSize;
 use crate::{Field, Player};
-use crate::graphics::texture;
 use crate::graphics::instance::*;
+use crate::graphics::texture::Texture;
 use crate::graphics::vertex::{INDICES, Vertex, VERTICES};
 
 
@@ -37,10 +38,9 @@ pub struct State {
     num_indices: u32,
     instances: Vec<Instance>,
     instance_buffer: wgpu::Buffer,
-    diffuse_bind_group: wgpu::BindGroup,
-    diffuse_texture: texture::Texture,
-    stone_bind_group: wgpu::BindGroup,
-    stone_texture: texture::Texture,
+    grass_bind_group: BindGroup,
+    stone_bind_group: BindGroup,
+    tree_log_bind_group: BindGroup,
     field: Field,
     player: Player,
 }
@@ -103,44 +103,25 @@ impl State {
                 label: Some("texture_bind_group_layout"),
             });
 
-        let diffuse_bytes = include_bytes!("../../res/mc_grass.png");
-        let diffuse_texture = texture::Texture::from_bytes(&device, &queue, diffuse_bytes, "mc_grass.png").unwrap();
+        let grass_bytes = include_bytes!("../../res/mc_grass.png");
+        let grass_texture = Texture::from_bytes(&device, &queue, grass_bytes, "mc_grass.png").unwrap();
 
-        let diffuse_bind_group = device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                layout: &texture_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                    }
-                ],
-                label: Some("diffuse_bind_group"),
-            }
+        let grass_bind_group = State::make_bind_group(
+            "grass_bind_group", &grass_texture, &device, &texture_bind_group_layout
         );
 
         let stone_bytes = include_bytes!("../../res/mc_stone.png");
-        let stone_texture = texture::Texture::from_bytes(&device, &queue, stone_bytes, "mc_stone.png").unwrap();
+        let stone_texture = Texture::from_bytes(&device, &queue, stone_bytes, "mc_stone.png").unwrap();
 
-        let stone_bind_group = device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                layout: &texture_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&stone_texture.view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&stone_texture.sampler),
-                    }
-                ],
-                label: Some("grass_bind_group"),
-            }
+        let stone_bind_group = State::make_bind_group(
+            "stone_bind_group", &stone_texture, &device, &texture_bind_group_layout
+        );
+
+        let tree_log_bytes = include_bytes!("../../res/mc_tree_log.png");
+        let tree_log_texture = Texture::from_bytes(&device, &queue, tree_log_bytes, "mc_tree_log.png").unwrap();
+
+        let tree_log_bind_group = State::make_bind_group(
+            "tree_log_bind_group", &tree_log_texture, &device, &texture_bind_group_layout
         );
 
         let instances = (0..NUM_INSTANCES_PER_ROW).flat_map(|y| {
@@ -260,10 +241,9 @@ impl State {
             num_indices,
             instances,
             instance_buffer,
-            diffuse_bind_group,
-            diffuse_texture,
+            grass_bind_group,
             stone_bind_group,
-            stone_texture,
+            tree_log_bind_group,
             field,
             player,
         }
@@ -271,6 +251,27 @@ impl State {
 
     pub fn get_size(&self) -> PhysicalSize<u32> {
         self.size
+    }
+
+    fn make_bind_group(
+        label: &str, texture: &Texture, device: &Device, texture_bind_group_layout: &BindGroupLayout
+    ) -> BindGroup {
+        device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                layout: &texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&texture.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&texture.sampler),
+                    }
+                ],
+                label: Some(label),
+            }
+        )
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -337,11 +338,22 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..self.num_indices, 0, 0..self.instances.len() as _);
+
+            render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
+            render_pass.draw_indexed(0..self.num_indices, 0, 5..7);
+            render_pass.draw_indexed(0..self.num_indices, 0, 9..15);
+            render_pass.draw_indexed(0..self.num_indices, 0, 23..24);
+
+            render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
+            render_pass.draw_indexed(0..self.num_indices, 0, 1..4);
+            render_pass.draw_indexed(0..self.num_indices, 0, 16..20);
+
+            render_pass.set_bind_group(0, &self.tree_log_bind_group, &[]);
+            render_pass.draw_indexed(0..self.num_indices, 0, 4..5);
+            render_pass.draw_indexed(0..self.num_indices, 0, 21..23);
         }
 
         self.queue.submit(iter::once(encoder.finish()));
