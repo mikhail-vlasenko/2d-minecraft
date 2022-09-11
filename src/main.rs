@@ -5,6 +5,7 @@ use crate::field::Field;
 use crate::material::Material;
 use crate::player::Player;
 use crate::storable::Storable;
+use crate::graphics::state::run;
 
 mod field;
 mod tile;
@@ -14,8 +15,13 @@ mod player;
 mod inventory;
 mod items;
 mod storable;
+mod graphics;
+
+
 
 fn main() {
+    pollster::block_on(run());
+
     let mut player = Player::new();
     let mut field = Field::new();
     println!("Welcome to minecraft (very alpha version)");
