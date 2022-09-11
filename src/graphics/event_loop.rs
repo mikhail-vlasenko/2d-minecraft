@@ -6,12 +6,18 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::{WindowBuilder},
 };
+use winit::dpi::PhysicalSize;
 use crate::graphics::state::State;
+
+const INITIAL_SIZE: PhysicalSize<u32> = PhysicalSize { width: 1000, height: 1000 };
 
 pub async fn run() {
     env_logger::init();
     let event_loop = EventLoop::new();
-    let window = WindowBuilder::new().build(&event_loop).unwrap();
+    let window = WindowBuilder::new()
+        .with_inner_size(INITIAL_SIZE)
+        .build(&event_loop)
+        .unwrap();
 
     let mut state = State::new(&window).await;
 

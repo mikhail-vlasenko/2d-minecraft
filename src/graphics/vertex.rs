@@ -42,8 +42,8 @@ pub const INDICES: &[u16] = &[
 
 pub const PLAYER_VERTICES: &[Vertex] = &[
     // player square, always in one place
-    Vertex { position: [0.0 + DISP_COEF, 0.0 + DISP_COEF, 0.0], tex_coords: [0.0, 1.0], },
-    Vertex { position: [1.0 - DISP_COEF, 0.0 + DISP_COEF, 0.0], tex_coords: [1.0, 1.0], },
-    Vertex { position: [1.0 - DISP_COEF, 1.0 - DISP_COEF, 0.0], tex_coords: [1.0, 0.0], },
-    Vertex { position: [0.0 + DISP_COEF, 1.0 - DISP_COEF, 0.0], tex_coords: [0.0, 0.0], },
+    Vertex { position: [0.0, 0.0, 0.0], tex_coords: [0.0, 1.0], },
+    Vertex { position: [1.0, 0.0, 0.0], tex_coords: [1.0, 1.0], },
+    Vertex { position: [1.0, 1.0, 0.0], tex_coords: [1.0, 0.0], },
+    Vertex { position: [0.0, 1.0, 0.0], tex_coords: [0.0, 0.0], },
 ];
