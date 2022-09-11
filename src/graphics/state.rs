@@ -1,7 +1,7 @@
 use std::iter;
 use std::ops::Range;
 use cgmath::{InnerSpace, Rotation3, Zero};
-use wgpu::{BindGroup, BindGroupLayout, Device, include_wgsl, Queue};
+use wgpu::{BindGroup, BindGroupLayout, Device, include_wgsl, Queue, RenderPass};
 use wgpu::util::DeviceExt;
 
 
@@ -21,7 +21,7 @@ const NUM_INSTANCES_PER_ROW: u32 = 5;
 const DISP_COEF: f32 = 2.0 / NUM_INSTANCES_PER_ROW as f32;
 const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
-    -1.0 + DISP_COEF,
+    -1.0,
     0.0,
 );
 
@@ -343,16 +343,14 @@ impl State {
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
             render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
-            render_pass.draw_indexed(0..self.num_indices, 0, 5..7);
-            render_pass.draw_indexed(0..self.num_indices, 0, 9..15);
-            render_pass.draw_indexed(0..self.num_indices, 0, 23..24);
+            render_pass.draw_indexed(0..self.num_indices, 0, 4..6);
+
 
             render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
-            render_pass.draw_indexed(0..self.num_indices, 0, 1..4);
-            render_pass.draw_indexed(0..self.num_indices, 0, 16..20);
+            render_pass.draw_indexed(0..self.num_indices, 0, 24..25);
 
             render_pass.set_bind_group(0, &self.tree_log_bind_group, &[]);
-            render_pass.draw_indexed(0..self.num_indices, 0, 4..5);
+            render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
             render_pass.draw_indexed(0..self.num_indices, 0, 21..23);
         }
 
@@ -360,5 +358,9 @@ impl State {
         output.present();
 
         Ok(())
+    }
+
+    fn render_field(&self, render_pass: &RenderPass) {
+
     }
 }
