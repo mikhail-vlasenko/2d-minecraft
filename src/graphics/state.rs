@@ -26,6 +26,14 @@ pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     0.0,
 );
 
+struct TextureBindGroups {
+    grass: BindGroup,
+    stone: BindGroup,
+    tree_log: BindGroup,
+    bedrock: BindGroup,
+    player: BindGroup,
+}
+
 pub struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -40,10 +48,7 @@ pub struct State {
     num_indices: u32,
     instances: Vec<Instance>,
     instance_buffer: wgpu::Buffer,
-    grass_bind_group: BindGroup,
-    stone_bind_group: BindGroup,
-    tree_log_bind_group: BindGroup,
-    player_bind_group: BindGroup,
+    bind_groups: TextureBindGroups,
     field: Field,
     player: Player,
 }
@@ -106,30 +111,7 @@ impl State {
                 label: Some("texture_bind_group_layout"),
             });
 
-        let grass_bytes = include_bytes!("../../res/mc_grass.png");
-        let grass_texture = Texture::from_bytes(&device, &queue, grass_bytes, "mc_grass.png").unwrap();
-        let grass_bind_group = State::make_bind_group(
-            "grass_bind_group", &grass_texture, &device, &texture_bind_group_layout
-        );
-
-        let stone_bytes = include_bytes!("../../res/mc_stone.png");
-        let stone_texture = Texture::from_bytes(&device, &queue, stone_bytes, "mc_stone.png").unwrap();
-        let stone_bind_group = State::make_bind_group(
-            "stone_bind_group", &stone_texture, &device, &texture_bind_group_layout
-        );
-
-        let tree_log_bytes = include_bytes!("../../res/mc_tree_log.png");
-        let tree_log_texture = Texture::from_bytes(&device, &queue, tree_log_bytes, "mc_tree_log.png").unwrap();
-        let tree_log_bind_group = State::make_bind_group(
-            "tree_log_bind_group", &tree_log_texture, &device, &texture_bind_group_layout
-        );
-
-        let player_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png"
-        ).unwrap();
-        let player_bind_group = State::make_bind_group(
-            "player_bind_group", &player_texture, &device, &texture_bind_group_layout
-        );
+        let bind_groups = State::init_bind_groups(&device, &queue, &texture_bind_group_layout);
 
         let instances = (0..TILES_PER_ROW).flat_map(|y| {
             (0..TILES_PER_ROW).map(move |x| {
@@ -233,12 +215,7 @@ impl State {
 
         let num_indices = INDICES.len() as u32;
 
-        let clear_color = wgpu::Color {
-            r: 0.1,
-            g: 0.2,
-            b: 0.3,
-            a: 1.0,
-        };
+        let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0, };
 
         let player = Player::new(25, 25);
         let field = Field::new();
@@ -257,10 +234,7 @@ impl State {
             num_indices,
             instances,
             instance_buffer,
-            grass_bind_group,
-            stone_bind_group,
-            tree_log_bind_group,
-            player_bind_group,
+            bind_groups,
             field,
             player,
             player_vertex_buffer,
@@ -292,6 +266,53 @@ impl State {
         )
     }
 
+    fn init_bind_groups(
+        device: &wgpu::Device, queue: &wgpu::Queue, texture_bind_group_layout: &BindGroupLayout
+    ) -> TextureBindGroups {
+        let grass_texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_grass.png"), "mc_grass.png"
+        ).unwrap();
+        let grass = State::make_bind_group(
+            "grass_bind_group", &grass_texture, &device, &texture_bind_group_layout
+        );
+
+        let stone_texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_stone.png"), "mc_stone.png"
+        ).unwrap();
+        let stone = State::make_bind_group(
+            "stone_bind_group", &stone_texture, &device, &texture_bind_group_layout
+        );
+
+        let tree_log_texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_tree_log.png"), "mc_tree_log.png"
+        ).unwrap();
+        let tree_log = State::make_bind_group(
+            "tree_log_bind_group", &tree_log_texture, &device, &texture_bind_group_layout
+        );
+
+        let bedrock_texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_bedrock.png"), "bedrock.png"
+        ).unwrap();
+        let bedrock = State::make_bind_group(
+            "player_bind_group", &bedrock_texture, &device, &texture_bind_group_layout
+        );
+
+        let player_texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png"
+        ).unwrap();
+        let player = State::make_bind_group(
+            "player_bind_group", &player_texture, &device, &texture_bind_group_layout
+        );
+
+        TextureBindGroups {
+            grass,
+            stone,
+            tree_log,
+            bedrock,
+            player,
+        }
+    }
+
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
@@ -320,7 +341,7 @@ impl State {
                 },
                 ..
             } => {
-                act(virtual_keycode, &mut self.player);
+                act(virtual_keycode, &mut self.player, &mut self.field);
                 true
             }
             _ => false,
@@ -362,8 +383,9 @@ impl State {
 
             self.render_field(&mut render_pass);
 
+            // render player
             render_pass.set_vertex_buffer(0, self.player_vertex_buffer.slice(..));
-            render_pass.set_bind_group(0, &self.player_bind_group, &[]);
+            render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
             let idx = State::convert_index(0, 0);
             render_pass.draw_indexed(0..self.num_indices, 0, idx..idx+1);
         }
@@ -391,16 +413,20 @@ impl State {
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         let radius = (TILES_PER_ROW - 1) / 2;
 
-        render_pass.set_bind_group(0, &self.grass_bind_group, &[]);
+        render_pass.set_bind_group(0, &self.bind_groups.grass, &[]);
         let grass = self.field.texture_indices(&self.player, Material::Dirt, radius as usize);
         self.draw_at_indices(grass, &mut *render_pass);
 
-        render_pass.set_bind_group(0, &self.stone_bind_group, &[]);
+        render_pass.set_bind_group(0, &self.bind_groups.stone, &[]);
         let stone = self.field.texture_indices(&self.player, Material::Stone, radius as usize);
         self.draw_at_indices(stone, &mut *render_pass);
 
-        render_pass.set_bind_group(0, &self.tree_log_bind_group, &[]);
+        render_pass.set_bind_group(0, &self.bind_groups.tree_log, &[]);
         let tree = self.field.texture_indices(&self.player, Material::TreeLog, radius as usize);
         self.draw_at_indices(tree, &mut *render_pass);
+
+        render_pass.set_bind_group(0, &self.bind_groups.bedrock, &[]);
+        let bedrock = self.field.texture_indices(&self.player, Material::Bedrock, radius as usize);
+        self.draw_at_indices(bedrock, &mut *render_pass);
     }
 }
