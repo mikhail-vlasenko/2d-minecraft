@@ -1,6 +1,6 @@
 use std::iter;
 use cgmath::{InnerSpace, Rotation3, Zero};
-use wgpu::{BindGroup, BindGroupLayout, include_wgsl, RenderPass};
+use wgpu::{BindGroup, BindGroupLayout, CommandEncoder, include_wgsl, RenderPass, TextureView};
 use wgpu::util::DeviceExt;
 
 
@@ -21,6 +21,7 @@ use ::egui::FontDefinitions;
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
+use crate::graphics::texture_bind_groups::TextureBindGroups;
 
 
 pub const TILES_PER_ROW: u32 = 11;
@@ -30,14 +31,6 @@ pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
     0.0,
 );
-
-struct TextureBindGroups {
-    grass: BindGroup,
-    stone: BindGroup,
-    tree_log: BindGroup,
-    bedrock: BindGroup,
-    player: BindGroup,
-}
 
 pub struct State {
     surface: wgpu::Surface,
@@ -50,8 +43,6 @@ pub struct State {
     vertex_buffer: wgpu::Buffer,
     player_vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    num_indices: u32,
-    instances: Vec<Instance>,
     instance_buffer: wgpu::Buffer,
     bind_groups: TextureBindGroups,
     field: Field,
@@ -131,7 +122,7 @@ impl State {
                 label: Some("texture_bind_group_layout"),
             });
 
-        let bind_groups = State::init_bind_groups(&device, &queue, &texture_bind_group_layout);
+        let bind_groups = TextureBindGroups::init_bind_groups(&device, &queue, &texture_bind_group_layout);
 
         let instances = (0..TILES_PER_ROW).flat_map(|y| {
             (0..TILES_PER_ROW).map(move |x| {
@@ -233,8 +224,6 @@ impl State {
             }
         );
 
-        let num_indices = INDICES.len() as u32;
-
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0, };
 
         let player = Player::new(25, 25);
@@ -253,8 +242,6 @@ impl State {
             render_pipeline,
             vertex_buffer,
             index_buffer,
-            num_indices,
-            instances,
             instance_buffer,
             bind_groups,
             field,
@@ -270,73 +257,7 @@ impl State {
         self.size
     }
 
-    fn make_bind_group(
-        label: &str, texture: &Texture, device: &wgpu::Device, texture_bind_group_layout: &BindGroupLayout
-    ) -> BindGroup {
-        device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                layout: &texture_bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&texture.view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&texture.sampler),
-                    }
-                ],
-                label: Some(label),
-            }
-        )
-    }
 
-    fn init_bind_groups(
-        device: &wgpu::Device, queue: &wgpu::Queue, texture_bind_group_layout: &BindGroupLayout
-    ) -> TextureBindGroups {
-        let grass_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_grass.png"), "mc_grass.png"
-        ).unwrap();
-        let grass = State::make_bind_group(
-            "grass_bind_group", &grass_texture, &device, &texture_bind_group_layout
-        );
-
-        let stone_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_stone.png"), "mc_stone.png"
-        ).unwrap();
-        let stone = State::make_bind_group(
-            "stone_bind_group", &stone_texture, &device, &texture_bind_group_layout
-        );
-
-        let tree_log_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_tree_log.png"), "mc_tree_log.png"
-        ).unwrap();
-        let tree_log = State::make_bind_group(
-            "tree_log_bind_group", &tree_log_texture, &device, &texture_bind_group_layout
-        );
-
-        let bedrock_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_bedrock.png"), "bedrock.png"
-        ).unwrap();
-        let bedrock = State::make_bind_group(
-            "player_bind_group", &bedrock_texture, &device, &texture_bind_group_layout
-        );
-
-        let player_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png"
-        ).unwrap();
-        let player = State::make_bind_group(
-            "player_bind_group", &player_texture, &device, &texture_bind_group_layout
-        );
-
-        TextureBindGroups {
-            grass,
-            stone,
-            tree_log,
-            bedrock,
-            player,
-        }
-    }
 
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
@@ -387,34 +308,49 @@ impl State {
                 label: Some("Render Encoder"),
             });
 
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(self.clear_color),
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
+        self.render_game(&mut encoder, &view);
 
-            render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        let texture_delta = self.render_ui(&mut encoder, &view, window);
 
-            self.render_field(&mut render_pass);
+        self.queue.submit(iter::once(encoder.finish()));
+        output.present();
 
-            // render player
-            render_pass.set_vertex_buffer(0, self.player_vertex_buffer.slice(..));
-            render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
-            let idx = State::convert_index(0, 0);
-            render_pass.draw_indexed(0..self.num_indices, 0, idx..idx+1);
-        }
+        self.egui_rpass
+            .remove_textures(texture_delta)
+            .expect("remove texture ok");
 
+        Ok(())
+    }
+
+    fn render_game(&self, encoder: &mut CommandEncoder, view: &TextureView) {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Render Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(self.clear_color),
+                    store: true,
+                },
+            })],
+            depth_stencil_attachment: None,
+        });
+
+        render_pass.set_pipeline(&self.render_pipeline);
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+        self.render_field(&mut render_pass);
+
+        // render player
+        render_pass.set_vertex_buffer(0, self.player_vertex_buffer.slice(..));
+        render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
+        let idx = State::convert_index(0, 0);
+        render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
+    }
+
+    fn render_ui(&mut self, encoder: &mut CommandEncoder, view: &TextureView, window: &Window) -> egui::TexturesDelta {
         self.egui_platform.begin_frame();
 
         egui::Window::new("My Window").show(&self.egui_platform.context(), |ui| {
@@ -428,22 +364,23 @@ impl State {
         let full_output = self.egui_platform.end_frame(Some(window));
         let paint_jobs = self.egui_platform.context().tessellate(full_output.shapes);
 
+        // Upload all resources for the GPU.
         let screen_descriptor = ScreenDescriptor {
             physical_width: self.config.width,
             physical_height: self.config.height,
             scale_factor: window.scale_factor() as f32,
         };
 
-        let tdelta: egui::TexturesDelta = full_output.textures_delta;
+        let texture_delta: egui::TexturesDelta = full_output.textures_delta;
         self.egui_rpass
-            .add_textures(&self.device, &self.queue, &tdelta)
+            .add_textures(&self.device, &self.queue, &texture_delta)
             .expect("add texture ok");
         self.egui_rpass.update_buffers(&self.device, &self.queue, &paint_jobs, &screen_descriptor);
 
         // Record all render passes.
         self.egui_rpass
             .execute(
-                &mut encoder,
+                encoder,
                 &view,
                 &paint_jobs,
                 &screen_descriptor,
@@ -451,14 +388,7 @@ impl State {
             )
             .unwrap();
 
-        self.queue.submit(iter::once(encoder.finish()));
-        output.present();
-
-        self.egui_rpass
-            .remove_textures(tdelta)
-            .expect("remove texture ok");
-
-        Ok(())
+        texture_delta
     }
 
     pub fn handle_ui_event<T>(&mut self, event: &Event<T>) {
@@ -475,7 +405,7 @@ impl State {
             // Here we want x to be horizontal, like mathematical coords
             // Also, second component should be greater when higher (so negate it)
             let idx = State::convert_index(pos.1, -pos.0);
-            render_pass.draw_indexed(0..self.num_indices, 0, idx..idx+1);
+            render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
         }
     }
 
