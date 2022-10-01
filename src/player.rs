@@ -84,7 +84,10 @@ impl Player {
     }
 
     pub fn craft(&mut self, item: Storable) {
-        assert!(self.can_craft(&item));
+        if !self.can_craft(&item){
+            println!("cant craft!");
+            return
+        }
         for (req, amount) in item.craft_requirements() {
             self.inventory.drop(req, *amount);
         }

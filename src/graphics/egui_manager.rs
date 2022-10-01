@@ -7,8 +7,9 @@ use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration
 use winit::dpi::PhysicalSize;
 use winit::event::Event;
 use winit::window::Window;
-use crate::{Material, Player};
+use crate::{Material, Player, Storable};
 use strum::IntoEnumIterator;
+use crate::items::Item;
 
 
 pub struct EguiManager {
@@ -57,6 +58,26 @@ impl EguiManager {
             ui.label("Placing material");
             for material in Material::iter() {
                 ui.radio_value(&mut player.placement_material, material, material.to_string());
+            }
+
+            ui.label("Crafting item");
+            for material in Material::iter() {
+                if material.craft_yield() > 0 {
+                    ui.radio_value(
+                        &mut player.crafting_item,
+                        Storable::M(material),
+                        format!("{} x{}", material.to_string(), material.craft_yield())
+                    );
+                }
+            }
+            for item in Item::iter() {
+                if item.craft_yield() > 0 {
+                    ui.radio_value(
+                        &mut player.crafting_item,
+                        Storable::I(item),
+                        format!("{} x{}", item.to_string(), item.craft_yield())
+                    );
+                }
             }
         });
 
