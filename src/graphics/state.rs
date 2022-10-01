@@ -363,5 +363,9 @@ impl State {
         render_pass.set_bind_group(0, &self.bind_groups.bedrock, &[]);
         let bedrock = self.field.texture_indices(&self.player, Material::Bedrock, radius);
         self.draw_at_indices(bedrock, &mut *render_pass);
+
+        render_pass.set_bind_group(0, &self.bind_groups.planks, &[]);
+        let planks = self.field.texture_indices(&self.player, Material::Plank, radius);
+        self.draw_at_indices(planks, &mut *render_pass);
     }
 }

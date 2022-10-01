@@ -8,6 +8,7 @@ pub struct TextureBindGroups {
     pub stone: BindGroup,
     pub tree_log: BindGroup,
     pub bedrock: BindGroup,
+    pub planks: BindGroup,
     pub player: BindGroup,
 }
 
@@ -61,7 +62,14 @@ impl TextureBindGroups{
             &device, &queue, include_bytes!("../../res/mc_bedrock.png"), "bedrock.png"
         ).unwrap();
         let bedrock = Self::make_bind_group(
-            "player_bind_group", &bedrock_texture, &device, &texture_bind_group_layout
+            "bedrock_bind_group", &bedrock_texture, &device, &texture_bind_group_layout
+        );
+
+        let planks_texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_planks.png"), "planks.png"
+        ).unwrap();
+        let planks = Self::make_bind_group(
+            "bedrock_bind_group", &planks_texture, &device, &texture_bind_group_layout
         );
 
         let player_texture = Texture::from_bytes(
@@ -76,6 +84,7 @@ impl TextureBindGroups{
             stone,
             tree_log,
             bedrock,
+            planks,
             player,
         }
     }
