@@ -17,6 +17,11 @@ use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::material::Material;
 
+use ::egui::FontDefinitions;
+use egui_wgpu_backend;
+use egui_wgpu_backend::ScreenDescriptor;
+use egui_winit_platform::{Platform, PlatformDescriptor};
+
 
 pub const TILES_PER_ROW: u32 = 11;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
@@ -51,6 +56,9 @@ pub struct State {
     bind_groups: TextureBindGroups,
     field: Field,
     player: Player,
+    egui_platform: Platform,
+    egui_rpass: egui_wgpu_backend::RenderPass,
+    current_material: Material,
 }
 
 impl State {
@@ -85,6 +93,18 @@ impl State {
             present_mode: wgpu::PresentMode::Fifo,
         };
         surface.configure(&device, &config);
+
+        let surface_format = surface.get_supported_formats(&adapter)[0];
+
+        let egui_platform = Platform::new(PlatformDescriptor {
+            physical_width: size.width as u32,
+            physical_height: size.height as u32,
+            scale_factor: window.scale_factor(),
+            font_definitions: FontDefinitions::default(),
+            style: Default::default(),
+        });
+
+        let egui_rpass = egui_wgpu_backend::RenderPass::new(&device, surface_format, 1);
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -221,6 +241,8 @@ impl State {
         let field = Field::new();
         field.render(&player);
 
+        let current_material = Material::Dirt;
+
         Self {
             surface,
             device,
@@ -238,6 +260,9 @@ impl State {
             field,
             player,
             player_vertex_buffer,
+            egui_platform,
+            egui_rpass,
+            current_material,
         }
     }
 
@@ -350,7 +375,7 @@ impl State {
 
     pub fn update(&mut self) { }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, window: &Window) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -390,10 +415,54 @@ impl State {
             render_pass.draw_indexed(0..self.num_indices, 0, idx..idx+1);
         }
 
+        self.egui_platform.begin_frame();
+
+        egui::Window::new("My Window").show(&self.egui_platform.context(), |ui| {
+            ui.label("Placing material");
+            ui.radio_value(&mut self.current_material, Material::Dirt, "dirt");
+            ui.radio_value(&mut self.current_material, Material::Stone, "stone");
+            ui.radio_value(&mut self.current_material, Material::TreeLog, "tree log");
+        });
+
+        // End the UI frame. We could now handle the output and draw the UI with the backend.
+        let full_output = self.egui_platform.end_frame(Some(window));
+        let paint_jobs = self.egui_platform.context().tessellate(full_output.shapes);
+
+        let screen_descriptor = ScreenDescriptor {
+            physical_width: self.config.width,
+            physical_height: self.config.height,
+            scale_factor: window.scale_factor() as f32,
+        };
+
+        let tdelta: egui::TexturesDelta = full_output.textures_delta;
+        self.egui_rpass
+            .add_textures(&self.device, &self.queue, &tdelta)
+            .expect("add texture ok");
+        self.egui_rpass.update_buffers(&self.device, &self.queue, &paint_jobs, &screen_descriptor);
+
+        // Record all render passes.
+        self.egui_rpass
+            .execute(
+                &mut encoder,
+                &view,
+                &paint_jobs,
+                &screen_descriptor,
+                None,
+            )
+            .unwrap();
+
         self.queue.submit(iter::once(encoder.finish()));
         output.present();
 
+        self.egui_rpass
+            .remove_textures(tdelta)
+            .expect("remove texture ok");
+
         Ok(())
+    }
+
+    pub fn handle_ui_event<T>(&mut self, event: &Event<T>) {
+        self.egui_platform.handle_event(&event);
     }
 
     fn convert_index(x: i32, y: i32) -> u32 {
@@ -411,22 +480,22 @@ impl State {
     }
 
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
-        let radius = (TILES_PER_ROW - 1) / 2;
+        let radius = ((TILES_PER_ROW - 1) / 2) as usize;
 
         render_pass.set_bind_group(0, &self.bind_groups.grass, &[]);
-        let grass = self.field.texture_indices(&self.player, Material::Dirt, radius as usize);
+        let grass = self.field.texture_indices(&self.player, Material::Dirt, radius);
         self.draw_at_indices(grass, &mut *render_pass);
 
         render_pass.set_bind_group(0, &self.bind_groups.stone, &[]);
-        let stone = self.field.texture_indices(&self.player, Material::Stone, radius as usize);
+        let stone = self.field.texture_indices(&self.player, Material::Stone, radius);
         self.draw_at_indices(stone, &mut *render_pass);
 
         render_pass.set_bind_group(0, &self.bind_groups.tree_log, &[]);
-        let tree = self.field.texture_indices(&self.player, Material::TreeLog, radius as usize);
+        let tree = self.field.texture_indices(&self.player, Material::TreeLog, radius);
         self.draw_at_indices(tree, &mut *render_pass);
 
         render_pass.set_bind_group(0, &self.bind_groups.bedrock, &[]);
-        let bedrock = self.field.texture_indices(&self.player, Material::Bedrock, radius as usize);
+        let bedrock = self.field.texture_indices(&self.player, Material::Bedrock, radius);
         self.draw_at_indices(bedrock, &mut *render_pass);
     }
 }

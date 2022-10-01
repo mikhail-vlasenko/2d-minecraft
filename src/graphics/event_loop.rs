@@ -22,6 +22,7 @@ pub async fn run() {
     let mut state = State::new(&window).await;
 
     event_loop.run(move |event, _, control_flow| {
+        state.handle_ui_event(&event);
         match event {
             Event::WindowEvent {
                 ref event,
@@ -49,7 +50,7 @@ pub async fn run() {
             }
             Event::RedrawRequested(window_id) if window_id == window.id() => {
                 state.update();
-                match state.render() {
+                match state.render(&window) {
                     Ok(_) => {}
                     // Reconfigure the surface if lost
                     Err(wgpu::SurfaceError::Lost) => state.resize(state.get_size()),
