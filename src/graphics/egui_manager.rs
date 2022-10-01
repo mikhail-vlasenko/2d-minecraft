@@ -7,14 +7,13 @@ use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration
 use winit::dpi::PhysicalSize;
 use winit::event::Event;
 use winit::window::Window;
-use crate::graphics::state::State;
-use crate::Material;
+use crate::{Material, Player};
+use strum::IntoEnumIterator;
 
 
 pub struct EguiManager {
     platform: Platform,
     render_pass: egui_wgpu_backend::RenderPass,
-    current_material: Material,
 }
 
 impl EguiManager {
@@ -23,7 +22,7 @@ impl EguiManager {
         size: &PhysicalSize<u32>,
         surface: &Surface,
         adapter: &Adapter,
-        device: &Device
+        device: &Device,
     ) -> Self {
         let surface_format = surface.get_supported_formats(&adapter)[0];
 
@@ -36,13 +35,10 @@ impl EguiManager {
         });
 
         let render_pass = egui_wgpu_backend::RenderPass::new(&device, surface_format, 1);
-        let mut current_material = Material::Dirt;
-
 
         Self {
             platform,
             render_pass,
-            current_material,
         }
     }
 
@@ -52,15 +48,16 @@ impl EguiManager {
                      queue: &Queue,
                      encoder: &mut CommandEncoder,
                      view: &TextureView,
-                     window: &Window
+                     window: &Window,
+                     player: &mut Player,
     ) -> TexturesDelta {
         self.platform.begin_frame();
 
-        egui::Window::new("My Window").show(&self.platform.context(), |ui| {
+        egui::Window::new("Menu").show(&self.platform.context(), |ui| {
             ui.label("Placing material");
-            ui.radio_value(&mut self.current_material, Material::Dirt, "dirt");
-            ui.radio_value(&mut self.current_material, Material::Stone, "stone");
-            ui.radio_value(&mut self.current_material, Material::TreeLog, "tree log");
+            for material in Material::iter() {
+                ui.radio_value(&mut player.placement_material, material, material.to_string());
+            }
         });
 
         // End the UI frame. We could now handle the output and draw the UI with the backend.

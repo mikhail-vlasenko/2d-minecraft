@@ -1,6 +1,7 @@
 use crate::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
+use crate::items::Item;
 use crate::material::Material::*;
 use crate::storable::Storable;
 
@@ -10,6 +11,10 @@ pub struct Player {
     pub y: i32,
     pub z: i32,
     inventory: Inventory,
+    // Storables that will be used for the corresponding actions
+    // Are set though UI
+    pub placement_material: Material,
+    pub crafting_item: Storable,
 }
 
 impl Player {
@@ -18,7 +23,9 @@ impl Player {
             x,
             y,
             z: 3,
-            inventory: Inventory::new()
+            inventory: Inventory::new(),
+            placement_material: Dirt,
+            crafting_item: Storable::M(Plank)
         }
     }
     pub fn mine(&mut self, field: &mut Field, x: i32, y: i32) {
@@ -51,6 +58,10 @@ impl Player {
         }
     }
 
+    pub fn place_current(&mut self, field: &mut Field, x: i32, y: i32) {
+        self.place(field, x, y, self.placement_material)
+    }
+
     pub fn walk(&mut self, direction: &str) {
         match direction {
             "w" => self.x -= 1,
@@ -79,6 +90,10 @@ impl Player {
         }
         let craft_yield = item.craft_yield();
         self.inventory.pickup(item, craft_yield)
+    }
+
+    pub fn craft_current(&mut self) {
+        self.craft(self.crafting_item)
     }
 
     pub fn render_inventory(&self) {

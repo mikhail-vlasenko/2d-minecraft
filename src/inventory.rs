@@ -55,14 +55,14 @@ impl Inventory {
     pub fn drop(&mut self, storable: &Storable, amount: u32) -> bool {
         let idx = self.get_idx(storable);
         match idx {
-            None => panic!("you dont have enough to drop"),
+            None => false,
             Some(i) => {
                 if self.items[i].1 < amount {
-                    panic!("you dont have enough to drop");
+                    false
                 } else {
                     self.items[i].1 -= amount;
+                    true
                 }
-                true
             }
         }
     }

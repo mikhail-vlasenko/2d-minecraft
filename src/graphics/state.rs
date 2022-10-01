@@ -6,21 +6,15 @@ use wgpu::util::DeviceExt;
 
 use winit::{
     event::*,
-    event_loop::{ControlFlow, EventLoop},
-    window::{Window, WindowBuilder},
+    window::Window,
 };
 use winit::dpi::PhysicalSize;
 use crate::{Field, Player};
 use crate::graphics::instance::*;
-use crate::graphics::texture::Texture;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::material::Material;
 
-use ::egui::FontDefinitions;
-use egui_wgpu_backend;
-use egui_wgpu_backend::ScreenDescriptor;
-use egui_winit_platform::{Platform, PlatformDescriptor};
 use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
 
@@ -294,7 +288,7 @@ impl State {
         self.render_game(&mut encoder, &view);
 
         let texture_delta = self.egui_manager.render_ui(
-            &self.config, &self.device, &self.queue, &mut encoder, &view, window
+            &self.config, &self.device, &self.queue, &mut encoder, &view, window, &mut self.player
         );
 
         self.queue.submit(iter::once(encoder.finish()));
