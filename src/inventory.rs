@@ -21,6 +21,10 @@ impl Inventory {
         None
     }
 
+    pub fn get_all(&self) -> &Vec<(Storable, u32)> {
+        &self.items
+    }
+
     fn get_idx(&self, storable: &Storable) -> Option<usize> {
         for i in 0..self.items.len() {
             if self.items[i].0 == *storable {

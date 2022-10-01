@@ -81,6 +81,14 @@ impl EguiManager {
             }
         });
 
+        egui::Window::new("Inventory").show(&self.platform.context(), |ui| {
+            for item in player.get_inventory() {
+                if item.1 != 0 {
+                    ui.label(format!("{}: {}", item.0, item.1));
+                }
+            }
+        });
+
         // End the UI frame. We could now handle the output and draw the UI with the backend.
         let full_output = self.platform.end_frame(Some(window));
         let paint_jobs = self.platform.context().tessellate(full_output.shapes);

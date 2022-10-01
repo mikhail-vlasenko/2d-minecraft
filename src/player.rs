@@ -99,6 +99,10 @@ impl Player {
         self.craft(self.crafting_item)
     }
 
+    pub fn get_inventory(&self) -> &Vec<(Storable, u32)> {
+        self.inventory.get_all()
+    }
+
     pub fn render_inventory(&self) {
         self.inventory.render();
     }
