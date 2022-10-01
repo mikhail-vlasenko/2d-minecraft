@@ -21,6 +21,7 @@ use ::egui::FontDefinitions;
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
+use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
 
 
@@ -47,9 +48,7 @@ pub struct State {
     bind_groups: TextureBindGroups,
     field: Field,
     player: Player,
-    egui_platform: Platform,
-    egui_rpass: egui_wgpu_backend::RenderPass,
-    current_material: Material,
+    egui_manager: EguiManager,
 }
 
 impl State {
@@ -85,17 +84,7 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let surface_format = surface.get_supported_formats(&adapter)[0];
-
-        let egui_platform = Platform::new(PlatformDescriptor {
-            physical_width: size.width as u32,
-            physical_height: size.height as u32,
-            scale_factor: window.scale_factor(),
-            font_definitions: FontDefinitions::default(),
-            style: Default::default(),
-        });
-
-        let egui_rpass = egui_wgpu_backend::RenderPass::new(&device, surface_format, 1);
+        let egui_manager = EguiManager::new(window, &size, &surface, &adapter, &device);
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -230,8 +219,6 @@ impl State {
         let field = Field::new();
         field.render(&player);
 
-        let current_material = Material::Dirt;
-
         Self {
             surface,
             device,
@@ -247,17 +234,13 @@ impl State {
             field,
             player,
             player_vertex_buffer,
-            egui_platform,
-            egui_rpass,
-            current_material,
+            egui_manager,
         }
     }
 
     pub fn get_size(&self) -> PhysicalSize<u32> {
         self.size
     }
-
-
 
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
@@ -310,14 +293,14 @@ impl State {
 
         self.render_game(&mut encoder, &view);
 
-        let texture_delta = self.render_ui(&mut encoder, &view, window);
+        let texture_delta = self.egui_manager.render_ui(
+            &self.config, &self.device, &self.queue, &mut encoder, &view, window
+        );
 
         self.queue.submit(iter::once(encoder.finish()));
         output.present();
 
-        self.egui_rpass
-            .remove_textures(texture_delta)
-            .expect("remove texture ok");
+        self.egui_manager.post_render_cleanup(texture_delta);
 
         Ok(())
     }
@@ -350,49 +333,8 @@ impl State {
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
     }
 
-    fn render_ui(&mut self, encoder: &mut CommandEncoder, view: &TextureView, window: &Window) -> egui::TexturesDelta {
-        self.egui_platform.begin_frame();
-
-        egui::Window::new("My Window").show(&self.egui_platform.context(), |ui| {
-            ui.label("Placing material");
-            ui.radio_value(&mut self.current_material, Material::Dirt, "dirt");
-            ui.radio_value(&mut self.current_material, Material::Stone, "stone");
-            ui.radio_value(&mut self.current_material, Material::TreeLog, "tree log");
-        });
-
-        // End the UI frame. We could now handle the output and draw the UI with the backend.
-        let full_output = self.egui_platform.end_frame(Some(window));
-        let paint_jobs = self.egui_platform.context().tessellate(full_output.shapes);
-
-        // Upload all resources for the GPU.
-        let screen_descriptor = ScreenDescriptor {
-            physical_width: self.config.width,
-            physical_height: self.config.height,
-            scale_factor: window.scale_factor() as f32,
-        };
-
-        let texture_delta: egui::TexturesDelta = full_output.textures_delta;
-        self.egui_rpass
-            .add_textures(&self.device, &self.queue, &texture_delta)
-            .expect("add texture ok");
-        self.egui_rpass.update_buffers(&self.device, &self.queue, &paint_jobs, &screen_descriptor);
-
-        // Record all render passes.
-        self.egui_rpass
-            .execute(
-                encoder,
-                &view,
-                &paint_jobs,
-                &screen_descriptor,
-                None,
-            )
-            .unwrap();
-
-        texture_delta
-    }
-
     pub fn handle_ui_event<T>(&mut self, event: &Event<T>) {
-        self.egui_platform.handle_event(&event);
+        self.egui_manager.handle_event(&event);
     }
 
     fn convert_index(x: i32, y: i32) -> u32 {
