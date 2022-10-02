@@ -15,6 +15,7 @@ pub async fn run() {
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
+        .with_title("Minecraft")
         .with_inner_size(INITIAL_SIZE)
         .build(&event_loop)
         .unwrap();

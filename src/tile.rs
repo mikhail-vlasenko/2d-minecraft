@@ -15,6 +15,9 @@ impl Display for Tile {
 }
 
 impl Tile {
+    pub fn len(&self) -> usize {
+        self.blocks.len()
+    }
     pub fn top(&self) -> &Block {
         self.blocks.last().unwrap()
     }

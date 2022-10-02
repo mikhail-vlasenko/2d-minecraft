@@ -348,6 +348,7 @@ impl State {
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         let radius = ((TILES_PER_ROW - 1) / 2) as usize;
 
+        // draw tiles of the same material together
         render_pass.set_bind_group(0, &self.bind_groups.grass, &[]);
         let grass = self.field.texture_indices(&self.player, Material::Dirt, radius);
         self.draw_at_indices(grass, &mut *render_pass);
@@ -367,5 +368,22 @@ impl State {
         render_pass.set_bind_group(0, &self.bind_groups.planks, &[]);
         let planks = self.field.texture_indices(&self.player, Material::Plank, radius);
         self.draw_at_indices(planks, &mut *render_pass);
+
+        // draw depth indicators on top of the tiles
+        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[0], &[]);
+        let depth = self.field.depth_indices(&self.player, 2, radius);
+        self.draw_at_indices(depth, &mut *render_pass);
+
+        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[1], &[]);
+        let depth = self.field.depth_indices(&self.player, 3, radius);
+        self.draw_at_indices(depth, &mut *render_pass);
+
+        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[2], &[]);
+        let depth = self.field.depth_indices(&self.player, 4, radius);
+        self.draw_at_indices(depth, &mut *render_pass);
+
+        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[3], &[]);
+        let depth = self.field.depth_indices(&self.player, 5, radius);
+        self.draw_at_indices(depth, &mut *render_pass);
     }
 }

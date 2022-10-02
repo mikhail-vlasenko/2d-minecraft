@@ -60,6 +60,18 @@ impl Field {
         res
     }
 
+    pub fn depth_indices(&self, player: &Player, height: usize, radius: usize) -> Vec<(i32, i32)> {
+        let mut res: Vec<(i32, i32)> = Vec::new();
+        for i in (player.x as usize - radius)..=(player.x as usize + radius) {
+            for j in (player.y as usize - radius)..=(player.y as usize + radius) {
+                if self.tiles[i][j].len() == height {
+                    res.push((i as i32 - player.x, j as i32 - player.y));
+                }
+            }
+        }
+        res
+    }
+
     pub fn gen_tile() -> Tile {
         let num: f32 = random();
         match num {

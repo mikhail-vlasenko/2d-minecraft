@@ -10,6 +10,7 @@ pub struct TextureBindGroups {
     pub bedrock: BindGroup,
     pub planks: BindGroup,
     pub player: BindGroup,
+    pub depth_indicators: [BindGroup; 4],
 }
 
 impl TextureBindGroups{
@@ -79,6 +80,8 @@ impl TextureBindGroups{
             "player_bind_group", &player_texture, &device, &texture_bind_group_layout
         );
 
+        let depth_indicators = Self::init_depth_groups(device, queue, texture_bind_group_layout);
+
         TextureBindGroups {
             grass,
             stone,
@@ -86,6 +89,38 @@ impl TextureBindGroups{
             bedrock,
             planks,
             player,
+            depth_indicators,
         }
+    }
+
+    fn init_depth_groups(
+        device: &wgpu::Device, queue: &wgpu::Queue, texture_bind_group_layout: &BindGroupLayout
+    ) -> [BindGroup; 4] {
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth1.png"), "depth.png"
+        ).unwrap();
+        let depth1 = Self::make_bind_group(
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+        );
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth2.png"), "depth.png"
+        ).unwrap();
+        let depth2 = Self::make_bind_group(
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+        );
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth3.png"), "depth.png"
+        ).unwrap();
+        let depth3 = Self::make_bind_group(
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+        );
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth4.png"), "depth.png"
+        ).unwrap();
+        let depth4 = Self::make_bind_group(
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+        );
+
+        [depth1, depth2, depth3, depth4]
     }
 }
