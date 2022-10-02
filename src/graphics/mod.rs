@@ -5,3 +5,4 @@ mod vertex;
 pub(crate) mod event_loop;
 mod egui_manager;
 mod texture_bind_groups;
+mod buffers;

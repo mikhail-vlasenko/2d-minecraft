@@ -25,7 +25,7 @@ impl Player {
             y,
             z: 3,
             inventory: Inventory::new(),
-            placement_material: Dirt,
+            placement_material: Plank,
             crafting_item: Storable::M(Plank)
         }
     }

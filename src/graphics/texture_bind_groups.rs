@@ -1,4 +1,4 @@
-use wgpu::{BindGroup, BindGroupLayout};
+use wgpu::{BindGroup, BindGroupLayout, Device};
 use crate::graphics::state::State;
 use crate::graphics::texture::Texture;
 
@@ -11,11 +11,37 @@ pub struct TextureBindGroups {
     pub planks: BindGroup,
     pub player: BindGroup,
     pub depth_indicators: [BindGroup; 4],
+    pub bind_group_layout: BindGroupLayout,
 }
 
-impl TextureBindGroups{
+impl TextureBindGroups {
+    fn make_layout(device: &Device) -> BindGroupLayout {
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    // This should match the filterable field of the
+                    // corresponding Texture entry above.
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+            label: Some("texture_bind_group_layout"),
+        })
+    }
     fn make_bind_group(
-        label: &str, texture: &Texture, device: &wgpu::Device, texture_bind_group_layout: &BindGroupLayout
+        label: &str, texture: &Texture, device: &Device, texture_bind_group_layout: &BindGroupLayout,
     ) -> BindGroup {
         device.create_bind_group(
             &wgpu::BindGroupDescriptor {
@@ -35,52 +61,52 @@ impl TextureBindGroups{
         )
     }
 
-    pub fn init_bind_groups(
-        device: &wgpu::Device, queue: &wgpu::Queue, texture_bind_group_layout: &BindGroupLayout
-    ) -> TextureBindGroups {
+    pub fn init_bind_groups(device: &Device, queue: &wgpu::Queue) -> TextureBindGroups {
+        let bind_group_layout = Self::make_layout(device);
+
         let grass_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_grass.png"), "mc_grass.png"
+            &device, &queue, include_bytes!("../../res/mc_grass.png"), "mc_grass.png",
         ).unwrap();
         let grass = Self::make_bind_group(
-            "grass_bind_group", &grass_texture, &device, &texture_bind_group_layout
+            "grass_bind_group", &grass_texture, &device, &bind_group_layout,
         );
 
         let stone_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_stone.png"), "mc_stone.png"
+            &device, &queue, include_bytes!("../../res/mc_stone.png"), "mc_stone.png",
         ).unwrap();
         let stone = Self::make_bind_group(
-            "stone_bind_group", &stone_texture, &device, &texture_bind_group_layout
+            "stone_bind_group", &stone_texture, &device, &bind_group_layout,
         );
 
         let tree_log_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_tree_log.png"), "mc_tree_log.png"
+            &device, &queue, include_bytes!("../../res/mc_tree_log.png"), "mc_tree_log.png",
         ).unwrap();
         let tree_log = Self::make_bind_group(
-            "tree_log_bind_group", &tree_log_texture, &device, &texture_bind_group_layout
+            "tree_log_bind_group", &tree_log_texture, &device, &bind_group_layout,
         );
 
         let bedrock_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_bedrock.png"), "bedrock.png"
+            &device, &queue, include_bytes!("../../res/mc_bedrock.png"), "bedrock.png",
         ).unwrap();
         let bedrock = Self::make_bind_group(
-            "bedrock_bind_group", &bedrock_texture, &device, &texture_bind_group_layout
+            "bedrock_bind_group", &bedrock_texture, &device, &bind_group_layout,
         );
 
         let planks_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_planks.png"), "planks.png"
+            &device, &queue, include_bytes!("../../res/mc_planks.png"), "planks.png",
         ).unwrap();
         let planks = Self::make_bind_group(
-            "bedrock_bind_group", &planks_texture, &device, &texture_bind_group_layout
+            "bedrock_bind_group", &planks_texture, &device, &bind_group_layout,
         );
 
         let player_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png"
+            &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png",
         ).unwrap();
         let player = Self::make_bind_group(
-            "player_bind_group", &player_texture, &device, &texture_bind_group_layout
+            "player_bind_group", &player_texture, &device, &bind_group_layout,
         );
 
-        let depth_indicators = Self::init_depth_groups(device, queue, texture_bind_group_layout);
+        let depth_indicators = Self::init_depth_groups(device, queue, &bind_group_layout);
 
         TextureBindGroups {
             grass,
@@ -90,35 +116,36 @@ impl TextureBindGroups{
             planks,
             player,
             depth_indicators,
+            bind_group_layout,
         }
     }
 
     fn init_depth_groups(
-        device: &wgpu::Device, queue: &wgpu::Queue, texture_bind_group_layout: &BindGroupLayout
+        device: &Device, queue: &wgpu::Queue, texture_bind_group_layout: &BindGroupLayout,
     ) -> [BindGroup; 4] {
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth1.png"), "depth.png"
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth1.png"), "depth.png",
         ).unwrap();
         let depth1 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
         );
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth2.png"), "depth.png"
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth2.png"), "depth.png",
         ).unwrap();
         let depth2 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
         );
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth3.png"), "depth.png"
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth3.png"), "depth.png",
         ).unwrap();
         let depth3 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
         );
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth4.png"), "depth.png"
+            &device, &queue, include_bytes!("../../res/depth_indicators/depth4.png"), "depth.png",
         ).unwrap();
         let depth4 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout
+            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
         );
 
         [depth1, depth2, depth3, depth4]

@@ -10,6 +10,7 @@ use winit::{
 };
 use winit::dpi::PhysicalSize;
 use crate::{Field, Player};
+use crate::graphics::buffers::Buffers;
 use crate::graphics::instance::*;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
@@ -35,10 +36,7 @@ pub struct State {
     size: PhysicalSize<u32>,
     clear_color: wgpu::Color,
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
-    player_vertex_buffer: wgpu::Buffer,
-    index_buffer: wgpu::Buffer,
-    instance_buffer: wgpu::Buffer,
+    buffers: Buffers,
     bind_groups: TextureBindGroups,
     field: Field,
     player: Player,
@@ -80,65 +78,14 @@ impl State {
 
         let egui_manager = EguiManager::new(window, &size, &surface, &adapter, &device);
 
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        // This should match the filterable field of the
-                        // corresponding Texture entry above.
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-                label: Some("texture_bind_group_layout"),
-            });
-
-        let bind_groups = TextureBindGroups::init_bind_groups(&device, &queue, &texture_bind_group_layout);
-
-        let instances = (0..TILES_PER_ROW).flat_map(|y| {
-            (0..TILES_PER_ROW).map(move |x| {
-                let position =
-                    cgmath::Vector3 { x: x as f32 * DISP_COEF, y: y as f32 * DISP_COEF, z: 0.0 }
-                        + INITIAL_POS;
-
-                let rotation=
-                    cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0));
-
-                Instance {
-                    position,
-                    rotation,
-                    scaling: DISP_COEF,
-                }
-            })
-        }).collect::<Vec<_>>();
-
-        let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
-        let instance_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: bytemuck::cast_slice(&instance_data),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
+        let bind_groups = TextureBindGroups::init_bind_groups(&device, &queue);
 
         let shader = device.create_shader_module(include_wgsl!("shader.wgsl"));
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&texture_bind_group_layout],
+                bind_group_layouts: &[&bind_groups.bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -183,29 +130,7 @@ impl State {
             multiview: None, // 5.
         });
 
-        let vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-
-        let player_vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Player Buffer"),
-                contents: bytemuck::cast_slice(PLAYER_VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-
-        let index_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Index Buffer"),
-                contents: bytemuck::cast_slice(INDICES),
-                usage: wgpu::BufferUsages::INDEX,
-            }
-        );
+        let buffers = Buffers::new(&device);
 
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0, };
 
@@ -222,13 +147,10 @@ impl State {
             size,
             clear_color,
             render_pipeline,
-            vertex_buffer,
-            index_buffer,
-            instance_buffer,
+            buffers,
             bind_groups,
             field,
             player,
-            player_vertex_buffer,
             egui_manager,
         }
     }
@@ -315,14 +237,14 @@ impl State {
         });
 
         render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
+        render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
         self.render_field(&mut render_pass);
 
         // render player
-        render_pass.set_vertex_buffer(0, self.player_vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
         let idx = State::convert_index(0, 0);
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
