@@ -7,6 +7,7 @@ use crate::Storable;
 use Storable::*;
 
 
+/// What a block on the field can be made of.
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
 pub enum Material {
     Dirt,

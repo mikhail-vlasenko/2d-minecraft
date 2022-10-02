@@ -8,6 +8,7 @@ use crate::storable::Storable;
 use Storable::*;
 
 
+/// Something that can't be placed, but can be in the inventory.
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
 pub enum Item {
     Stick,

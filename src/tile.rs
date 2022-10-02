@@ -3,6 +3,9 @@ use std::fmt::Display;
 use crate::block::Block;
 use crate::Material::*;
 
+
+/// A square "column" on the field. Acts as a stack of Blocks.
+/// Every field cell is made of it.
 #[derive(Clone)]
 pub struct Tile {
     pub blocks: Vec<Block>,
@@ -52,9 +55,10 @@ impl Tile {
     }
 }
 
-pub fn randomly_add(tile: &mut Tile, addition: &dyn Fn(&mut Tile), proba: f32) {
+/// Calls an augmentation function of the Tile with a certain probability
+pub fn randomly_augment(tile: &mut Tile, augmentation: &dyn Fn(&mut Tile), proba: f32) {
     let rng: f32 = rand::random();
     if rng < proba {
-        addition(tile)
+        augmentation(tile)
     }
 }

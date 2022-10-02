@@ -4,6 +4,7 @@ use crate::graphics::texture::Texture;
 use crate::Material;
 
 
+/// Creates and stores wgpu texture bind groups.
 pub struct TextureBindGroups {
     pub grass: BindGroup,
     pub stone: BindGroup,
@@ -97,7 +98,7 @@ impl TextureBindGroups {
             &device, &queue, include_bytes!("../../res/mc_planks.png"), "planks.png",
         ).unwrap();
         let planks = Self::make_bind_group(
-            "bedrock_bind_group", &planks_texture, &device, &bind_group_layout,
+            "planks_bind_group", &planks_texture, &device, &bind_group_layout,
         );
 
         let player_texture = Texture::from_bytes(
@@ -151,7 +152,7 @@ impl TextureBindGroups {
 
         [depth1, depth2, depth3, depth4]
     }
-    
+
     pub fn get_bind_group_for(&self, material: Material) -> &BindGroup {
         use Material::*;
         match material {

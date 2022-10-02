@@ -12,6 +12,7 @@ use strum::IntoEnumIterator;
 use crate::items::Item;
 
 
+/// Renders UI
 pub struct EguiManager {
     platform: Platform,
     render_pass: egui_wgpu_backend::RenderPass,

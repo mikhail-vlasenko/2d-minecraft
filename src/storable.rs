@@ -5,6 +5,8 @@ use crate::material::Material;
 use Storable::*;
 
 
+/// Represents anything that can be stored in the inventory.
+/// This includes all materials (even unbreakable), and all items.
 #[derive(PartialEq, Copy, Clone, Hash)]
 pub enum Storable {
     M(Material),

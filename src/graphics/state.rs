@@ -27,6 +27,11 @@ pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     0.0,
 );
 
+/// The main class of the application.
+/// Initializes graphics.
+/// Catches input.
+/// Renders the playing grid.
+/// Owns the Player and the Field.
 pub struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -268,6 +273,11 @@ impl State {
         }
     }
 
+    /// Draws textures of top materials on every tile, then draws depth indicators on top.
+    /// 
+    /// # Arguments 
+    /// 
+    /// * `render_pass`: the primary render pass
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         let radius = ((TILES_PER_ROW - 1) / 2) as usize;
 

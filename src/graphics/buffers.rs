@@ -5,6 +5,8 @@ use crate::graphics::instance::Instance;
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, VERTICES};
 
+
+/// Creates and stores wgpu buffers
 pub struct Buffers {
     pub vertex_buffer: wgpu::Buffer,
     pub player_vertex_buffer: wgpu::Buffer,
