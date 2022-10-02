@@ -1,6 +1,7 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
 use crate::graphics::state::State;
 use crate::graphics::texture::Texture;
+use crate::Material;
 
 
 pub struct TextureBindGroups {
@@ -61,7 +62,7 @@ impl TextureBindGroups {
         )
     }
 
-    pub fn init_bind_groups(device: &Device, queue: &wgpu::Queue) -> TextureBindGroups {
+    pub fn new(device: &Device, queue: &wgpu::Queue) -> Self {
         let bind_group_layout = Self::make_layout(device);
 
         let grass_texture = Texture::from_bytes(
@@ -149,5 +150,16 @@ impl TextureBindGroups {
         );
 
         [depth1, depth2, depth3, depth4]
+    }
+    
+    pub fn get_bind_group_for(&self, material: Material) -> &BindGroup {
+        use Material::*;
+        match material {
+            Dirt => &self.grass,
+            Stone => &self.stone,
+            TreeLog => &self.tree_log,
+            Bedrock => &self.bedrock,
+            Plank => &self.planks,
+        }
     }
 }

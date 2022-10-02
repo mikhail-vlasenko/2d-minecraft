@@ -1,4 +1,5 @@
 use std::iter;
+use strum::IntoEnumIterator;
 use cgmath::{InnerSpace, Rotation3, Zero};
 use wgpu::{BindGroup, BindGroupLayout, CommandEncoder, include_wgsl, RenderPass, TextureView};
 use wgpu::util::DeviceExt;
@@ -78,7 +79,7 @@ impl State {
 
         let egui_manager = EguiManager::new(window, &size, &surface, &adapter, &device);
 
-        let bind_groups = TextureBindGroups::init_bind_groups(&device, &queue);
+        let bind_groups = TextureBindGroups::new(&device, &queue);
 
         let shader = device.create_shader_module(include_wgsl!("shader.wgsl"));
 
@@ -272,25 +273,11 @@ impl State {
         let radius = ((TILES_PER_ROW - 1) / 2) as usize;
 
         // draw tiles of the same material together
-        render_pass.set_bind_group(0, &self.bind_groups.grass, &[]);
-        let grass = self.field.texture_indices(&self.player, Material::Dirt, radius);
-        self.draw_at_indices(grass, &mut *render_pass);
-
-        render_pass.set_bind_group(0, &self.bind_groups.stone, &[]);
-        let stone = self.field.texture_indices(&self.player, Material::Stone, radius);
-        self.draw_at_indices(stone, &mut *render_pass);
-
-        render_pass.set_bind_group(0, &self.bind_groups.tree_log, &[]);
-        let tree = self.field.texture_indices(&self.player, Material::TreeLog, radius);
-        self.draw_at_indices(tree, &mut *render_pass);
-
-        render_pass.set_bind_group(0, &self.bind_groups.bedrock, &[]);
-        let bedrock = self.field.texture_indices(&self.player, Material::Bedrock, radius);
-        self.draw_at_indices(bedrock, &mut *render_pass);
-
-        render_pass.set_bind_group(0, &self.bind_groups.planks, &[]);
-        let planks = self.field.texture_indices(&self.player, Material::Plank, radius);
-        self.draw_at_indices(planks, &mut *render_pass);
+        for material in Material::iter() {
+            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_for(material), &[]);
+            let tiles = self.field.texture_indices(&self.player, material, radius);
+            self.draw_at_indices(tiles, &mut *render_pass);
+        }
 
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
