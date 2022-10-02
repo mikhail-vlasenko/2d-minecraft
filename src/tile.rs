@@ -27,6 +27,9 @@ impl Tile {
     pub fn pop(&mut self) -> Option<Block> {
         self.blocks.pop()
     }
+    pub fn full(&self) -> bool {
+        self.len() >= 5
+    }
     pub fn make_dirt() -> Tile {
         return Tile {
             blocks: vec![Block { material: Bedrock },

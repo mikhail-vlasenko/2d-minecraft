@@ -47,6 +47,10 @@ impl Player {
         let tile_x = (self.x + x) as usize;
         let tile_y = (self.y + y) as usize;
         let tile = &mut field.tiles[tile_x][tile_y];
+        if tile.full() {
+            println!("too high to build");
+            return
+        }
 
         let placement_block = Block { material };
 

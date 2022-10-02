@@ -370,20 +370,10 @@ impl State {
         self.draw_at_indices(planks, &mut *render_pass);
 
         // draw depth indicators on top of the tiles
-        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[0], &[]);
-        let depth = self.field.depth_indices(&self.player, 2, radius);
-        self.draw_at_indices(depth, &mut *render_pass);
-
-        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[1], &[]);
-        let depth = self.field.depth_indices(&self.player, 3, radius);
-        self.draw_at_indices(depth, &mut *render_pass);
-
-        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[2], &[]);
-        let depth = self.field.depth_indices(&self.player, 4, radius);
-        self.draw_at_indices(depth, &mut *render_pass);
-
-        render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[3], &[]);
-        let depth = self.field.depth_indices(&self.player, 5, radius);
-        self.draw_at_indices(depth, &mut *render_pass);
+        for i in 0..=3 {
+            render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[i], &[]);
+            let depth = self.field.depth_indices(&self.player, i+2, radius);
+            self.draw_at_indices(depth, &mut *render_pass);
+        }
     }
 }
