@@ -10,6 +10,7 @@ pub struct Buffers {
     pub player_vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
+    pub player_instance_buffer: wgpu::Buffer,
 }
 
 impl Buffers {
@@ -20,7 +21,7 @@ impl Buffers {
                     cgmath::Vector3 { x: x as f32 * DISP_COEF, y: y as f32 * DISP_COEF, z: 0.0 }
                         + INITIAL_POS;
 
-                let rotation=
+                let rotation =
                     cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0));
 
                 Instance {
@@ -48,6 +49,36 @@ impl Buffers {
             }
         );
 
+        let player_instances = (0..4).map(move |angle| {
+            let x_rot_compensation = if angle == 1 || angle == 2 { 1 } else { 0 };
+            let y_rot_compensation = if angle > 1 { 1 } else { 0 };
+            let position =
+                cgmath::Vector3 {
+                    x: (((TILES_PER_ROW - 1) / 2) + x_rot_compensation) as f32 * DISP_COEF,
+                    y: (((TILES_PER_ROW - 1) / 2) + y_rot_compensation) as f32 * DISP_COEF,
+                    z: 0.0
+                }
+                    + INITIAL_POS;
+
+            let rotation =
+                cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(90.0 * angle as f32));
+
+            Instance {
+                position,
+                rotation,
+                scaling: DISP_COEF,
+            }
+        }).collect::<Vec<_>>();
+
+        let player_instance_data = player_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let player_instance_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&player_instance_data),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+
         let player_vertex_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Player Buffer"),
@@ -64,11 +95,12 @@ impl Buffers {
             }
         );
 
-        Self{
+        Self {
             vertex_buffer,
             player_vertex_buffer,
             index_buffer,
             instance_buffer,
+            player_instance_buffer,
         }
     }
 }

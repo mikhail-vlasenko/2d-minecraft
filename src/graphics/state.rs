@@ -1,25 +1,23 @@
 use std::iter;
-use strum::IntoEnumIterator;
+
 use cgmath::{InnerSpace, Rotation3, Zero};
+use strum::IntoEnumIterator;
 use wgpu::{BindGroup, BindGroupLayout, CommandEncoder, include_wgsl, RenderPass, TextureView};
 use wgpu::util::DeviceExt;
-
-
 use winit::{
     event::*,
     window::Window,
 };
 use winit::dpi::PhysicalSize;
+
 use crate::{Field, Player};
 use crate::graphics::buffers::Buffers;
+use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::instance::*;
+use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::material::Material;
-
-use crate::graphics::egui_manager::EguiManager;
-use crate::graphics::texture_bind_groups::TextureBindGroups;
-
 
 pub const TILES_PER_ROW: u32 = 11;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
@@ -246,8 +244,9 @@ impl State {
 
         // render player
         render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.buffers.player_instance_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
-        let idx = State::convert_index(0, 0);
+        let idx = self.player.get_rotation();
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
     }
 

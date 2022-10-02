@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use image::imageops::tile;
 use crate::block::Block;
 use crate::{Field, Material};
@@ -11,6 +12,7 @@ pub struct Player {
     pub x: i32,
     pub y: i32,
     pub z: usize,
+    rotation: f32,
     inventory: Inventory,
     // Storables that will be used for the corresponding actions
     // Are set though UI
@@ -24,6 +26,7 @@ impl Player {
             x,
             y,
             z: 3,
+            rotation: 0.,
             inventory: Inventory::new(),
             placement_material: Plank,
             crafting_item: Storable::M(Plank)
@@ -42,6 +45,11 @@ impl Player {
             self.inventory.pickup(Storable::M(mat), 1);
             tile.pop();
         }
+    }
+
+    pub fn mine_infront(&mut self, field: &mut Field){
+        let (x, y) = self.coords_from_rotation();
+        self.mine(field, x, y);
     }
 
     pub fn place(&mut self, field: &mut Field, x: i32, y: i32, material: Material) {
@@ -63,7 +71,8 @@ impl Player {
         }
     }
 
-    pub fn place_current(&mut self, field: &mut Field, x: i32, y: i32) {
+    pub fn place_current(&mut self, field: &mut Field) {
+        let (x, y) = self.coords_from_rotation();
         self.place(field, x, y, self.placement_material)
     }
 
@@ -118,6 +127,23 @@ impl Player {
 
     pub fn craft_current(&mut self) {
         self.craft(self.crafting_item)
+    }
+
+    pub fn turn(&mut self, side: i32) {
+        self.rotation += side as f32;
+    }
+
+    pub fn coords_from_rotation(&self) -> (i32, i32) {
+        (-(self.rotation * PI / 2.).cos() as i32, -(self.rotation * PI / 2.).sin() as i32)
+    }
+
+    pub fn get_rotation(&self) -> u32 {
+        let modulus = self.rotation as i32 % 4;
+        if modulus >= 0 {
+            modulus as u32
+        } else {
+            (modulus + 4) as u32
+        }
     }
 
     pub fn get_inventory(&self) -> &Vec<(Storable, u32)> {
