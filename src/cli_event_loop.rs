@@ -13,7 +13,7 @@ pub fn cli_event_loop() {
             "w" => {
                 println!("input direction");
                 let dir: String = read!();
-                player.walk(&*dir);
+                player.walk(&*dir, &field);
             },
             "m" => {
                 println!("input relative coords");

@@ -1,3 +1,4 @@
+use image::imageops::tile;
 use crate::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
@@ -9,7 +10,7 @@ use crate::storable::Storable;
 pub struct Player {
     pub x: i32,
     pub y: i32,
-    pub z: i32,
+    pub z: usize,
     inventory: Inventory,
     // Storables that will be used for the corresponding actions
     // Are set though UI
@@ -66,14 +67,30 @@ impl Player {
         self.place(field, x, y, self.placement_material)
     }
 
-    pub fn walk(&mut self, direction: &str) {
+    pub fn walk(&mut self, direction: &str, field: &Field) {
         match direction {
-            "w" => self.x -= 1,
-            "a" => self.y -= 1,
-            "s" => self.x += 1,
-            "d" => self.y += 1,
+            "w" => self.step(field, -1, 0),
+            "a" => self.step(field, 0, -1),
+            "s" => self.step(field, 1, 0),
+            "d" => self.step(field, 0, 1),
             _ => println!("unknown direction")
         }
+    }
+
+    fn step(&mut self, field: &Field, delta_x: i32, delta_y: i32){
+        let tile_x = (self.x + delta_x) as usize;
+        let tile_y = (self.y + delta_y) as usize;
+        if field.tiles[tile_x][tile_y].len() <= self.z + 1 {
+            self.x += delta_x;
+            self.y += delta_y;
+            self.land(field);
+        } else {
+            println!("too high to step on")
+        }
+    }
+
+    pub fn land(&mut self, field: &Field){
+        self.z = field.tiles[self.x as usize][self.y as usize].len();
     }
 
     pub fn can_craft(&self, item: &Storable) -> bool {

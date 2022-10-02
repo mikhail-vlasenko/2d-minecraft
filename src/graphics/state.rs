@@ -209,8 +209,9 @@ impl State {
 
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0, };
 
-        let player = Player::new(25, 25);
         let field = Field::new();
+        let mut player = Player::new(25, 25);
+        player.land(&field);
         field.render(&player);
 
         Self {
