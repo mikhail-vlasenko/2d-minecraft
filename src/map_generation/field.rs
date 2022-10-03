@@ -1,16 +1,17 @@
 use crate::{Material, Player};
-use crate::tile::{randomly_augment, Tile};
+use crate::map_generation::tile::{randomly_augment, Tile};
 use rand::prelude::*;
 
 
-/// The playing grid 
+/// The playing grid
 pub struct Field {
     pub tiles: Vec<Vec<Tile>>,
+
 }
 
 impl Field {
     pub fn new() -> Self {
-        let init_size = 50;
+        let init_size = 500;
         let mut tiles = Vec::new();
         for i in 0..init_size {
             tiles.push(Vec::new());
@@ -22,7 +23,7 @@ impl Field {
             tiles
         }
     }
-    
+
     /// Display as glyphs
     pub fn render(&self, player: &Player) {
         for i in 0..self.tiles.len() {

@@ -1,5 +1,5 @@
 use ::egui::FontDefinitions;
-use egui::TexturesDelta;
+use egui::{Align2, TexturesDelta};
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -55,40 +55,9 @@ impl EguiManager {
     ) -> TexturesDelta {
         self.platform.begin_frame();
 
-        egui::Window::new("Menu").show(&self.platform.context(), |ui| {
-            ui.label("Placing material");
-            for material in Material::iter() {
-                ui.radio_value(&mut player.placement_material, material, material.to_string());
-            }
-
-            ui.label("Crafting item");
-            for material in Material::iter() {
-                if material.craft_yield() > 0 {
-                    ui.radio_value(
-                        &mut player.crafting_item,
-                        Storable::M(material),
-                        format!("{} x{}", material.to_string(), material.craft_yield())
-                    );
-                }
-            }
-            for item in Item::iter() {
-                if item.craft_yield() > 0 {
-                    ui.radio_value(
-                        &mut player.crafting_item,
-                        Storable::I(item),
-                        format!("{} x{}", item.to_string(), item.craft_yield())
-                    );
-                }
-            }
-        });
-
-        egui::Window::new("Inventory").show(&self.platform.context(), |ui| {
-            for item in player.get_inventory() {
-                if item.1 != 0 {
-                    ui.label(format!("{}: {}", item.0, item.1));
-                }
-            }
-        });
+        self.render_place_craft_menu(player);
+        self.render_inventory(player);
+        self.render_info(player);
 
         // End the UI frame. We could now handle the output and draw the UI with the backend.
         let full_output = self.platform.end_frame(Some(window));
@@ -125,6 +94,53 @@ impl EguiManager {
         self.render_pass
             .remove_textures(texture_delta)
             .expect("remove texture ok");
+    }
+
+    fn render_place_craft_menu(&self, player: &mut Player) {
+        egui::Window::new("Menu").show(&self.platform.context(), |ui| {
+            ui.label("Placing material");
+            for material in Material::iter() {
+                ui.radio_value(&mut player.placement_material, material, material.to_string());
+            }
+
+            ui.label("Crafting item");
+            for material in Material::iter() {
+                if material.craft_yield() > 0 {
+                    ui.radio_value(
+                        &mut player.crafting_item,
+                        Storable::M(material),
+                        format!("{} x{}", material.to_string(), material.craft_yield()),
+                    );
+                }
+            }
+            for item in Item::iter() {
+                if item.craft_yield() > 0 {
+                    ui.radio_value(
+                        &mut player.crafting_item,
+                        Storable::I(item),
+                        format!("{} x{}", item.to_string(), item.craft_yield()),
+                    );
+                }
+            }
+        });
+    }
+
+    fn render_inventory(&self, player: &Player) {
+        egui::Window::new("Inventory").show(&self.platform.context(), |ui| {
+            for item in player.get_inventory() {
+                if item.1 != 0 {
+                    ui.label(format!("{}: {}", item.0, item.1));
+                }
+            }
+        });
+    }
+
+    fn render_info(&self, player: &Player) {
+        egui::Window::new("Info").anchor(Align2::RIGHT_TOP, [0., 0.])
+            .show(&self.platform.context(), |ui| {
+                ui.label(format!("Position: {}, {}, {}", player.x, player.y, player.z));
+                ui.label(format!("Massage: {}", "no message"));
+            });
     }
 
     pub fn handle_event<T>(&mut self, event: &Event<T>) {

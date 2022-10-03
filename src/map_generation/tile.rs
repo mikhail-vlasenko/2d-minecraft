@@ -1,6 +1,6 @@
 use std::fmt;
 use std::fmt::Display;
-use crate::block::Block;
+use crate::map_generation::block::Block;
 use crate::Material::*;
 
 

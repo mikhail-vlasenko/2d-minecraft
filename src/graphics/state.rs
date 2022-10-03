@@ -139,9 +139,8 @@ impl State {
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0, };
 
         let field = Field::new();
-        let mut player = Player::new(25, 25);
+        let mut player = Player::new(250, 250);
         player.land(&field);
-        field.render(&player);
 
         Self {
             surface,
@@ -274,9 +273,9 @@ impl State {
     }
 
     /// Draws textures of top materials on every tile, then draws depth indicators on top.
-    /// 
-    /// # Arguments 
-    /// 
+    ///
+    /// # Arguments
+    ///
     /// * `render_pass`: the primary render pass
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         let radius = ((TILES_PER_ROW - 1) / 2) as usize;

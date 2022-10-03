@@ -9,7 +9,7 @@ use winit::{
 use winit::dpi::PhysicalSize;
 use crate::graphics::state::State;
 
-const INITIAL_SIZE: PhysicalSize<u32> = PhysicalSize { width: 1000, height: 1000 };
+const INITIAL_SIZE: PhysicalSize<u32> = PhysicalSize { width: 1600, height: 1600 };
 
 pub async fn run() {
     env_logger::init();

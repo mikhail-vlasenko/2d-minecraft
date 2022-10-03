@@ -1,5 +1,5 @@
 use std::f32::consts::PI;
-use crate::block::Block;
+use crate::map_generation::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
 use crate::material::Material::*;
