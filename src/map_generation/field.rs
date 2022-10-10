@@ -1,26 +1,37 @@
 use crate::{Material, Player};
 use crate::map_generation::tile::{randomly_augment, Tile};
 use rand::prelude::*;
+use crate::map_generation::chunk::Chunk;
 
 
 /// The playing grid
-pub struct Field {
+pub struct Field<'a> {
     pub tiles: Vec<Vec<Tile>>,
-
+    /// quadruply linked list of all generated chunks
+    chunks: Vec<Chunk>,
+    /// tiles from these chunks can be accessed
+    loaded_chunks: Vec<Vec<&'a Chunk>>,
+    /// top left corner of the currently loaded chunks (not needed?)
+    anchor_coords: (i32, i32),
+    chunk_size: u32,
+    /// how far from the player's chunk the chunks are loaded
+    loading_distance: u32,
 }
 
-impl Field {
+impl Field<'_> {
     pub fn new() -> Self {
+        let chunk_size = 16;
         let init_size = 500;
         let mut tiles = Vec::new();
-        for i in 0..init_size {
-            tiles.push(Vec::new());
-            for j in 0..init_size {
-                tiles[i].push(Self::gen_tile());
-            }
-        }
+        let chunks = vec![Chunk::new(chunk_size)];
+        let loaded_chunks = vec![vec![&chunks[0]]];
         Self{
-            tiles
+            tiles,
+            chunks,
+            loaded_chunks,
+            anchor_coords: (0,0),
+            chunk_size,
+            loading_distance: 0
         }
     }
 
