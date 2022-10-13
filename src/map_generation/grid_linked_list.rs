@@ -56,12 +56,12 @@ impl<T> Node<T> {
         let mut left = None;
         let mut right = None;
 
-        match side {
-            Side::Top => top = NonNull::new(parent as *mut _),
-            Side::Bottom => bottom = NonNull::new(parent as *mut _),
-            Side::Left => left = NonNull::new(parent as *mut _),
-            Side::Right => right = NonNull::new(parent as *mut _),
-        }
+        // match side {
+        //     Side::Top => top = NonNull::new(parent as *mut _),
+        //     Side::Bottom => bottom = NonNull::new(parent as *mut _),
+        //     Side::Left => left = NonNull::new(parent as *mut _),
+        //     Side::Right => right = NonNull::new(parent as *mut _),
+        // }
         Self {
             top,
             bottom,
@@ -73,11 +73,11 @@ impl<T> Node<T> {
 
     fn append(&mut self, element: T, side: Side) {
         let child = Self::new(element, self, side);
-        match side {
-            Side::Top => self.top = NonNull::new(*child),
-            Side::Bottom => self.bottom = NonNull::new(*child),
-            Side::Left => self.left = NonNull::new(*child),
-            Side::Right => self.right = NonNull::new(*child),
-        }
+        // match side {
+        //     Side::Top => self.top = NonNull::new(*child),
+        //     Side::Bottom => self.bottom = NonNull::new(*child),
+        //     Side::Left => self.left = NonNull::new(*child),
+        //     Side::Right => self.right = NonNull::new(*child),
+        // }
     }
 }

@@ -1,38 +1,44 @@
+use std::collections::HashMap;
+use std::rc::Rc;
 use crate::{Material, Player};
 use crate::map_generation::tile::{randomly_augment, Tile};
 use rand::prelude::*;
 use crate::map_generation::chunk::Chunk;
+use crate::map_generation::chunk_loader::ChunkLoader;
 
 
 /// The playing grid
-pub struct Field<'a> {
+pub struct Field {
     pub tiles: Vec<Vec<Tile>>,
-    /// quadruply linked list of all generated chunks
-    chunks: Vec<Chunk>,
+    /// hashmap for all generated chunks. key: encoded xy position, value: the chunk
+    pub chunk_loader: ChunkLoader,
     /// tiles from these chunks can be accessed
-    loaded_chunks: Vec<Vec<&'a Chunk>>,
+    pub loaded_chunks: Vec<Vec<Rc<Chunk>>>,
     /// top left corner of the currently loaded chunks (not needed?)
     anchor_coords: (i32, i32),
-    chunk_size: u32,
+    chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
-    loading_distance: u32,
+    loading_distance: usize,
 }
 
-impl Field<'_> {
+impl Field {
     pub fn new() -> Self {
         let chunk_size = 16;
-        let init_size = 500;
-        let mut tiles = Vec::new();
-        let chunks = vec![Chunk::new(chunk_size)];
-        let loaded_chunks = vec![vec![&chunks[0]]];
-        Self{
+        let tiles = Vec::new();
+        let chunk_loader = ChunkLoader::new();
+        let loaded_chunks = Vec::new();
+        let anchor_coords = (0,0);
+
+        let mut field = Self{
             tiles,
-            chunks,
+            chunk_loader,
             loaded_chunks,
-            anchor_coords: (0,0),
+            anchor_coords,
             chunk_size,
-            loading_distance: 0
-        }
+            loading_distance: 1,
+        };
+        field.load(anchor_coords.0, anchor_coords.1);
+        field
     }
 
     /// Display as glyphs
@@ -87,19 +93,33 @@ impl Field<'_> {
         res
     }
 
-    /// Randomly generate a Tile (a cell on the field)
-    pub fn gen_tile() -> Tile {
-        let num: f32 = random();
-        match num {
-            _ if num < 0.95 => {
-                let mut t = Tile::make_dirt();
-                randomly_augment(&mut t, &Tile::add_tree, 0.2);
-                t
-            },
-            _ => Tile::make_stone()
-        }
-    }
-    pub fn extend(&mut self) {
-
+    pub fn load(&mut self, chunk_x: i32, chunk_y:i32) {
+        self.loaded_chunks = self.chunk_loader.load_around(chunk_x, chunk_y);
     }
 }
+
+// impl<'a> Field<'a> {
+//     pub fn load_close_chunks(&'a mut self, chunk_x: i32, chunk_y: i32) {
+//         for x in 0..=(2 * self.loading_distance) {
+//             for y in 0..=(2 * self.loading_distance) {
+//                 let curr_x = chunk_x - self.loading_distance as i32 + x as i32;
+//                 let curr_y = chunk_y - self.loading_distance as i32 + y as i32;
+//                 let key = Self::encode_key(curr_x, curr_y);
+//                 self.loaded_chunks[0].push(self.chunks.get(&key).unwrap());
+//             }
+//         }
+//     }
+// }
+
+// impl Field<'_> {
+//     pub fn load_close_chunks(&mut self, chunk_x: i32, chunk_y: i32) {
+//         for x in 0..=(2 * self.loading_distance) {
+//             for y in 0..=(2 * self.loading_distance) {
+//                 let curr_x = chunk_x - self.loading_distance as i32 + x as i32;
+//                 let curr_y = chunk_y - self.loading_distance as i32 + y as i32;
+//                 let key = Self::encode_key(curr_x, curr_y);
+//                 self.loaded_chunks[0].push(self.chunks.get(&key).unwrap());
+//             }
+//         }
+//     }
+// }
