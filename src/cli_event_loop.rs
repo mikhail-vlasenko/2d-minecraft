@@ -2,8 +2,8 @@ use crate::{Field, Material, Player, Storable};
 
 
 pub fn cli_event_loop() {
-    let mut player = Player::new(25, 25);
     let mut field = Field::new();
+    let mut player = Player::new(&field);
     loop {
         field.render(&player);
         player.render_inventory();

@@ -23,16 +23,18 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(x: i32, y: i32) -> Self {
-        Self {
-            x,
-            y,
-            z: 3,
+    pub fn new(field: &Field) -> Self {
+        let mut player = Self {
+            x: 0,
+            y: 0,
+            z: 0,
             rotation: 0.,
             inventory: Inventory::new(),
             placement_material: Plank,
             crafting_item: Storable::M(Plank)
-        }
+        };
+        player.land(field);
+        player
     }
     pub fn mine(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) {
         let xx = self.x + delta_x;

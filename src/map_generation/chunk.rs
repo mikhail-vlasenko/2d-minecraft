@@ -1,6 +1,4 @@
-use std::borrow::BorrowMut;
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
+use std::cell::{RefCell, RefMut};
 use rand::random;
 use crate::map_generation::block::Block;
 use crate::map_generation::tile::{randomly_augment, Tile};
@@ -25,6 +23,12 @@ impl Chunk {
         }
     }
 
+    /// Indices of the tile within a chunk. Any chunk, nit necessarily this one
+    ///
+    /// # Arguments
+    ///
+    /// * `x`: absolute x position on the map
+    /// * `y`: absolute y position on the map
     pub fn indices_in_chunk(&self, x: i32, y: i32) -> (usize, usize) {
         let mut inner_x = x % self.size as i32;
         let mut inner_y = y % self.size as i32;
