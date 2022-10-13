@@ -13,12 +13,12 @@ use crate::map_generation::chunk_loader::ChunkLoader;
 /// The playing grid
 pub struct Field {
     /// hashmap for all generated chunks. key: encoded xy position, value: the chunk
-    pub chunk_loader: ChunkLoader,
+    chunk_loader: ChunkLoader,
     /// tiles from these chunks can be accessed
     loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
     /// position of the center of the currently loaded chunks
     central_chunk: (i32, i32),
-    chunk_size: usize,
+    pub chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
 }
@@ -67,16 +67,32 @@ impl Field {
     //     tile
     // }
 
-    fn chunk_idx_from_pos(&self, x: i32, y: i32) -> (usize, usize) {
+    pub fn chunk_idx_from_pos(&self, x: i32, y: i32) -> (usize, usize) {
         (self.compute_coord(x, self.central_chunk.0),
          self.compute_coord(y, self.central_chunk.1))
     }
 
     /// panics for unloaded chunks
     fn compute_coord(&self, coord: i32, center: i32) -> usize {
-        let chunk_coord = coord / self.chunk_size as i32;
+        let chunk_coord = self.chunk_pos(coord);
         let left_top = center - self.loading_distance as i32;
-        (chunk_coord - left_top) as usize
+        let idx = chunk_coord - left_top;
+        if idx < 0 {
+            panic!("Attempted access to unloaded chunk");
+        }
+        idx as usize
+    }
+
+    pub fn chunk_pos(&self, coord: i32) -> i32 {
+        let mut new_coord = coord;
+        if new_coord < 0 {
+            new_coord -= self.chunk_size as i32;
+        }
+        new_coord / self.chunk_size as i32
+    }
+
+    pub fn get_central_chunk(&self) -> (i32, i32) {
+        self.central_chunk
     }
 
     /// Display as glyphs
@@ -136,7 +152,9 @@ impl Field {
     }
 
     pub fn load(&mut self, chunk_x: i32, chunk_y:i32) {
+        self.chunk_loader.generate_close_chunks(chunk_x, chunk_y);
         self.loaded_chunks = self.chunk_loader.load_around(chunk_x, chunk_y);
+        self.central_chunk = (chunk_x, chunk_y);
     }
 }
 

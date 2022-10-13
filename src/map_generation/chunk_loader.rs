@@ -24,7 +24,7 @@ impl ChunkLoader {
         loader
     }
 
-    fn generate_close_chunks(&mut self, chunk_x: i32, chunk_y: i32) {
+    pub fn generate_close_chunks(&mut self, chunk_x: i32, chunk_y: i32) {
         for x in (chunk_x - self.loading_distance as i32)..=(chunk_x + self.loading_distance as i32) {
             for y in (chunk_y - self.loading_distance as i32)..=(chunk_y + self.loading_distance as i32) {
                 let key = Self::encode_key(x, y);
@@ -35,6 +35,7 @@ impl ChunkLoader {
             }
         }
     }
+
     pub fn load_around(&self, chunk_x: i32, chunk_y: i32) -> Vec<Vec<Rc<RefCell<Chunk>>>> {
         let mut loaded = Vec::new();
         for x in 0..=(2 * self.loading_distance) {

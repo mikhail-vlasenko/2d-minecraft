@@ -1,5 +1,6 @@
 use std::cell::{Ref, RefMut};
 use std::f32::consts::PI;
+use image::load;
 use crate::map_generation::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
@@ -75,7 +76,7 @@ impl Player {
         self.place(field, x, y, self.placement_material)
     }
 
-    pub fn walk(&mut self, direction: &str, field: &Field) {
+    pub fn walk(&mut self, direction: &str, field: &mut Field) {
         match direction {
             "w" => self.step(field, -1, 0),
             "a" => self.step(field, 0, -1),
@@ -92,11 +93,16 @@ impl Player {
     /// * `field`: the playing field
     /// * `delta_x`:
     /// * `delta_y`:
-    fn step(&mut self, field: &Field, delta_x: i32, delta_y: i32){
+    fn step(&mut self, field: &mut Field, delta_x: i32, delta_y: i32){
         if field.len_at(self.x + delta_x, self.y + delta_y) <= self.z + 1 {
             self.x += delta_x;
             self.y += delta_y;
             self.land(field);
+            let curr_chunk = (field.chunk_pos(self.x), field.chunk_pos(self.y));
+            if curr_chunk != field.get_central_chunk() {
+                field.load(curr_chunk.0, curr_chunk.1);
+                println!("new chunks loaded");
+            }
         } else {
             println!("too high to step on")
         }

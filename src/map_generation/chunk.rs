@@ -5,7 +5,7 @@ use rand::random;
 use crate::map_generation::block::Block;
 use crate::map_generation::tile::{randomly_augment, Tile};
 
-pub struct Chunk{
+pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
     size: usize,
 }
@@ -43,7 +43,7 @@ impl Chunk {
         match num {
             _ if num < 0.95 => {
                 let mut t = Tile::make_dirt();
-                randomly_augment(&mut t, &Tile::add_tree, 0.2);
+                randomly_augment(&mut t, &Tile::add_tree, 0.1);
                 t
             },
             _ => Tile::make_stone()
