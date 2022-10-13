@@ -1,10 +1,11 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
 
 
 pub struct ChunkLoader {
-    chunks: HashMap<i64, Rc<Chunk>>,
+    chunks: HashMap<i64, Rc<RefCell<Chunk>>>,
     loading_distance: usize,
     chunk_size: usize,
 }
@@ -29,12 +30,12 @@ impl ChunkLoader {
                 let key = Self::encode_key(x, y);
                 if !self.chunks.contains_key(&key) {
                     let generated = Chunk::new(self.chunk_size);
-                    self.chunks.insert(key, Rc::new(generated));
+                    self.chunks.insert(key, Rc::new(RefCell::new(generated)));
                 }
             }
         }
     }
-    pub fn load_around(&self, chunk_x: i32, chunk_y: i32) -> Vec<Vec<Rc<Chunk>>> {
+    pub fn load_around(&self, chunk_x: i32, chunk_y: i32) -> Vec<Vec<Rc<RefCell<Chunk>>>> {
         let mut loaded = Vec::new();
         for x in 0..=(2 * self.loading_distance) {
             loaded.push(Vec::new());

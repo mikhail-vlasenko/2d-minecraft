@@ -1,7 +1,9 @@
+use std::cell::{Ref, RefMut};
 use std::f32::consts::PI;
 use crate::map_generation::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
+use crate::map_generation::tile::Tile;
 use crate::material::Material::*;
 use crate::storable::Storable;
 
@@ -31,18 +33,18 @@ impl Player {
             crafting_item: Storable::M(Plank)
         }
     }
-    pub fn mine(&mut self, field: &mut Field, x: i32, y: i32) {
-        let tile_x = (self.x + x) as usize;
-        let tile_y = (self.y + y) as usize;
-        let tile = &mut field.tiles[tile_x][tile_y];
+    pub fn mine(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) {
+        let xx = self.x + delta_x;
+        let yy = self.y + delta_y;
+        let (inner_x, inner_y) = field.indices_in_chunk(xx, yy);
 
-        if tile.top().material == Bedrock {
+        if field.get_chunk_immut(xx, yy).top_at(inner_x, inner_y).material == Bedrock {
             println!("cannot mine bedrock");
         } else {
-            let mat = tile.top().material;
+            let mat =  field.get_chunk_immut(xx, yy).top_at(inner_x, inner_y).material;
             println!("{} mined", mat.to_string());
             self.inventory.pickup(Storable::M(mat), 1);
-            tile.pop();
+            field.pop_at(self.x + delta_x, self.y + delta_y);
         }
     }
 
@@ -52,11 +54,8 @@ impl Player {
         self.mine(field, x, y);
     }
 
-    pub fn place(&mut self, field: &mut Field, x: i32, y: i32, material: Material) {
-        let tile_x = (self.x + x) as usize;
-        let tile_y = (self.y + y) as usize;
-        let tile = &mut field.tiles[tile_x][tile_y];
-        if tile.full() {
+    pub fn place(&mut self, field: &mut Field, delta_x: i32, delta_y: i32, material: Material) {
+        if field.full_at(self.x + delta_x, self.y + delta_y) {
             println!("too high to build");
             return
         }
@@ -64,7 +63,7 @@ impl Player {
         let placement_block = Block { material };
 
         if self.inventory.drop(&Storable::M(material), 1) {
-            tile.push(placement_block);
+            field.push_at(placement_block, self.x + delta_x, self.y + delta_y);
             println!("{} placed", material.to_string());
         } else {
             println!("You do not have a block of {}", material.to_string());
@@ -95,9 +94,7 @@ impl Player {
     /// * `delta_x`:
     /// * `delta_y`:
     fn step(&mut self, field: &Field, delta_x: i32, delta_y: i32){
-        let tile_x = (self.x + delta_x) as usize;
-        let tile_y = (self.y + delta_y) as usize;
-        if field.tiles[tile_x][tile_y].len() <= self.z + 1 {
+        if field.len_at(self.x + delta_x, self.y + delta_y) <= self.z + 1 {
             self.x += delta_x;
             self.y += delta_y;
             self.land(field);
@@ -108,7 +105,7 @@ impl Player {
 
     /// Sets the z coordinate of the Player
     pub fn land(&mut self, field: &Field){
-        self.z = field.tiles[self.x as usize][self.y as usize].len();
+        self.z = field.len_at(self.x, self.y);
     }
 
     pub fn can_craft(&self, item: &Storable) -> bool {

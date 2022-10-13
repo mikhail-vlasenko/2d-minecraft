@@ -1,21 +1,23 @@
+use std::borrow::BorrowMut;
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 use crate::{Material, Player};
 use crate::map_generation::tile::{randomly_augment, Tile};
 use rand::prelude::*;
+use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
 
 
 /// The playing grid
 pub struct Field {
-    pub tiles: Vec<Vec<Tile>>,
     /// hashmap for all generated chunks. key: encoded xy position, value: the chunk
     pub chunk_loader: ChunkLoader,
     /// tiles from these chunks can be accessed
-    pub loaded_chunks: Vec<Vec<Rc<Chunk>>>,
-    /// top left corner of the currently loaded chunks (not needed?)
-    anchor_coords: (i32, i32),
+    loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
+    /// position of the center of the currently loaded chunks
+    central_chunk: (i32, i32),
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
@@ -24,35 +26,81 @@ pub struct Field {
 impl Field {
     pub fn new() -> Self {
         let chunk_size = 16;
-        let tiles = Vec::new();
         let chunk_loader = ChunkLoader::new();
         let loaded_chunks = Vec::new();
-        let anchor_coords = (0,0);
+        let central_chunk = (0, 0);
 
         let mut field = Self{
-            tiles,
             chunk_loader,
             loaded_chunks,
-            anchor_coords,
+            central_chunk,
             chunk_size,
             loading_distance: 1,
         };
-        field.load(anchor_coords.0, anchor_coords.1);
+        field.load(central_chunk.0, central_chunk.1);
         field
+    }
+
+    /// Gives the tile at position, from the loaded chunks only.
+    ///
+    /// # Arguments
+    ///
+    /// * `x`: absolute x position on the map
+    /// * `y`: absolute y position on the map
+    ///
+    /// returns: mutable reference to the Tile at this position, or panics if the Tile is not loaded
+    pub fn get_chunk(&mut self, x: i32, y: i32) -> RefMut<Chunk> {
+        let chunk_idx = self.chunk_idx_from_pos(x, y);
+        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].as_ref().borrow_mut();
+    }
+
+    pub fn get_chunk_immut(&self, x: i32, y: i32) -> Ref<Chunk> {
+        let chunk_idx = self.chunk_idx_from_pos(x, y);
+        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].as_ref().borrow();
+    }
+
+    pub fn indices_in_chunk(&self, x: i32, y: i32) -> (usize, usize) {
+        // todo: move to chunk?
+        let chunk_idx = self.chunk_idx_from_pos(x, y);
+        let inner_x = (x - (chunk_idx.0 * self.chunk_size) as i32) as usize;
+        let inner_y = (y - (chunk_idx.1 * self.chunk_size) as i32) as usize;
+        (inner_x, inner_y)
+    }
+
+    // pub fn get_tile_immut(&self, x: i32, y: i32) -> Ref<Tile> {
+    //     let chunk_idx = self.chunk_idx_from_pos(x, y);
+    //     let inner_x = (x - (chunk_idx.0 * self.chunk_size) as i32) as usize;
+    //     let inner_y = (y - (chunk_idx.1 * self.chunk_size) as i32) as usize;
+    //     let tile = self.loaded_chunks[chunk_idx.0][chunk_idx.1].as_ref().borrow().get_tile_immut(inner_x, inner_y);
+    //     tile
+    // }
+
+    fn chunk_idx_from_pos(&self, x: i32, y: i32) -> (usize, usize) {
+        (self.compute_coord(x, self.central_chunk.0),
+         self.compute_coord(y, self.central_chunk.1))
+    }
+
+    /// panics for unloaded chunks
+    fn compute_coord(&self, coord: i32, center: i32) -> usize {
+        let chunk_coord = coord / self.chunk_size as i32;
+        let left_top = center - self.loading_distance as i32;
+        (chunk_coord - left_top) as usize
     }
 
     /// Display as glyphs
     pub fn render(&self, player: &Player) {
-        for i in 0..self.tiles.len() {
-            for j in 0..self.tiles[i].len() {
-                if i as i32 == player.x && j as i32 == player.y {
-                    print!("P");
-                } else {
-                    print!("{}", self.tiles[i][j]);
-                }
-            }
-            println!();
-        }
+        // let current_chunk =
+        //     self.loaded_chunks[self.loading_distance][self.loading_distance].borrow();
+        // for i in 0..current_chunk.tiles.len() {
+        //     for j in 0..current_chunk.tiles[i].len() {
+        //         if i as i32 == player.x && j as i32 == player.y {
+        //             print!("P");
+        //         } else {
+        //             print!("{}", current_chunk.tiles[i][j]);
+        //         }
+        //     }
+        //     println!();
+        // }
     }
 
     /// Makes a list of positions of blocks of given material around the player.
@@ -69,10 +117,12 @@ impl Field {
     ///
     /// returns: (2d Vector: the list of positions)
     pub fn texture_indices(&self, player: &Player, material: Material, radius: usize) -> Vec<(i32, i32)> {
+        let r = radius as i32;
         let mut res: Vec<(i32, i32)> = Vec::new();
-        for i in (player.x as usize - radius)..=(player.x as usize + radius) {
-            for j in (player.y as usize - radius)..=(player.y as usize + radius) {
-                if self.tiles[i][j].top().material == material {
+        for i in (player.x - r)..=(player.x + r) {
+            for j in (player.y - r)..=(player.y + r) {
+                let (x, y) = self.indices_in_chunk(i, j);
+                if self.get_chunk_immut(i, j).top_at(x, y).material == material {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -82,10 +132,12 @@ impl Field {
 
     /// Makes a list of positions of blocks of given height around the player.
     pub fn depth_indices(&self, player: &Player, height: usize, radius: usize) -> Vec<(i32, i32)> {
+        let r = radius as i32;
         let mut res: Vec<(i32, i32)> = Vec::new();
-        for i in (player.x as usize - radius)..=(player.x as usize + radius) {
-            for j in (player.y as usize - radius)..=(player.y as usize + radius) {
-                if self.tiles[i][j].len() == height {
+        for i in (player.x - r)..=(player.x + r) {
+            for j in (player.y - r)..=(player.y + r) {
+                let (x, y) = self.indices_in_chunk(i, j);
+                if self.get_chunk_immut(i, j).len_at(x, y) == height {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -95,6 +147,25 @@ impl Field {
 
     pub fn load(&mut self, chunk_x: i32, chunk_y:i32) {
         self.loaded_chunks = self.chunk_loader.load_around(chunk_x, chunk_y);
+    }
+}
+
+impl Field {
+    pub fn len_at(&self, x: i32, y: i32) -> usize {
+        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
+        self.get_chunk_immut(x, y).len_at(inner_x, inner_y)
+    }
+    pub fn push_at(&mut self, block: Block, x: i32, y: i32) {
+        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
+        self.get_chunk(x, y).push_at(block, inner_x, inner_y)
+    }
+    pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
+        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
+        self.get_chunk(x, y).pop_at(inner_x, inner_y)
+    }
+    pub fn full_at(&self, x: i32, y: i32) -> bool {
+        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
+        self.get_chunk_immut(x, y).full_at(inner_x, inner_y)
     }
 }
 
