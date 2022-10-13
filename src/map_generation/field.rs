@@ -59,14 +59,6 @@ impl Field {
         return self.loaded_chunks[chunk_idx.0][chunk_idx.1].as_ref().borrow();
     }
 
-    pub fn indices_in_chunk(&self, x: i32, y: i32) -> (usize, usize) {
-        // todo: move to chunk?
-        let chunk_idx = self.chunk_idx_from_pos(x, y);
-        let inner_x = (x - (chunk_idx.0 * self.chunk_size) as i32) as usize;
-        let inner_y = (y - (chunk_idx.1 * self.chunk_size) as i32) as usize;
-        (inner_x, inner_y)
-    }
-
     // pub fn get_tile_immut(&self, x: i32, y: i32) -> Ref<Tile> {
     //     let chunk_idx = self.chunk_idx_from_pos(x, y);
     //     let inner_x = (x - (chunk_idx.0 * self.chunk_size) as i32) as usize;
@@ -121,8 +113,7 @@ impl Field {
         let mut res: Vec<(i32, i32)> = Vec::new();
         for i in (player.x - r)..=(player.x + r) {
             for j in (player.y - r)..=(player.y + r) {
-                let (x, y) = self.indices_in_chunk(i, j);
-                if self.get_chunk_immut(i, j).top_at(x, y).material == material {
+                if self.get_chunk_immut(i, j).top_at(i, j).material == material {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -136,8 +127,7 @@ impl Field {
         let mut res: Vec<(i32, i32)> = Vec::new();
         for i in (player.x - r)..=(player.x + r) {
             for j in (player.y - r)..=(player.y + r) {
-                let (x, y) = self.indices_in_chunk(i, j);
-                if self.get_chunk_immut(i, j).len_at(x, y) == height {
+                if self.get_chunk_immut(i, j).len_at(i, j) == height {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -152,20 +142,16 @@ impl Field {
 
 impl Field {
     pub fn len_at(&self, x: i32, y: i32) -> usize {
-        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
-        self.get_chunk_immut(x, y).len_at(inner_x, inner_y)
+        self.get_chunk_immut(x, y).len_at(x, y)
     }
     pub fn push_at(&mut self, block: Block, x: i32, y: i32) {
-        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
-        self.get_chunk(x, y).push_at(block, inner_x, inner_y)
+        self.get_chunk(x, y).push_at(block, x, y)
     }
     pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
-        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
-        self.get_chunk(x, y).pop_at(inner_x, inner_y)
+        self.get_chunk(x, y).pop_at(x, y)
     }
     pub fn full_at(&self, x: i32, y: i32) -> bool {
-        let (inner_x, inner_y) = self.indices_in_chunk(x, y);
-        self.get_chunk_immut(x, y).full_at(inner_x, inner_y)
+        self.get_chunk_immut(x, y).full_at(x, y)
     }
 }
 

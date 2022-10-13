@@ -6,7 +6,8 @@ use crate::map_generation::block::Block;
 use crate::map_generation::tile::{randomly_augment, Tile};
 
 pub struct Chunk{
-    pub tiles: Vec<Vec<Tile>>,
+    tiles: Vec<Vec<Tile>>,
+    size: usize,
 }
 
 impl Chunk {
@@ -19,8 +20,21 @@ impl Chunk {
             }
         }
         Self{
-            tiles
+            tiles,
+            size,
         }
+    }
+
+    pub fn indices_in_chunk(&self, x: i32, y: i32) -> (usize, usize) {
+        let mut inner_x = x % self.size as i32;
+        let mut inner_y = y % self.size as i32;
+        if inner_x < 0 {
+            inner_x += self.size as i32;
+        }
+        if inner_y < 0 {
+            inner_y += self.size as i32;
+        }
+        (inner_x as usize, inner_y as usize)
     }
 
     /// Randomly generate a Tile (a cell on the field)
@@ -38,19 +52,24 @@ impl Chunk {
 }
 
 impl Chunk {
-    pub fn len_at(&self, x: usize, y: usize) -> usize {
-        self.tiles[x][y].blocks.len()
+    pub fn len_at(&self, x: i32, y: i32) -> usize {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].blocks.len()
     }
-    pub fn top_at(&self, x: usize, y: usize) -> &Block {
-        self.tiles[x][y].blocks.last().unwrap()
+    pub fn top_at(&self, x: i32, y: i32) -> &Block {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].blocks.last().unwrap()
     }
-    pub fn push_at(&mut self, block: Block, x: usize, y: usize) {
-        self.tiles[x][y].blocks.push(block)
+    pub fn push_at(&mut self, block: Block, x: i32, y: i32) {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].blocks.push(block)
     }
-    pub fn pop_at(&mut self, x: usize, y: usize) -> Option<Block> {
-        self.tiles[x][y].blocks.pop()
+    pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].blocks.pop()
     }
-    pub fn full_at(&self, x: usize, y: usize) -> bool {
-        self.tiles[x][y].len() >= 5
+    pub fn full_at(&self, x: i32, y: i32) -> bool {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].len() >= 5
     }
 }

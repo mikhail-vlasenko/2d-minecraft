@@ -36,12 +36,11 @@ impl Player {
     pub fn mine(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) {
         let xx = self.x + delta_x;
         let yy = self.y + delta_y;
-        let (inner_x, inner_y) = field.indices_in_chunk(xx, yy);
 
-        if field.get_chunk_immut(xx, yy).top_at(inner_x, inner_y).material == Bedrock {
+        if field.get_chunk_immut(xx, yy).top_at(xx, yy).material == Bedrock {
             println!("cannot mine bedrock");
         } else {
-            let mat =  field.get_chunk_immut(xx, yy).top_at(inner_x, inner_y).material;
+            let mat =  field.get_chunk_immut(xx, yy).top_at(xx, yy).material;
             println!("{} mined", mat.to_string());
             self.inventory.pickup(Storable::M(mat), 1);
             field.pop_at(self.x + delta_x, self.y + delta_y);
