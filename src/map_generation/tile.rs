@@ -40,17 +40,23 @@ impl Tile {
                          Block { material: Dirt }],
         };
     }
-    pub fn make_stone() -> Tile {
-        return Tile {
-            blocks: vec![Block { material: Bedrock },
-                         Block { material: Stone },
-                         Block { material: Stone }],
-        };
-    }
     pub fn add_tree(tile: &mut Tile) {
+        if tile.top().material == Dirt && tile.len() < 4 {
+            tile.blocks.push(Block { material: TreeLog });
+            tile.blocks.push(Block { material: TreeLog });
+        }
+    }
+
+    pub fn make_iron(tile: &mut Tile) {
+        if tile.blocks[1].material == Stone {
+            tile.blocks[1] = Block { material: IronOre };
+        }
+    }
+
+    pub fn make_rock(tile: &mut Tile) {
         if tile.top().material == Dirt {
-            tile.blocks.push(Block { material: TreeLog });
-            tile.blocks.push(Block { material: TreeLog });
+            tile.pop();
+            tile.push(Block { material: Stone });
         }
     }
 }

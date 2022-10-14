@@ -23,8 +23,9 @@ pub struct Field {
 
 impl Field {
     pub fn new() -> Self {
+        let loading_distance = 5;
         let chunk_size = 16;
-        let chunk_loader = ChunkLoader::new();
+        let chunk_loader = ChunkLoader::new(loading_distance);
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
 
@@ -33,7 +34,7 @@ impl Field {
             loaded_chunks,
             central_chunk,
             chunk_size,
-            loading_distance: 1,
+            loading_distance,
         };
         field.load(central_chunk.0, central_chunk.1);
         field

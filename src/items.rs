@@ -12,14 +12,18 @@ use Storable::*;
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
 pub enum Item {
     Stick,
-    WoodenPickaxe
+    WoodenPickaxe,
+    IronIngot,
+    IronSword,
 }
 
 impl Item {
     pub fn name(&self) -> &str {
         match self {
             Stick => "stick",
-            WoodenPickaxe => "wooden pickaxe"
+            WoodenPickaxe => "wooden pickaxe",
+            IronIngot => "iron ingot",
+            IronSword => "iron sword",
         }
     }
 
@@ -27,6 +31,8 @@ impl Item {
         match self {
             Stick => &[(&M(Material::Plank), 1)],
             WoodenPickaxe => &[(&M(Material::Plank), 3), (&I(Stick), 2)],
+            IronIngot => &[(&M(Material::IronOre), 1)],
+            IronSword => &[(&I(IronIngot), 2), (&I(Stick), 1)],
         }
     }
 
@@ -34,6 +40,8 @@ impl Item {
         match self {
             Stick => 2,
             WoodenPickaxe => 1,
+            IronIngot => 1,
+            IronSword => 1,
         }
     }
 }

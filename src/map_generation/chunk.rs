@@ -43,15 +43,11 @@ impl Chunk {
 
     /// Randomly generate a Tile (a cell on the field)
     pub fn gen_tile() -> Tile {
-        let num: f32 = random();
-        match num {
-            _ if num < 0.95 => {
-                let mut t = Tile::make_dirt();
-                randomly_augment(&mut t, &Tile::add_tree, 0.1);
-                t
-            },
-            _ => Tile::make_stone()
-        }
+        let mut tile = Tile::make_dirt();
+        randomly_augment(&mut tile, &Tile::make_rock, 0.05);
+        randomly_augment(&mut tile, &Tile::add_tree, 0.1);
+        randomly_augment(&mut tile, &Tile::make_iron, 0.2);
+        tile
     }
 }
 

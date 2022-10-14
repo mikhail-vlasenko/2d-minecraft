@@ -11,13 +11,13 @@ pub struct ChunkLoader {
 }
 
 impl ChunkLoader {
-    pub fn new() -> Self {
+    pub fn new(loading_distance: usize) -> Self {
         let chunk_size = 16;
         let chunks = HashMap::new();
 
         let mut loader = Self {
             chunks,
-            loading_distance: 2,
+            loading_distance,
             chunk_size,
         };
         loader.generate_close_chunks(0, 0);

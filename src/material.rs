@@ -14,13 +14,16 @@ pub enum Material {
     TreeLog,
     Plank,
     Stone,
-    Bedrock
+    Bedrock,
+    IronOre,
+    CraftTable,
 }
 
 pub enum MaterialCategory {
     Stone,
     Soil,
-    Wood
+    Wood,
+    Mineral,
 }
 
 impl Material {
@@ -31,6 +34,8 @@ impl Material {
             TreeLog => "tree log",
             Bedrock => "bedrock",
             Plank => "plank",
+            IronOre => "iron ore",
+            CraftTable => "crafting table",
         }
     }
 
@@ -42,12 +47,15 @@ impl Material {
             TreeLog => String::from("T"),
             Bedrock => String::from("b"),
             Plank => String::from("w"),
+            IronOre => String::from("i"),
+            CraftTable => String::from("C"),
         }
     }
 
     pub fn craft_requirements(&self) -> &[(&Storable, u32)] {
         match self {
             Plank => &[(&M(TreeLog), 1)],
+            CraftTable => &[(&M(Plank), 4)],
             _ => &[]
         }
     }
@@ -55,6 +63,7 @@ impl Material {
     pub fn craft_yield(&self) -> u32 {
         match self {
             Plank => 4,
+            CraftTable => 1,
             _ => 0
         }
     }

@@ -11,6 +11,8 @@ pub struct TextureBindGroups {
     pub tree_log: BindGroup,
     pub bedrock: BindGroup,
     pub planks: BindGroup,
+    pub iron_ore: BindGroup,
+    pub crafting_table: BindGroup,
     pub player: BindGroup,
     pub depth_indicators: [BindGroup; 4],
     pub bind_group_layout: BindGroupLayout,
@@ -101,6 +103,20 @@ impl TextureBindGroups {
             "planks_bind_group", &planks_texture, &device, &bind_group_layout,
         );
 
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_iron_ore.png"), "texture.png",
+        ).unwrap();
+        let iron_ore = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_crafting_table.png"), "texture.png",
+        ).unwrap();
+        let crafting_table = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
         let player_texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png",
         ).unwrap();
@@ -116,6 +132,8 @@ impl TextureBindGroups {
             tree_log,
             bedrock,
             planks,
+            iron_ore,
+            crafting_table,
             player,
             depth_indicators,
             bind_group_layout,
@@ -161,6 +179,8 @@ impl TextureBindGroups {
             TreeLog => &self.tree_log,
             Bedrock => &self.bedrock,
             Plank => &self.planks,
+            IronOre => &self.iron_ore,
+            CraftTable => &self.crafting_table,
         }
     }
 }
