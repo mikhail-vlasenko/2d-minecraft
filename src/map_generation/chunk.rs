@@ -2,6 +2,7 @@ use std::cell::{RefCell, RefMut};
 use rand::random;
 use crate::map_generation::block::Block;
 use crate::map_generation::tile::{randomly_augment, Tile};
+use crate::Material;
 
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
@@ -54,19 +55,23 @@ impl Chunk {
 impl Chunk {
     pub fn len_at(&self, x: i32, y: i32) -> usize {
         let inner = self.indices_in_chunk(x, y);
-        self.tiles[inner.0][inner.1].blocks.len()
+        self.tiles[inner.0][inner.1].len()
     }
     pub fn top_at(&self, x: i32, y: i32) -> &Block {
         let inner = self.indices_in_chunk(x, y);
-        self.tiles[inner.0][inner.1].blocks.last().unwrap()
+        self.tiles[inner.0][inner.1].top()
+    }
+    pub fn top_material_at(&self, x: i32, y: i32) -> Material {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].top_material()
     }
     pub fn push_at(&mut self, block: Block, x: i32, y: i32) {
         let inner = self.indices_in_chunk(x, y);
-        self.tiles[inner.0][inner.1].blocks.push(block)
+        self.tiles[inner.0][inner.1].push(block)
     }
     pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
         let inner = self.indices_in_chunk(x, y);
-        self.tiles[inner.0][inner.1].blocks.pop()
+        self.tiles[inner.0][inner.1].pop()
     }
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         let inner = self.indices_in_chunk(x, y);

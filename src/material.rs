@@ -67,6 +67,12 @@ impl Material {
             _ => 0
         }
     }
+
+    pub fn required_crafter(&self) -> Option<&Material> {
+        match self {
+            _ => None
+        }
+    }
 }
 
 impl TryFrom<String> for Material {

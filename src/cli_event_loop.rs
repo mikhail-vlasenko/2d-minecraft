@@ -40,10 +40,10 @@ pub fn cli_event_loop() {
                 match inferred_item {
                     Err(_) => println!("unknown item (material != item)"),
                     Ok(item) => {
-                        if !player.can_craft(&item) {
+                        if !player.can_craft(&item, &field) {
                             println!("you cannot craft that")
                         } else {
-                            player.craft(item);
+                            player.craft(item, &field);
                             println!("crafting successful")
                         }
                     }

@@ -1,10 +1,8 @@
 use std::cell::{Ref, RefMut};
 use std::f32::consts::PI;
-use image::load;
 use crate::map_generation::block::Block;
 use crate::{Field, Material};
 use crate::inventory::Inventory;
-use crate::map_generation::tile::Tile;
 use crate::material::Material::*;
 use crate::storable::Storable;
 
@@ -111,11 +109,24 @@ impl Player {
     }
 
     /// Sets the z coordinate of the Player
-    pub fn land(&mut self, field: &Field){
+    pub fn land(&mut self, field: &Field) {
         self.z = field.len_at(self.x, self.y);
     }
 
-    pub fn can_craft(&self, item: &Storable) -> bool {
+    fn exists_around(&self, field: &Field, material: &Material) -> bool {
+        let x_indices = vec![-1, 0, 1];
+        let y_indices = vec![-1, 0, 1];
+        for x in x_indices {
+            for y in &y_indices {
+                if &field.top_material_at(self.x + x, self.y + y) == material {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    pub fn can_craft(&self, item: &Storable, field: &Field) -> bool {
         let mut possible = true;
         for (req, amount) in item.craft_requirements() {
             if self.inventory.count(&req) < *amount {
@@ -123,13 +134,20 @@ impl Player {
                 break
             }
         }
-        possible && item.is_craftable()
+        let crafter = item.required_crafter();
+        let mut crafter_near = false;
+        if crafter == None {
+            crafter_near = true;
+        } else {
+            crafter_near = self.exists_around(field, crafter.unwrap());
+        }
+        possible && item.is_craftable() && crafter_near
     }
 
     /// If crafting the given item is possible, subtracts the ingredients and adds the item to the inventory.
     /// Else does nothing.
-    pub fn craft(&mut self, item: Storable) {
-        if !self.can_craft(&item){
+    pub fn craft(&mut self, item: Storable, field: &Field) {
+        if !self.can_craft(&item, field){
             println!("cant craft!");
             return
         }
@@ -140,8 +158,8 @@ impl Player {
         self.inventory.pickup(item, craft_yield)
     }
 
-    pub fn craft_current(&mut self) {
-        self.craft(self.crafting_item)
+    pub fn craft_current(&mut self, field: &Field) {
+        self.craft(self.crafting_item, field)
     }
 
     /// Rotates the Player 90 degrees (counter-)clockwise.

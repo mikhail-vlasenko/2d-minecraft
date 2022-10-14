@@ -14,7 +14,7 @@ pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field)
         Some(VirtualKeyCode::M) => player.mine_infront(field),
         Some(VirtualKeyCode::E) => player.place_current(field),
         Some(VirtualKeyCode::P) => player.place_current(field),
-        Some(VirtualKeyCode::C) => player.craft_current(),
+        Some(VirtualKeyCode::C) => player.craft_current(field),
         _ => println!("Unknown action")
     }
 }

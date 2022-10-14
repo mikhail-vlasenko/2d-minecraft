@@ -34,6 +34,13 @@ impl Storable {
             I(item) => item.craft_yield()
         }
     }
+    
+    pub fn required_crafter(&self) -> Option<&Material> {
+        match self {
+            M(mat) => mat.required_crafter(),
+            I(item) => item.required_crafter()
+        }
+    }
 
     pub fn is_craftable(&self) -> bool {
         self.craft_yield() > 0

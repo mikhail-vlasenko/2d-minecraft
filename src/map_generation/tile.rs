@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
 use crate::map_generation::block::Block;
+use crate::Material;
 use crate::Material::*;
 
 
@@ -32,6 +33,9 @@ impl Tile {
     }
     pub fn full(&self) -> bool {
         self.len() >= 5
+    }
+    pub fn top_material(&self) -> Material {
+        self.top().material.clone()
     }
     pub fn make_dirt() -> Tile {
         return Tile {

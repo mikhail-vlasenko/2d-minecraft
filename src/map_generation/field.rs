@@ -164,6 +164,9 @@ impl Field {
     pub fn push_at(&mut self, block: Block, x: i32, y: i32) {
         self.get_chunk(x, y).push_at(block, x, y)
     }
+    pub fn top_material_at(&self, x: i32, y: i32) -> Material {
+        self.get_chunk_immut(x, y).top_material_at(x, y)
+    }
     pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
         self.get_chunk(x, y).pop_at(x, y)
     }

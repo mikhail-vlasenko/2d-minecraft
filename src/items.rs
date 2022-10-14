@@ -44,6 +44,14 @@ impl Item {
             IronSword => 1,
         }
     }
+
+    pub fn required_crafter(&self) -> Option<&Material> {
+        match self {
+            WoodenPickaxe => Some(&Material::CraftTable),
+            IronSword => Some(&Material::CraftTable),
+            _ => None
+        }
+    }
 }
 
 impl TryFrom<String> for Item {
