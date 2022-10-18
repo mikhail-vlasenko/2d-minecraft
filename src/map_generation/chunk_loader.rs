@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
+use crate::map_generation::mobs::spawning::spawn_hostile;
 
 
 pub struct ChunkLoader {
@@ -29,7 +30,8 @@ impl ChunkLoader {
             for y in (chunk_y - self.loading_distance as i32)..=(chunk_y + self.loading_distance as i32) {
                 let key = Self::encode_key(x, y);
                 if !self.chunks.contains_key(&key) {
-                    let generated = Chunk::new(self.chunk_size);
+                    let mut generated = Chunk::new(self.chunk_size);
+                    spawn_hostile(&mut generated, x, y);
                     self.chunks.insert(key, Rc::new(RefCell::new(generated)));
                 }
             }

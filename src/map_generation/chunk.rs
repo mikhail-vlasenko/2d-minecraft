@@ -1,11 +1,13 @@
 use std::cell::{RefCell, RefMut};
 use rand::random;
 use crate::map_generation::block::Block;
+use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::Material;
 
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
+    mobs: Vec<Mob>,
     size: usize,
 }
 
@@ -18,13 +20,15 @@ impl Chunk {
                 tiles[i].push(Self::gen_tile());
             }
         }
+        let mobs = Vec::new();
         Self{
             tiles,
             size,
+            mobs,
         }
     }
 
-    /// Indices of the tile within a chunk. Any chunk, nit necessarily this one
+    /// Indices of the tile within a chunk. Any chunk, not necessarily this one
     ///
     /// # Arguments
     ///
@@ -46,9 +50,21 @@ impl Chunk {
     pub fn gen_tile() -> Tile {
         let mut tile = Tile::make_dirt();
         randomly_augment(&mut tile, &Tile::make_rock, 0.05);
-        randomly_augment(&mut tile, &Tile::add_tree, 0.1);
+        randomly_augment(&mut tile, &Tile::add_tree, 0.07);
         randomly_augment(&mut tile, &Tile::make_iron, 0.2);
         tile
+    }
+
+    pub fn add_mob(&mut self, mob: Mob) {
+        self.mobs.push(mob);
+    }
+
+    pub fn get_mobs(&self) -> &Vec<Mob> {
+        &self.mobs
+    }
+
+    pub fn get_size(&self) -> usize {
+        self.size
     }
 }
 

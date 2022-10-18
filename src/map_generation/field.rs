@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use crate::{Material, Player};
@@ -6,6 +5,7 @@ use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
+use crate::map_generation::mobs::mob::MobKind;
 
 
 /// The playing grid
@@ -23,7 +23,7 @@ pub struct Field {
 
 impl Field {
     pub fn new() -> Self {
-        let loading_distance = 5;
+        let loading_distance = 1;
         let chunk_size = 16;
         let chunk_loader = ChunkLoader::new(loading_distance);
         let loaded_chunks = Vec::new();
@@ -143,6 +143,21 @@ impl Field {
             for j in (player.y - r)..=(player.y + r) {
                 if self.get_chunk_immut(i, j).len_at(i, j) == height {
                     res.push((i as i32 - player.x, j as i32 - player.y));
+                }
+            }
+        }
+        res
+    }
+
+    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32)> {
+        let mut res: Vec<(i32, i32)> = Vec::new();
+
+        for i in 0..self.loaded_chunks.len() {
+            for j in 0..self.loaded_chunks[i].len() {
+                for m in self.loaded_chunks[i][j].borrow().get_mobs() {
+                    if m.get_kind() == &kind {
+                        res.push((m.pos.x - player.x, m.pos.y - player.y))
+                    }
                 }
             }
         }

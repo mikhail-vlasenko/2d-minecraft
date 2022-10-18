@@ -17,7 +17,6 @@ mod graphics;
 mod cli_event_loop;
 mod input_decoding;
 mod map_generation;
-mod ecs;
 
 
 fn main() {
