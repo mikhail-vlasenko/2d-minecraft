@@ -1,11 +1,12 @@
 use std::cell::{Ref, RefCell, RefMut};
+use std::panic;
 use std::rc::Rc;
 use crate::{Material, Player};
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
-use crate::map_generation::mobs::mob::MobKind;
+use crate::map_generation::mobs::mob::{Mob, MobKind, Position};
 
 
 /// The playing grid
@@ -23,7 +24,7 @@ pub struct Field {
 
 impl Field {
     pub fn new() -> Self {
-        let loading_distance = 1;
+        let loading_distance = 4;
         let chunk_size = 16;
         let chunk_loader = ChunkLoader::new(loading_distance);
         let loaded_chunks = Vec::new();
@@ -69,22 +70,23 @@ impl Field {
          self.compute_coord(y, self.central_chunk.1))
     }
 
+    /// Finds chunk's index along an axis from the absolute map coordinate.
     /// panics for unloaded chunks
     fn compute_coord(&self, coord: i32, center: i32) -> usize {
-        let chunk_coord = self.chunk_pos(coord);
+        let chunk_coord = self.chunk_pos(coord);  // check -64
         let left_top = center - self.loading_distance as i32;
         let idx = chunk_coord - left_top;
-        if idx < 0 {
-            panic!("Attempted access to unloaded chunk");
+        if idx < 0 || idx as usize > self.loading_distance * 2 {
+            panic!("Attempted access to an unloaded chunk (idx = {})", idx);
         }
         idx as usize
     }
 
-    /// Chunk's index for this coordinate
+    /// Chunk's index for this absolute map coordinate
     pub fn chunk_pos(&self, coord: i32) -> i32 {
         let mut new_coord = coord;
         if new_coord < 0 {
-            new_coord -= self.chunk_size as i32;
+            new_coord -= self.chunk_size as i32 - 1;
         }
         new_coord / self.chunk_size as i32
     }
@@ -92,6 +94,18 @@ impl Field {
     /// Absolute index of the current central chunk
     pub fn get_central_chunk(&self) -> (i32, i32) {
         self.central_chunk
+    }
+
+    pub fn min_loaded_idx(&self) -> (i32, i32) {
+        let x = (self.central_chunk.0 - self.loading_distance as i32) * self.chunk_size as i32;
+        let y = (self.central_chunk.1 - self.loading_distance as i32) * self.chunk_size as i32;
+        (x, y)
+    }
+
+    pub fn max_loaded_idx(&self) -> (i32, i32) {
+        let x = (self.central_chunk.0 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
+        let y = (self.central_chunk.1 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
+        (x, y)
     }
 
     /// Display as glyphs
@@ -169,6 +183,21 @@ impl Field {
         self.chunk_loader.generate_close_chunks(chunk_x, chunk_y);
         self.loaded_chunks = self.chunk_loader.load_around(chunk_x, chunk_y);
         self.central_chunk = (chunk_x, chunk_y);
+    }
+
+    pub fn step_mobs(&mut self) {
+        let mut mobs = Vec::new();
+        for i in 0..self.loaded_chunks.len() {
+            for j in 0..self.loaded_chunks[i].len() {
+                mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
+            }
+        }
+        for mut m in mobs {
+            self.chunk_idx_from_pos(-64, 0);
+            m.act(self.min_loaded_idx(), self.max_loaded_idx());
+            let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
+            self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
+        }
     }
 }
 

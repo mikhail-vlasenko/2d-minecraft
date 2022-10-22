@@ -66,6 +66,14 @@ impl Chunk {
     pub fn get_size(&self) -> usize {
         self.size
     }
+
+    pub fn transfer_mobs(&mut self) -> Vec<Mob> {
+        let mut mobs = Vec::new();
+        for _ in 0..self.mobs.len() {
+            mobs.push(self.mobs.pop().unwrap());
+        }
+        mobs
+    }
 }
 
 impl Chunk {

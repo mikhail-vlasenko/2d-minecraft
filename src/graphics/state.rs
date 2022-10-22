@@ -20,7 +20,7 @@ use crate::input_decoding::act;
 use crate::map_generation::mobs::mob::MobKind;
 use crate::material::Material;
 
-pub const TILES_PER_ROW: u32 = 11;
+pub const TILES_PER_ROW: u32 = 17;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
 pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
@@ -191,6 +191,7 @@ impl State {
                 ..
             } => {
                 act(virtual_keycode, &mut self.player, &mut self.field);
+                self.field.step_mobs();
                 true
             }
             _ => false,
