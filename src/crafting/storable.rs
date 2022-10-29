@@ -1,8 +1,8 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use crate::items::Item;
-use crate::material::Material;
 use Storable::*;
+use crate::crafting::items::Item;
+use crate::crafting::material::Material;
 
 
 /// Represents anything that can be stored in the inventory.

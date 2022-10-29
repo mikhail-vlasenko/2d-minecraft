@@ -3,7 +3,7 @@ use rand::random;
 use crate::map_generation::block::Block;
 use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
-use crate::Material;
+use crate::crafting::material::Material;
 
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,

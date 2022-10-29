@@ -1,8 +1,8 @@
 use std::fmt;
 use std::fmt::Display;
 use crate::map_generation::block::Block;
-use crate::Material;
-use crate::Material::*;
+use crate::crafting::material::Material;
+use crate::crafting::material::Material::*;
 
 
 /// A square "column" on the field. Acts as a stack of Blocks.

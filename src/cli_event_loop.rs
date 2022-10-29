@@ -1,4 +1,6 @@
-use crate::{Field, Material, Player, Storable};
+use crate::{Field, Player};
+use crate::crafting::material::Material;
+use crate::crafting::storable::Storable;
 
 
 pub fn cli_event_loop() {

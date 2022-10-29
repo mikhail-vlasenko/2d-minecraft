@@ -2,7 +2,9 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::mem::swap;
 use std::panic;
 use std::rc::Rc;
-use crate::{Material, Player};
+use crate::crafting::material::Material;
+use crate::Player;
+
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;

@@ -1,11 +1,13 @@
 use std::cell::{Ref, RefMut};
 use std::f32::consts::PI;
 use crate::map_generation::block::Block;
-use crate::{Field, Material};
-use crate::inventory::Inventory;
-use crate::material::Material::*;
-use crate::storable::Storable;
+use crate::{Field};
+use crate::crafting::inventory::Inventory;
+use crate::crafting::material::Material;
+use crate::crafting::material::Material::*;
+use crate::crafting::storable::Storable;
 
+pub const MAX_HP: i32 = 100;
 
 /// The player.
 pub struct Player {
@@ -13,7 +15,9 @@ pub struct Player {
     pub y: i32,
     pub z: usize,
     rotation: f32,
+    hp: i32,
     inventory: Inventory,
+
     // Storables that will be used for the corresponding actions
     // Are set though UI
     pub placement_material: Material,
@@ -27,6 +31,7 @@ impl Player {
             y: 0,
             z: 0,
             rotation: 0.,
+            hp: MAX_HP,
             inventory: Inventory::new(),
             placement_material: Plank,
             crafting_item: Storable::M(Plank)

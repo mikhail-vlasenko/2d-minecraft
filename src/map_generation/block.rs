@@ -1,7 +1,7 @@
 use std::fmt;
 use std::hash::Hash;
 use std::fmt::{Display, Formatter};
-use crate::material::Material;
+use crate::crafting::material::Material;
 
 #[derive(Clone, Hash)]
 pub struct Block {

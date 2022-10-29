@@ -18,7 +18,7 @@ use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob::MobKind;
-use crate::material::Material;
+use crate::crafting::material::Material;
 
 pub const TILES_PER_ROW: u32 = 17;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;

@@ -1,8 +1,8 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
+use crate::crafting::material::Material;
 use crate::graphics::state::State;
 use crate::graphics::texture::Texture;
 use crate::map_generation::mobs::mob::{Mob, MobKind};
-use crate::Material;
 
 
 /// Creates and stores wgpu texture bind groups.

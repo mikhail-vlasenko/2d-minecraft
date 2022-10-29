@@ -2,6 +2,7 @@ use crate::Field;
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::priority_queue::PriorityQueue;
 
+/// Runs A* on the field. Cuts off execution if expected route is too long.
 pub struct AStar {
     size: usize,
     radius: i32,
@@ -38,6 +39,7 @@ impl AStar {
     /// Produces the next step (direction) according to a*.
     pub fn full_pathing(&mut self, field: &Field, source: (i32, i32), destination: (i32, i32)) -> (i32, i32) {
         let max_priority = Self::max_acceptable_priority(source, destination);
+
         self.visit(source);
         let idx = self.convert_idx(source);
         self.dist_to[idx.0][idx.1] = 0;
@@ -78,6 +80,8 @@ impl AStar {
         (0, 0)
     }
 
+    /// A* works on a potentially smaller part of the field, then all loaded chunks.
+    /// This part should be symmetric around the player.
     pub fn reset(&mut self, player_x: i32, player_y: i32) {
         self.visited = vec![vec![false; self.size]; self.size];
         self.pending = PriorityQueue::new();
@@ -107,7 +111,7 @@ impl AStar {
 
         for d in &DIRECTIONS {
             let new_pos = (tile.0 + d.0, tile.1 + d.1);
-            // in bounds, not too high, and not visited
+            // in bounds, not too high, has no mob, and not visited
             if self.min_loaded.0 <= new_pos.0 && new_pos.0 <= self.max_loaded.0 &&
                 self.min_loaded.1 <= new_pos.1 && new_pos.1 <= self.max_loaded.1 &&
                 can_step(field, tile, new_pos, this_height) {

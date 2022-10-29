@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use Material::*;
-use crate::Storable;
 use Storable::*;
+use crate::crafting::storable::Storable;
 
 
 /// What a block on the field can be made of.

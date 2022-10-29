@@ -1,4 +1,4 @@
-use crate::storable::Storable;
+use crate::crafting::storable::Storable;
 
 
 pub struct Inventory {
