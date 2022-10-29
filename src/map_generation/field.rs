@@ -6,6 +6,7 @@ use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
+use crate::map_generation::mobs::a_star::AStar;
 use crate::map_generation::mobs::mob::{Mob, MobKind, Position};
 
 
@@ -20,6 +21,7 @@ pub struct Field {
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
+    a_star: AStar,
 }
 
 impl Field {
@@ -30,12 +32,16 @@ impl Field {
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
 
+        let a_star_radius = 20;
+        let a_star = AStar::new(a_star_radius);
+
         let mut field = Self{
             chunk_loader,
             loaded_chunks,
             central_chunk,
             chunk_size,
             loading_distance,
+            a_star,
         };
         field.load(central_chunk.0, central_chunk.1);
         field
@@ -197,10 +203,19 @@ impl Field {
             }
         }
         for mut m in mobs {
-            m.act(&self, player, self.min_loaded_idx(), self.max_loaded_idx());
+            m.act(self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
             self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
         }
+    }
+
+    pub fn full_pathing(&mut self, source: (i32, i32), destination: (i32, i32), player: (i32, i32)) -> (i32, i32) {
+        self.a_star.reset(player.0, player.0);
+        self.a_star.full_pathing(self, source, destination)
+    }
+
+    pub fn get_a_star_radius(&self) -> i32 {
+        self.a_star.get_radius()
     }
 }
 
@@ -225,3 +240,5 @@ impl Field {
         self.get_chunk_immut(x, y).mob_at(x, y)
     }
 }
+
+pub const DIRECTIONS: Vec<(i32, i32)> = vec![(0, 1), (1, 0), (0, -1), (-1, 0)];

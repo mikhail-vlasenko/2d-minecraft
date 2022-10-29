@@ -1,40 +1,42 @@
 use crate::Field;
+use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::priority_queue::PriorityQueue;
 
 pub struct AStar {
+    size: usize,
+    radius: i32,
     pending: PriorityQueue<(i32, i32)>,
     visited: Vec<Vec<bool>>,
     dist_to: Vec<Vec<i32>>,
     parent: Vec<Vec<(i32, i32)>>,
     min_loaded: (i32, i32),
     max_loaded: (i32, i32),
-    directions: Vec<(i32, i32)>,
 }
 
 impl AStar {
-    pub fn new(field: &Field) -> Self {
-        let size = field.loaded_tiles_size();
-        let min_loaded = field.min_loaded_idx();
-        let max_loaded = field.max_loaded_idx();
-        let directions = vec![(0, 1), (1, 0), (0, -1), (-1, 0)];
+    pub fn new(radius: i32) -> Self {
+        let size = (radius as usize) * 2 + 1;
+        let min_loaded = (0, 0);
+        let max_loaded = (0, 0);
 
         let pending = PriorityQueue::new();
         let visited = vec![vec![false; size]; size];
         let dist_to = vec![vec![0; size]; size];
         let parent = vec![vec![(0, 0); size]; size];
         Self {
+            size,
+            radius,
             pending,
             visited,
             dist_to,
             parent,
             min_loaded,
             max_loaded,
-            directions,
         }
     }
 
     /// Produces the next step (direction) according to a*.
-    pub fn a_star(&mut self, field: &Field, source: (i32, i32), destination: (i32, i32)) -> (i32, i32) {
+    pub fn full_pathing(&mut self, field: &Field, source: (i32, i32), destination: (i32, i32)) -> (i32, i32) {
         let max_priority = Self::max_acceptable_priority(source, destination);
         self.visit(source);
         self.pending.push(0, source);
@@ -74,6 +76,13 @@ impl AStar {
         (0, 0)
     }
 
+    pub fn reset(&mut self, player_x: i32, player_y: i32) {
+        self.visited = vec![vec![false; self.size]; self.size];
+        self.pending = PriorityQueue::new();
+        self.min_loaded = (player_x - self.radius, player_y - self.radius);
+        self.max_loaded = (player_x + self.radius, player_y + self.radius);
+    }
+
     fn convert_idx(&self, tile: (i32, i32)) -> (usize, usize) {
         ((tile.0 - self.min_loaded.0) as usize, (tile.1 - self.min_loaded.1) as usize)
     }
@@ -94,7 +103,7 @@ impl AStar {
         let this_height = field.len_at(tile.0, tile.1);
         let mut res = Vec::new();
 
-        for d in &self.directions {
+        for d in &DIRECTIONS {
             let new_pos = (tile.0 + d.0, tile.1 + d.1);
             // in bounds, not too high, and not visited
             if self.min_loaded.0 <= new_pos.0 && new_pos.0 <= self.max_loaded.0 &&
@@ -114,9 +123,12 @@ impl AStar {
         estimate_remaining(source, destination) + 10
     }
 
+    pub fn get_radius(&self) -> i32 {
+        self.radius
+    }
 }
 
-fn can_step(field: &Field, source: (i32, i32), destination: (i32, i32), current_height: usize) -> bool {
+pub fn can_step(field: &Field, source: (i32, i32), destination: (i32, i32), current_height: usize) -> bool {
     field.len_at(destination.0, destination.1) <= current_height + 1 &&
         !field.mob_at(destination.0, destination.1)
 }

@@ -10,7 +10,7 @@ pub fn spawn_hostile(chunk: & mut Chunk, x_chunk: i32, y_chunk: i32) {
     let pos = Position {
         x: x + size * x_chunk,
         y: y + size * y_chunk,
-        z: chunk.len_at(x, y) as i32,
+        z: chunk.len_at(x, y),
     };
     let mob = Mob::new(pos, MobKind::Zombie, 10);
     chunk.add_mob(mob);
