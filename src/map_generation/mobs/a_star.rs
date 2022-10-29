@@ -39,6 +39,8 @@ impl AStar {
     pub fn full_pathing(&mut self, field: &Field, source: (i32, i32), destination: (i32, i32)) -> (i32, i32) {
         let max_priority = Self::max_acceptable_priority(source, destination);
         self.visit(source);
+        let idx = self.convert_idx(source);
+        self.dist_to[idx.0][idx.1] = 0;
         self.pending.push(0, source);
 
         while self.pending.len() > 0 {
@@ -120,11 +122,26 @@ impl AStar {
 
     /// Priority higher than this results in a route that is too long
     fn max_acceptable_priority(source: (i32, i32), destination: (i32, i32)) -> i32 {
-        estimate_remaining(source, destination) + 10
+        estimate_remaining(source, destination) + 20
     }
 
     pub fn get_radius(&self) -> i32 {
         self.radius
+    }
+}
+
+impl AStar {
+    pub fn default() -> Self {
+        Self {
+            size: 0,
+            radius: 0,
+            pending: PriorityQueue::new(),
+            visited: Vec::new(),
+            dist_to: Vec::new(),
+            parent: Vec::new(),
+            min_loaded: (0, 0),
+            max_loaded: (0, 0),
+        }
     }
 }
 

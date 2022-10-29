@@ -1,4 +1,5 @@
 use std::cell::{Ref, RefCell, RefMut};
+use std::mem::swap;
 use std::panic;
 use std::rc::Rc;
 use crate::{Material, Player};
@@ -26,7 +27,7 @@ pub struct Field {
 
 impl Field {
     pub fn new() -> Self {
-        let loading_distance = 4;
+        let loading_distance = 2;
         let chunk_size = 16;
         let chunk_loader = ChunkLoader::new(loading_distance);
         let loaded_chunks = Vec::new();
@@ -210,8 +211,13 @@ impl Field {
     }
 
     pub fn full_pathing(&mut self, source: (i32, i32), destination: (i32, i32), player: (i32, i32)) -> (i32, i32) {
-        self.a_star.reset(player.0, player.0);
-        self.a_star.full_pathing(self, source, destination)
+        self.a_star.reset(player.0, player.1);
+        let mut secondary_a_star = AStar::default();
+        swap(&mut secondary_a_star, &mut self.a_star);
+        // now secondary_a_star is the actual self.a_star now
+        let res = secondary_a_star.full_pathing(self, source, destination);
+        swap(&mut secondary_a_star, &mut self.a_star);
+        res
     }
 
     pub fn get_a_star_radius(&self) -> i32 {
@@ -241,4 +247,4 @@ impl Field {
     }
 }
 
-pub const DIRECTIONS: Vec<(i32, i32)> = vec![(0, 1), (1, 0), (0, -1), (-1, 0)];
+pub const DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];

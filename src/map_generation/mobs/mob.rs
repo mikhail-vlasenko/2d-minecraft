@@ -53,7 +53,7 @@ impl Mob {
     }
 
     pub fn act(&mut self, field: &mut Field, player: &Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        let dist = min((player.x - self.pos.x).abs(), (player.y - self.pos.y).abs());
+        let dist = max((player.x - self.pos.x).abs(), (player.y - self.pos.y).abs());
         if dist <= field.get_a_star_radius() {
             // within a* range, so do full path search
             let direction = field.full_pathing(
