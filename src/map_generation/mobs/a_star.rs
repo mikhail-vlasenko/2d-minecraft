@@ -122,7 +122,7 @@ impl AStar {
 
     /// Priority higher than this results in a route that is too long
     fn max_acceptable_priority(source: (i32, i32), destination: (i32, i32)) -> i32 {
-        estimate_remaining(source, destination) + 20
+        estimate_remaining(source, destination) + 10
     }
 
     pub fn get_radius(&self) -> i32 {

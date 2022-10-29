@@ -22,16 +22,20 @@ pub struct Field {
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
+    /// struct for pathing
     a_star: AStar,
+    /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
+    stray_mobs: Vec<Mob>,
 }
 
 impl Field {
     pub fn new() -> Self {
-        let loading_distance = 2;
+        let loading_distance = 4;
         let chunk_size = 16;
         let chunk_loader = ChunkLoader::new(loading_distance);
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
+        let stray_mobs = Vec::new();
 
         let a_star_radius = 20;
         let a_star = AStar::new(a_star_radius);
@@ -43,6 +47,7 @@ impl Field {
             chunk_size,
             loading_distance,
             a_star,
+            stray_mobs,
         };
         field.load(central_chunk.0, central_chunk.1);
         field
@@ -197,13 +202,13 @@ impl Field {
     }
 
     pub fn step_mobs(&mut self, player: &Player) {
-        let mut mobs = Vec::new();
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
-                mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
+                self.stray_mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
             }
         }
-        for mut m in mobs {
+        for _ in 0..self.stray_mobs.len() {
+            let mut m = self.stray_mobs.pop().unwrap();
             m.act(self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
             self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
@@ -243,7 +248,14 @@ impl Field {
         self.get_chunk_immut(x, y).full_at(x, y)
     }
     pub fn mob_at(&self, x: i32, y: i32) -> bool {
-        self.get_chunk_immut(x, y).mob_at(x, y)
+        self.get_chunk_immut(x, y).mob_at(x, y) || {
+            for m in &self.stray_mobs {
+                if m.pos.x == x && m.pos.y == y {
+                    return true;
+                }
+            }
+            false
+        }
     }
 }
 
