@@ -108,6 +108,10 @@ impl Field {
         (x, y)
     }
 
+    pub fn loaded_tiles_size(&self) -> usize {
+        ((2 * self.loading_distance) + 1) * self.chunk_size
+    }
+
     /// Display as glyphs
     pub fn render(&self, player: &Player) {
         for i in 0..self.chunk_size {
@@ -185,7 +189,7 @@ impl Field {
         self.central_chunk = (chunk_x, chunk_y);
     }
 
-    pub fn step_mobs(&mut self) {
+    pub fn step_mobs(&mut self, player: &Player) {
         let mut mobs = Vec::new();
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
@@ -193,14 +197,14 @@ impl Field {
             }
         }
         for mut m in mobs {
-            self.chunk_idx_from_pos(-64, 0);
-            m.act(self.min_loaded_idx(), self.max_loaded_idx());
+            m.act(&self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
             self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
         }
     }
 }
 
+/// API for Tile interaction, x and y are absolute map positions.
 impl Field {
     pub fn len_at(&self, x: i32, y: i32) -> usize {
         self.get_chunk_immut(x, y).len_at(x, y)
@@ -216,5 +220,8 @@ impl Field {
     }
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         self.get_chunk_immut(x, y).full_at(x, y)
+    }
+    pub fn mob_at(&self, x: i32, y: i32) -> bool {
+        self.get_chunk_immut(x, y).mob_at(x, y)
     }
 }

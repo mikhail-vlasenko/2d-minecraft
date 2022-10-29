@@ -76,6 +76,8 @@ impl Chunk {
     }
 }
 
+/// API for Tile interaction, x and y are absolute map positions.
+/// Should be called on an appropriate chunk.
 impl Chunk {
     pub fn len_at(&self, x: i32, y: i32) -> usize {
         let inner = self.indices_in_chunk(x, y);
@@ -100,5 +102,13 @@ impl Chunk {
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].len() >= 5
+    }
+    pub fn mob_at(&self, x: i32, y: i32) -> bool {
+        for m in &self.mobs {
+            if m.pos.x == x && m.pos.y == y {
+                return true;
+            }
+        }
+        false
     }
 }

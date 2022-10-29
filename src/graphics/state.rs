@@ -191,7 +191,7 @@ impl State {
                 ..
             } => {
                 act(virtual_keycode, &mut self.player, &mut self.field);
-                self.field.step_mobs();
+                self.field.step_mobs(&self.player);
                 true
             }
             _ => false,

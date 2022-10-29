@@ -1,6 +1,8 @@
-use std::cmp::max;
+use std::cmp::{max, min};
 use rand::Rng;
 use strum_macros::EnumIter;
+use crate::map_generation::mobs::a_star::AStar;
+use crate::{Field, Player};
 
 
 pub struct Position {
@@ -43,16 +45,10 @@ impl Mob {
         }
     }
 
-    pub fn act(&mut self, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    pub fn act(&mut self, field: &Field, player: &Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let mut rng = rand::thread_rng();
-        let number: i32 = rng.gen();
-        let direction = number % 4;
-        match direction {
-            0 => self.step((1, 0), min_loaded, max_loaded),
-            1 => self.step((0, 1), min_loaded, max_loaded),
-            2 => self.step((-1, 0), min_loaded, max_loaded),
-            3 => self.step((0, -1), min_loaded, max_loaded),
-            _ => ()
-        }
+        let mut pathing = AStar::new(field);
+        let direction = pathing.a_star(field, (self.pos.x, self.pos.y), (player.x, player.y));
+        self.step(direction, min_loaded, max_loaded);
     }
 }
