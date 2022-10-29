@@ -1,11 +1,14 @@
-use std::borrow::BorrowMut;
 use std::cell::{Ref, RefCell, RefMut};
+use std::mem::swap;
+use std::panic;
 use std::rc::Rc;
 use crate::{Material, Player};
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
+use crate::map_generation::mobs::a_star::AStar;
+use crate::map_generation::mobs::mob::{Mob, MobKind, Position};
 
 
 /// The playing grid
@@ -19,15 +22,23 @@ pub struct Field {
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
+    /// struct for pathing
+    a_star: AStar,
+    /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
+    stray_mobs: Vec<Mob>,
 }
 
 impl Field {
     pub fn new() -> Self {
-        let loading_distance = 5;
+        let loading_distance = 4;
         let chunk_size = 16;
         let chunk_loader = ChunkLoader::new(loading_distance);
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
+        let stray_mobs = Vec::new();
+
+        let a_star_radius = 20;
+        let a_star = AStar::new(a_star_radius);
 
         let mut field = Self{
             chunk_loader,
@@ -35,6 +46,8 @@ impl Field {
             central_chunk,
             chunk_size,
             loading_distance,
+            a_star,
+            stray_mobs,
         };
         field.load(central_chunk.0, central_chunk.1);
         field
@@ -69,22 +82,23 @@ impl Field {
          self.compute_coord(y, self.central_chunk.1))
     }
 
+    /// Finds chunk's index along an axis from the absolute map coordinate.
     /// panics for unloaded chunks
     fn compute_coord(&self, coord: i32, center: i32) -> usize {
-        let chunk_coord = self.chunk_pos(coord);
+        let chunk_coord = self.chunk_pos(coord);  // check -64
         let left_top = center - self.loading_distance as i32;
         let idx = chunk_coord - left_top;
-        if idx < 0 {
-            panic!("Attempted access to unloaded chunk");
+        if idx < 0 || idx as usize > self.loading_distance * 2 {
+            panic!("Attempted access to an unloaded chunk (idx = {})", idx);
         }
         idx as usize
     }
 
-    /// Chunk's index for this coordinate
+    /// Chunk's index for this absolute map coordinate
     pub fn chunk_pos(&self, coord: i32) -> i32 {
         let mut new_coord = coord;
         if new_coord < 0 {
-            new_coord -= self.chunk_size as i32;
+            new_coord -= self.chunk_size as i32 - 1;
         }
         new_coord / self.chunk_size as i32
     }
@@ -92,6 +106,22 @@ impl Field {
     /// Absolute index of the current central chunk
     pub fn get_central_chunk(&self) -> (i32, i32) {
         self.central_chunk
+    }
+
+    pub fn min_loaded_idx(&self) -> (i32, i32) {
+        let x = (self.central_chunk.0 - self.loading_distance as i32) * self.chunk_size as i32;
+        let y = (self.central_chunk.1 - self.loading_distance as i32) * self.chunk_size as i32;
+        (x, y)
+    }
+
+    pub fn max_loaded_idx(&self) -> (i32, i32) {
+        let x = (self.central_chunk.0 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
+        let y = (self.central_chunk.1 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
+        (x, y)
+    }
+
+    pub fn loaded_tiles_size(&self) -> usize {
+        ((2 * self.loading_distance) + 1) * self.chunk_size
     }
 
     /// Display as glyphs
@@ -149,14 +179,58 @@ impl Field {
         res
     }
 
+    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32)> {
+        let mut res: Vec<(i32, i32)> = Vec::new();
+
+        for i in 0..self.loaded_chunks.len() {
+            for j in 0..self.loaded_chunks[i].len() {
+                for m in self.loaded_chunks[i][j].borrow().get_mobs() {
+                    if m.get_kind() == &kind {
+                        res.push((m.pos.x - player.x, m.pos.y - player.y))
+                    }
+                }
+            }
+        }
+        res
+    }
+
     /// Load a new set of loaded_chunks around the given chunk
     pub fn load(&mut self, chunk_x: i32, chunk_y:i32) {
         self.chunk_loader.generate_close_chunks(chunk_x, chunk_y);
         self.loaded_chunks = self.chunk_loader.load_around(chunk_x, chunk_y);
         self.central_chunk = (chunk_x, chunk_y);
     }
+
+    pub fn step_mobs(&mut self, player: &Player) {
+        for i in 0..self.loaded_chunks.len() {
+            for j in 0..self.loaded_chunks[i].len() {
+                self.stray_mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
+            }
+        }
+        for _ in 0..self.stray_mobs.len() {
+            let mut m = self.stray_mobs.pop().unwrap();
+            m.act(self, player, self.min_loaded_idx(), self.max_loaded_idx());
+            let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
+            self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
+        }
+    }
+
+    pub fn full_pathing(&mut self, source: (i32, i32), destination: (i32, i32), player: (i32, i32)) -> (i32, i32) {
+        self.a_star.reset(player.0, player.1);
+        let mut secondary_a_star = AStar::default();
+        swap(&mut secondary_a_star, &mut self.a_star);
+        // now secondary_a_star is the actual self.a_star now
+        let res = secondary_a_star.full_pathing(self, source, destination);
+        swap(&mut secondary_a_star, &mut self.a_star);
+        res
+    }
+
+    pub fn get_a_star_radius(&self) -> i32 {
+        self.a_star.get_radius()
+    }
 }
 
+/// API for Tile interaction, x and y are absolute map positions.
 impl Field {
     pub fn len_at(&self, x: i32, y: i32) -> usize {
         self.get_chunk_immut(x, y).len_at(x, y)
@@ -173,4 +247,16 @@ impl Field {
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         self.get_chunk_immut(x, y).full_at(x, y)
     }
+    pub fn mob_at(&self, x: i32, y: i32) -> bool {
+        self.get_chunk_immut(x, y).mob_at(x, y) || {
+            for m in &self.stray_mobs {
+                if m.pos.x == x && m.pos.y == y {
+                    return true;
+                }
+            }
+            false
+        }
+    }
 }
+
+pub const DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];

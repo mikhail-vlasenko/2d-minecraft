@@ -1,11 +1,13 @@
 use std::cell::{RefCell, RefMut};
 use rand::random;
 use crate::map_generation::block::Block;
+use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::Material;
 
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
+    mobs: Vec<Mob>,
     size: usize,
 }
 
@@ -18,13 +20,15 @@ impl Chunk {
                 tiles[i].push(Self::gen_tile());
             }
         }
+        let mobs = Vec::new();
         Self{
             tiles,
             size,
+            mobs,
         }
     }
 
-    /// Indices of the tile within a chunk. Any chunk, nit necessarily this one
+    /// Indices of the tile within a chunk. Any chunk, not necessarily this one
     ///
     /// # Arguments
     ///
@@ -46,12 +50,34 @@ impl Chunk {
     pub fn gen_tile() -> Tile {
         let mut tile = Tile::make_dirt();
         randomly_augment(&mut tile, &Tile::make_rock, 0.05);
-        randomly_augment(&mut tile, &Tile::add_tree, 0.1);
+        randomly_augment(&mut tile, &Tile::add_tree, 0.07);
         randomly_augment(&mut tile, &Tile::make_iron, 0.2);
         tile
     }
+
+    pub fn add_mob(&mut self, mob: Mob) {
+        self.mobs.push(mob);
+    }
+
+    pub fn get_mobs(&self) -> &Vec<Mob> {
+        &self.mobs
+    }
+
+    pub fn get_size(&self) -> usize {
+        self.size
+    }
+
+    pub fn transfer_mobs(&mut self) -> Vec<Mob> {
+        let mut mobs = Vec::new();
+        for _ in 0..self.mobs.len() {
+            mobs.push(self.mobs.pop().unwrap());
+        }
+        mobs
+    }
 }
 
+/// API for Tile interaction, x and y are absolute map positions.
+/// Should be called on an appropriate chunk.
 impl Chunk {
     pub fn len_at(&self, x: i32, y: i32) -> usize {
         let inner = self.indices_in_chunk(x, y);
@@ -76,5 +102,13 @@ impl Chunk {
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].len() >= 5
+    }
+    pub fn mob_at(&self, x: i32, y: i32) -> bool {
+        for m in &self.mobs {
+            if m.pos.x == x && m.pos.y == y {
+                return true;
+            }
+        }
+        false
     }
 }

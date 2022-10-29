@@ -1,6 +1,7 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
 use crate::graphics::state::State;
 use crate::graphics::texture::Texture;
+use crate::map_generation::mobs::mob::{Mob, MobKind};
 use crate::Material;
 
 
@@ -15,6 +16,7 @@ pub struct TextureBindGroups {
     pub crafting_table: BindGroup,
     pub player: BindGroup,
     pub depth_indicators: [BindGroup; 4],
+    zombie: BindGroup,
     pub bind_group_layout: BindGroupLayout,
 }
 
@@ -117,6 +119,13 @@ impl TextureBindGroups {
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mobs/zombie.png"), "texture.png",
+        ).unwrap();
+        let zombie = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
         let player_texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png",
         ).unwrap();
@@ -136,6 +145,7 @@ impl TextureBindGroups {
             crafting_table,
             player,
             depth_indicators,
+            zombie,
             bind_group_layout,
         }
     }
@@ -171,7 +181,7 @@ impl TextureBindGroups {
         [depth1, depth2, depth3, depth4]
     }
 
-    pub fn get_bind_group_for(&self, material: Material) -> &BindGroup {
+    pub fn get_bind_group_material(&self, material: Material) -> &BindGroup {
         use Material::*;
         match material {
             Dirt => &self.grass,
@@ -181,6 +191,14 @@ impl TextureBindGroups {
             Plank => &self.planks,
             IronOre => &self.iron_ore,
             CraftTable => &self.crafting_table,
+        }
+    }
+
+    pub fn get_bind_group_mob(&self, mob: MobKind) -> &BindGroup {
+        use MobKind::*;
+        match mob {
+            Zombie => &self.zombie,
+            _ => &self.player,
         }
     }
 }

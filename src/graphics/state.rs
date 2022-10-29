@@ -17,9 +17,10 @@ use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
+use crate::map_generation::mobs::mob::MobKind;
 use crate::material::Material;
 
-pub const TILES_PER_ROW: u32 = 11;
+pub const TILES_PER_ROW: u32 = 17;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
 pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
@@ -190,6 +191,7 @@ impl State {
                 ..
             } => {
                 act(virtual_keycode, &mut self.player, &mut self.field);
+                self.field.step_mobs(&self.player);
                 true
             }
             _ => false,
@@ -244,6 +246,7 @@ impl State {
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
         self.render_field(&mut render_pass);
+        self.render_mobs(&mut render_pass);
 
         // render player
         render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
@@ -281,7 +284,7 @@ impl State {
 
         // draw tiles of the same material together
         for material in Material::iter() {
-            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_for(material), &[]);
+            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
             let tiles = self.field.texture_indices(&self.player, material, radius);
             self.draw_at_indices(tiles, &mut *render_pass);
         }
@@ -291,6 +294,18 @@ impl State {
             render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[i], &[]);
             let depth = self.field.depth_indices(&self.player, i+2, radius);
             self.draw_at_indices(depth, &mut *render_pass);
+        }
+    }
+
+    fn render_mobs<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        let max_drawable_index = ((TILES_PER_ROW - 1) / 2) as i32;
+        for mob_kind in MobKind::iter() {
+            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_mob(mob_kind), &[]);
+            let mut indices = self.field.mob_indices(&self.player, mob_kind);
+            indices = indices.into_iter().filter(
+                |(x, y)| x.abs() <= max_drawable_index && y.abs() <= max_drawable_index
+            ).collect();
+            self.draw_at_indices(indices, &mut *render_pass);
         }
     }
 }
