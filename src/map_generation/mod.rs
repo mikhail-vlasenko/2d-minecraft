@@ -1,7 +1,8 @@
 pub mod tile;
 pub mod block;
 pub mod field;
-mod chunk;
+pub mod chunk;
 mod grid_linked_list;
-mod chunk_loader;
+pub mod chunk_loader;
 pub mod mobs;
+pub mod read_chunk;

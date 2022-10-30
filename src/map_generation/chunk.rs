@@ -4,6 +4,7 @@ use crate::map_generation::block::Block;
 use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::crafting::material::Material;
+use crate::map_generation::read_chunk::read_file;
 
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
@@ -25,6 +26,15 @@ impl Chunk {
             tiles,
             size,
             mobs,
+        }
+    }
+
+    pub fn from(tiles: Vec<Vec<Tile>>) -> Self {
+        let size = tiles.len();
+        Self {
+            tiles,
+            size,
+            mobs: Vec::new(),
         }
     }
 

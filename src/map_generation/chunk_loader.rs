@@ -24,6 +24,12 @@ impl ChunkLoader {
         loader.generate_close_chunks(0, 0);
         loader
     }
+    
+    pub fn with_starting_chunk(loading_distance: usize, chunk: Chunk) -> Self {
+        let mut loader = Self::new(loading_distance);
+        loader.chunks.insert(Self::encode_key(0, 0), Rc::new(RefCell::new(chunk)));
+        loader
+    }
 
     pub fn generate_close_chunks(&mut self, chunk_x: i32, chunk_y: i32) {
         for x in (chunk_x - self.loading_distance as i32)..=(chunk_x + self.loading_distance as i32) {

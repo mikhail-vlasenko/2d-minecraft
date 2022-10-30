@@ -32,10 +32,15 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn new() -> Self {
+    pub fn new(starting_chunk: Option<Chunk>) -> Self {
         let loading_distance = 4;
         let chunk_size = 16;
-        let chunk_loader = ChunkLoader::new(loading_distance);
+
+        let chunk_loader = if starting_chunk.is_some() {
+            ChunkLoader::with_starting_chunk(loading_distance, starting_chunk.unwrap())
+        } else {
+            ChunkLoader::new(loading_distance)
+        };
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
@@ -88,7 +93,7 @@ impl Field {
     /// Finds chunk's index along an axis from the absolute map coordinate.
     /// panics for unloaded chunks
     fn compute_coord(&self, coord: i32, center: i32) -> usize {
-        let chunk_coord = self.chunk_pos(coord);  // check -64
+        let chunk_coord = self.chunk_pos(coord);
         let left_top = center - self.loading_distance as i32;
         let idx = chunk_coord - left_top;
         if idx < 0 || idx as usize > self.loading_distance * 2 {
