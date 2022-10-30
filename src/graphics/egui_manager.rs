@@ -54,12 +54,13 @@ impl EguiManager {
                      view: &TextureView,
                      window: &Window,
                      player: &mut Player,
+                     turn_state: f32,
     ) -> TexturesDelta {
         self.platform.begin_frame();
 
         self.render_place_craft_menu(player);
         self.render_inventory(player);
-        self.render_info(player);
+        self.render_info(player, turn_state);
 
         // End the UI frame. We could now handle the output and draw the UI with the backend.
         let full_output = self.platform.end_frame(Some(window));
@@ -137,10 +138,12 @@ impl EguiManager {
         });
     }
 
-    fn render_info(&self, player: &Player) {
+    fn render_info(&self, player: &Player, turn_state: f32) {
         egui::Window::new("Info").anchor(Align2::RIGHT_TOP, [0., 0.])
             .show(&self.platform.context(), |ui| {
                 ui.label(format!("Position: {}, {}, {}", player.x, player.y, player.z));
+                ui.label(format!("HP: {}", player.get_hp()));
+                ui.label(format!("Turn state: {}", turn_state));
                 ui.label(format!("Massage: {}", "no message"));
             });
     }

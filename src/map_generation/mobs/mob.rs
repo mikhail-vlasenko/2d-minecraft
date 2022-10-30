@@ -1,9 +1,9 @@
 use std::cmp::{max, min};
 use rand::Rng;
-use strum_macros::EnumIter;
 use crate::map_generation::mobs::a_star::{AStar, can_step};
 use crate::{Field, Player};
 use crate::map_generation::field::DIRECTIONS;
+use crate::map_generation::mobs::mob_kind::MobKind;
 
 
 pub struct Position {
@@ -12,16 +12,12 @@ pub struct Position {
     pub z: usize,
 }
 
-#[derive(PartialEq, Copy, Clone, EnumIter, Debug)]
-pub enum MobKind {
-    Zombie,
-    Cow,
-}
-
 pub struct Mob {
     pub pos: Position,
     kind: MobKind,
     hp: i32,
+    /// when this reaches 1, the mob is eligible to act
+    speed_buffer: f32,
 }
 
 impl Mob {
@@ -29,7 +25,8 @@ impl Mob {
         Mob {
             pos,
             kind,
-            hp
+            hp,
+            speed_buffer: 0.,
         }
     }
 
@@ -37,13 +34,14 @@ impl Mob {
         &self.kind
     }
 
-    fn step(&mut self, field: &Field, player: &Player, delta: (i32, i32), min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    fn step(&mut self, field: &Field, player: &mut Player, delta: (i32, i32), min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
         if min_loaded.0 <= new_pos.0 && new_pos.0 <= max_loaded.0 &&
             min_loaded.1 <= new_pos.1 && new_pos.1 <= max_loaded.1 &&
             can_step(field, (self.pos.x, self.pos.y), new_pos, self.pos.z) {
             if player.x == new_pos.0 && player.y == new_pos.1 {
                 println!("DAMAGE!!! (for now its just words, but you have to be scared)");
+                player.receive_damage(self.kind.get_melee_damage());
             } else {
                 self.pos.x = new_pos.0;
                 self.pos.y = new_pos.1;
@@ -56,7 +54,15 @@ impl Mob {
         self.pos.z = field.len_at(self.pos.x, self.pos.y);
     }
 
-    pub fn act(&mut self, field: &mut Field, player: &Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    pub fn act_with_speed(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+        self.speed_buffer += self.kind.speed();
+        while self.speed_buffer >= 1.{
+            self.act(field, player, min_loaded, max_loaded);
+            self.speed_buffer -= 1.;
+        }
+    }
+
+    fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let dist = max((player.x - self.pos.x).abs(), (player.y - self.pos.y).abs());
         if dist <= field.get_a_star_radius() {
             // within a* range, so do full path search

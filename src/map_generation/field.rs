@@ -10,7 +10,8 @@ use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
 use crate::map_generation::mobs::a_star::AStar;
-use crate::map_generation::mobs::mob::{Mob, MobKind, Position};
+use crate::map_generation::mobs::mob::{Mob, Position};
+use crate::map_generation::mobs::mob_kind::MobKind;
 
 
 /// The playing grid
@@ -203,7 +204,7 @@ impl Field {
         self.central_chunk = (chunk_x, chunk_y);
     }
 
-    pub fn step_mobs(&mut self, player: &Player) {
+    pub fn step_mobs(&mut self, player: &mut Player) {
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
                 self.stray_mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
@@ -211,7 +212,7 @@ impl Field {
         }
         for _ in 0..self.stray_mobs.len() {
             let mut m = self.stray_mobs.pop().unwrap();
-            m.act(self, player, self.min_loaded_idx(), self.max_loaded_idx());
+            m.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
             self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
         }

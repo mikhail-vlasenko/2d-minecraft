@@ -1,4 +1,6 @@
+use crate::crafting::items::Item::{IronSword, WoodenPickaxe};
 use crate::crafting::storable::Storable;
+use crate::crafting::storable::Storable::{I, M};
 
 
 pub struct Inventory {
@@ -32,6 +34,16 @@ impl Inventory {
             }
         }
         None
+    }
+
+    pub fn damage_modifier(&self) -> i32 {
+        if self.contains(I(IronSword)) {
+            20
+        } else if self.contains(I(WoodenPickaxe)){
+            10
+        } else {
+            0
+        }
     }
 
     pub fn pickup(&mut self, storable: Storable, amount: u32) {

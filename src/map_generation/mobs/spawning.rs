@@ -1,6 +1,7 @@
 use rand::Rng;
 use crate::map_generation::chunk::Chunk;
-use crate::map_generation::mobs::mob::{Mob, MobKind, Position};
+use crate::map_generation::mobs::mob::{Mob, Position};
+use crate::map_generation::mobs::mob_kind::MobKind;
 
 
 pub fn spawn_hostile(chunk: & mut Chunk, x_chunk: i32, y_chunk: i32) {

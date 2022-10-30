@@ -1,9 +1,11 @@
 use winit::event::VirtualKeyCode;
 use crate::{Field, Player};
 
-pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field) {
+/// Makes an action, corresponding to the key.
+/// Returns how much turn was used.
+pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field) -> f32 {
     match key {
-        None => println!("Unrecognized virtual key"),
+        None => { println!("Unrecognized virtual key"); 0. },
         Some(VirtualKeyCode::W) => player.walk("w", field),
         Some(VirtualKeyCode::A) => player.walk("a", field),
         Some(VirtualKeyCode::S) => player.walk("s", field),
@@ -15,6 +17,6 @@ pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field)
         Some(VirtualKeyCode::E) => player.place_current(field),
         Some(VirtualKeyCode::P) => player.place_current(field),
         Some(VirtualKeyCode::C) => player.craft_current(field),
-        _ => println!("Unknown action")
+        _ => { println!("Unknown action"); 0. }
     }
 }

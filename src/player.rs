@@ -39,30 +39,33 @@ impl Player {
         player.land(field);
         player
     }
-    pub fn mine(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) {
+    /// Returns how much action was spent.
+    pub fn mine(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
         let xx = self.x + delta_x;
         let yy = self.y + delta_y;
 
         if field.get_chunk_immut(xx, yy).top_at(xx, yy).material == Bedrock {
             println!("cannot mine bedrock");
+            0.
         } else {
             let mat =  field.get_chunk_immut(xx, yy).top_at(xx, yy).material;
             println!("{} mined", mat.to_string());
             self.inventory.pickup(Storable::M(mat), 1);
             field.pop_at(self.x + delta_x, self.y + delta_y);
+            1.
         }
     }
 
     /// Mines a block in front of the player.
-    pub fn mine_infront(&mut self, field: &mut Field){
+    pub fn mine_infront(&mut self, field: &mut Field) -> f32 {
         let (x, y) = self.coords_from_rotation();
-        self.mine(field, x, y);
+        self.mine(field, x, y)
     }
 
-    pub fn place(&mut self, field: &mut Field, delta_x: i32, delta_y: i32, material: Material) {
+    pub fn place(&mut self, field: &mut Field, delta_x: i32, delta_y: i32, material: Material) -> f32 {
         if field.full_at(self.x + delta_x, self.y + delta_y) {
             println!("too high to build");
-            return
+            return 0.;
         }
 
         let placement_block = Block { material };
@@ -70,24 +73,27 @@ impl Player {
         if self.inventory.drop(&Storable::M(material), 1) {
             field.push_at(placement_block, self.x + delta_x, self.y + delta_y);
             println!("{} placed", material.to_string());
+            1.
         } else {
             println!("You do not have a block of {}", material.to_string());
+            0.
         }
     }
 
     /// Places a currently selected block in front of the player.
-    pub fn place_current(&mut self, field: &mut Field) {
+    /// Returns how much action was spent.
+    pub fn place_current(&mut self, field: &mut Field) -> f32 {
         let (x, y) = self.coords_from_rotation();
         self.place(field, x, y, self.placement_material)
     }
 
-    pub fn walk(&mut self, direction: &str, field: &mut Field) {
+    pub fn walk(&mut self, direction: &str, field: &mut Field) -> f32 {
         match direction {
             "w" => self.step(field, -1, 0),
             "a" => self.step(field, 0, -1),
             "s" => self.step(field, 1, 0),
             "d" => self.step(field, 0, 1),
-            _ => println!("unknown direction")
+            _ => { println!("unknown direction"); 0. },
         }
     }
 
@@ -98,7 +104,9 @@ impl Player {
     /// * `field`: the playing field
     /// * `delta_x`:
     /// * `delta_y`:
-    fn step(&mut self, field: &mut Field, delta_x: i32, delta_y: i32){
+    ///
+    /// returns: how much action was spent.
+    fn step(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
         if field.len_at(self.x + delta_x, self.y + delta_y) <= self.z + 1 {
             self.x += delta_x;
             self.y += delta_y;
@@ -108,8 +116,10 @@ impl Player {
                 field.load(curr_chunk.0, curr_chunk.1);
                 println!("new chunks loaded");
             }
+            1.
         } else {
-            println!("too high to step on")
+            println!("too high to step on");
+            0.
         }
     }
 
@@ -151,19 +161,20 @@ impl Player {
 
     /// If crafting the given item is possible, subtracts the ingredients and adds the item to the inventory.
     /// Else does nothing.
-    pub fn craft(&mut self, item: Storable, field: &Field) {
+    pub fn craft(&mut self, item: Storable, field: &Field) -> f32 {
         if !self.can_craft(&item, field){
             println!("cant craft!");
-            return
+            return 0.
         }
         for (req, amount) in item.craft_requirements() {
             self.inventory.drop(req, *amount);
         }
         let craft_yield = item.craft_yield();
-        self.inventory.pickup(item, craft_yield)
+        self.inventory.pickup(item, craft_yield);
+        1.
     }
 
-    pub fn craft_current(&mut self, field: &Field) {
+    pub fn craft_current(&mut self, field: &Field) -> f32 {
         self.craft(self.crafting_item, field)
     }
 
@@ -172,8 +183,10 @@ impl Player {
     /// # Arguments
     ///
     /// * `side`: -1 or 1; 1 is counterclockwise.
-    pub fn turn(&mut self, side: i32) {
+    /// returns: how much action was spent.
+    pub fn turn(&mut self, side: i32) -> f32 {
         self.rotation += side as f32;
+        1.
     }
 
     /// Computes delta_x and delta_y that, added to the Player position, give a cell in front of him.
@@ -197,5 +210,21 @@ impl Player {
 
     pub fn render_inventory(&self) {
         self.inventory.render();
+    }
+}
+
+/// HP and damage things
+impl Player {
+    pub fn receive_damage(&mut self, damage: i32) {
+        println!("You are hit!");
+        self.hp -= damage
+    }
+
+    pub fn get_melee_damage(&self) -> i32 {
+        10 + self.inventory.damage_modifier()
+    }
+
+    pub fn get_hp(&self) -> i32 {
+        self.hp
     }
 }

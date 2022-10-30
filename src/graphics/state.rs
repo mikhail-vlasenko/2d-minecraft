@@ -17,7 +17,7 @@ use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
-use crate::map_generation::mobs::mob::MobKind;
+use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::crafting::material::Material;
 
 pub const TILES_PER_ROW: u32 = 17;
@@ -43,9 +43,11 @@ pub struct State {
     render_pipeline: wgpu::RenderPipeline,
     buffers: Buffers,
     bind_groups: TextureBindGroups,
+    egui_manager: EguiManager,
     field: Field,
     player: Player,
-    egui_manager: EguiManager,
+    /// when reaches 1, mobs (and other things) are allowed to step
+    turn_state: f32,
 }
 
 impl State {
@@ -141,6 +143,7 @@ impl State {
 
         let field = Field::new();
         let player = Player::new(&field);
+        let turn_state = 0.;
 
         Self {
             surface,
@@ -152,9 +155,10 @@ impl State {
             render_pipeline,
             buffers,
             bind_groups,
+            egui_manager,
             field,
             player,
-            egui_manager,
+            turn_state,
         }
     }
 
@@ -190,8 +194,12 @@ impl State {
                 },
                 ..
             } => {
-                act(virtual_keycode, &mut self.player, &mut self.field);
-                self.field.step_mobs(&self.player);
+                // different actions take different time, so sometimes mobs are not allowed to step
+                self.turn_state += act(virtual_keycode, &mut self.player, &mut self.field);
+                while self.turn_state >= 1. {
+                    self.field.step_mobs(&mut self.player);
+                    self.turn_state -= 1.
+                }
                 true
             }
             _ => false,
@@ -215,7 +223,7 @@ impl State {
         self.render_game(&mut encoder, &view);
 
         let texture_delta = self.egui_manager.render_ui(
-            &self.config, &self.device, &self.queue, &mut encoder, &view, window, &mut self.player
+            &self.config, &self.device, &self.queue, &mut encoder, &view, window, &mut self.player, self.turn_state
         );
 
         self.queue.submit(iter::once(encoder.finish()));
