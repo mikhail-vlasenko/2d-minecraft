@@ -220,6 +220,10 @@ impl Player {
         }
     }
 
+    pub fn has(&self, storable: Storable) -> bool {
+        self.inventory.contains(storable)
+    }
+
     pub fn get_inventory(&self) -> &Vec<(Storable, u32)> {
         self.inventory.get_all()
     }

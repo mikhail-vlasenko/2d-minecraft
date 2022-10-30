@@ -1,10 +1,17 @@
+mod common;
+
 use minecraft::crafting::items::Item;
+use minecraft::crafting::items::Item::*;
 use minecraft::crafting::material::Material;
+use minecraft::crafting::material::Material::*;
 use minecraft::crafting::storable::Storable;
 use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
 use minecraft::player::Player;
+use winit::event::VirtualKeyCode::*;
+use crate::common::Data;
+
 
 #[test]
 fn test_player_basic() {
@@ -18,63 +25,102 @@ fn test_player_basic() {
 
 #[test]
 fn test_player_good_weather() {
-    let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
+    let mut data = Data::new();
 
-    // Mobs dont step here, and the 0, 0 chunk doesnt spawn a mob
-    let mut field = Field::new(Some(test_chunk));
-    let mut player = Player::new(&field);
+    data.act(Right);
+    data.mine();
+    data.mine();
+    data.act(S);
+    data.act(D);
+    data.mine();
+    data.mine();
 
-    player.turn(-1);
-    player.mine_infront(&mut field);
-    player.mine_infront(&mut field);
-    player.walk("s", &mut field);
-    player.walk("d", &mut field);
-    player.mine_infront(&mut field);
-    player.mine_infront(&mut field);
+    data.craft(Storable::M(Plank));
+    data.craft(Storable::M(Plank));
+    data.craft(Storable::M(Plank));
+    data.craft(Storable::M(CraftTable));
+    data.place(CraftTable);
+    data.craft(Storable::I(Stick));
 
-    player.crafting_item = Storable::M(Material::Plank);
-    player.craft_current(&field);
-    player.craft_current(&field);
-    player.craft_current(&field);
-    player.crafting_item = Storable::M(Material::CraftTable);
-    player.craft_current(&field);
-    player.placement_material = Material::CraftTable;
-    player.place_current(&mut field);
-    player.crafting_item = Storable::I(Item::Stick);
-    player.craft_current(&field);
-    player.crafting_item = Storable::I(Item::WoodenPickaxe);
-    assert_eq!(player.get_mining_power(), 0);
-    player.craft_current(&field);
+    assert_eq!(data.player.get_mining_power(), 0);
+    data.craft(Storable::I(WoodenPickaxe));
+    assert_eq!(data.player.get_mining_power(), 1);
+    assert!(data.player.has(Storable::I(WoodenPickaxe)));
 
-    assert_eq!(player.get_mining_power(), 1);
+    assert!(!data.player.has(Storable::I(IronPickaxe)));
+    data.act(Left);
+    data.act(Left);
+    data.mine();
+    data.mine();
+    data.act(Left);
+    data.mine();
+    data.mine();
+    data.craft(Storable::I(IronIngot));
+    data.craft(Storable::I(IronIngot));
+    data.craft(Storable::I(IronIngot));
+    data.craft(Storable::I(Stick));
+    data.craft(Storable::I(IronPickaxe));
+    assert!(data.player.has(Storable::I(IronPickaxe)));
+    assert!(!data.player.has(Storable::I(IronIngot)));
+    assert_eq!(data.player.get_mining_power(), 2);
+
+    data.craft(Storable::I(IronSword));
+    assert!(!data.player.has(Storable::I(IronSword)));
+
+    data.act(S);
+    assert_eq!(data.player.z, 1);
+    data.act(Left);
+    data.mine();
+    data.mine();
+    data.craft(Storable::I(Stick));
+
+    data.craft(Storable::I(IronSword)); // not enough iron ingots
+    assert!(!data.player.has(Storable::I(IronSword)));
+
+    data.craft(Storable::I(IronIngot));
+    data.craft(Storable::I(IronIngot));
+
+    let default_dmg = data.player.get_melee_damage();
+    // craft table diagonally
+    data.craft(Storable::I(IronSword));
+    assert!(data.player.has(Storable::I(IronSword)));
+    assert!(data.player.get_melee_damage() > default_dmg);
 }
 
 #[test]
-fn test_player_no_crafttable() {
-    let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
+fn test_player_no_craft_table() {
+    let mut data = Data::new();
 
-    // Mobs dont step here, and the 0, 0 chunk doesnt spawn a mob
-    let mut field = Field::new(Some(test_chunk));
-    let mut player = Player::new(&field);
+    assert!(!data.player.has(Storable::I(WoodenPickaxe)));
+    data.act(Right);
+    data.mine();
+    data.mine();
+    data.act(S);
+    data.act(D);
+    data.mine();
+    data.mine();
 
-    player.turn(-1);
-    player.mine_infront(&mut field);
-    player.mine_infront(&mut field);
-    player.walk("s", &mut field);
-    player.walk("d", &mut field);
-    player.mine_infront(&mut field);
-    player.mine_infront(&mut field);
+    data.craft(Storable::M(Plank));
+    data.craft(Storable::M(Plank));
+    data.craft(Storable::M(Plank));
+    data.craft(Storable::M(CraftTable));
 
-    player.crafting_item = Storable::M(Material::Plank);
-    player.craft_current(&field);
-    player.craft_current(&field);
-    player.craft_current(&field);
-    player.crafting_item = Storable::M(Material::CraftTable);
-    player.craft_current(&field);
-    player.crafting_item = Storable::I(Item::Stick);
-    player.craft_current(&field);
-    player.crafting_item = Storable::I(Item::WoodenPickaxe);
-    player.craft_current(&field);
+    data.craft(Storable::I(Stick));
 
-    assert_eq!(player.get_mining_power(), 0);
+    data.craft(Storable::I(WoodenPickaxe));
+    assert_eq!(data.player.get_mining_power(), 0);
+    assert!(!data.player.has(Storable::I(WoodenPickaxe)));
+
+    data.place(CraftTable);
+    data.act(S);
+    data.act(S);
+    data.act(D);
+
+    // too far from crafting table
+    data.craft(Storable::I(WoodenPickaxe));
+    assert!(!data.player.has(Storable::I(WoodenPickaxe)));
+
+    data.act(W); // come closer
+    data.craft(Storable::I(WoodenPickaxe));
+    assert!(data.player.has(Storable::I(WoodenPickaxe)));
 }

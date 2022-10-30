@@ -46,7 +46,7 @@ impl Inventory {
 
     pub fn contains(&self, storable: Storable) -> bool {
         match self.get(&storable) {
-            Some(_) => true,
+            Some(amount) => amount > 0,
             None => false
         }
     }
