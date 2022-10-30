@@ -146,7 +146,7 @@ impl EguiManager {
         egui::Window::new("Info").anchor(Align2::RIGHT_TOP, [0., 0.])
             .show(&self.platform.context(), |ui| {
                 ui.label(format!("Position: {}, {}, {}", player.x, player.y, player.z));
-                ui.label(format!("HP: {}", player.get_hp()));
+                ui.label(format!("HP: {}/100", player.get_hp()));
                 ui.label(format!("ATK: {}", player.get_melee_damage()));
                 ui.label(format!("Mining PWR: {}", player.get_mining_power()));
                 ui.label(format!("Turn state: {}", turn_state));

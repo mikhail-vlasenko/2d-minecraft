@@ -17,6 +17,7 @@ pub enum Material {
     Bedrock,
     IronOre,
     CraftTable,
+    Diamond,
 }
 
 pub enum MaterialCategory {
@@ -36,6 +37,7 @@ impl Material {
             Plank => "plank",
             IronOre => "iron ore",
             CraftTable => "crafting table",
+            Diamond => "diamond"
         }
     }
 
@@ -49,6 +51,7 @@ impl Material {
             Plank => String::from("w"),
             IronOre => String::from("i"),
             CraftTable => String::from("C"),
+            Diamond => String::from("D"),
         }
     }
 
@@ -79,6 +82,7 @@ impl Material {
             Bedrock => 999,
             Stone => 1,
             IronOre => 1,
+            Diamond => 2,
             _ => 0
         }
     }

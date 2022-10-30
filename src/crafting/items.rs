@@ -5,6 +5,7 @@ use strum_macros::EnumIter;
 use Storable::*;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
+use crate::crafting::material::Material::Diamond;
 use crate::crafting::storable::Storable;
 
 
@@ -13,8 +14,10 @@ use crate::crafting::storable::Storable;
 pub enum Item {
     Stick,
     WoodenPickaxe,
+    IronPickaxe,
     IronIngot,
     IronSword,
+    DiamondSword,
 }
 
 impl Item {
@@ -22,8 +25,10 @@ impl Item {
         match self {
             Stick => "stick",
             WoodenPickaxe => "wooden pickaxe",
+            IronPickaxe => "iron pickaxe",
             IronIngot => "iron ingot",
             IronSword => "iron sword",
+            DiamondSword => "diamond sword",
         }
     }
 
@@ -31,24 +36,26 @@ impl Item {
         match self {
             Stick => &[(&M(Material::Plank), 1)],
             WoodenPickaxe => &[(&M(Material::Plank), 3), (&I(Stick), 2)],
+            IronPickaxe => &[(&I(IronIngot), 3), (&I(Stick), 2)],
             IronIngot => &[(&M(Material::IronOre), 1)],
             IronSword => &[(&I(IronIngot), 2), (&I(Stick), 1)],
+            DiamondSword => &[(&M(Diamond), 2), (&I(Stick), 1)],
         }
     }
 
     pub fn craft_yield(&self) -> u32 {
         match self {
             Stick => 2,
-            WoodenPickaxe => 1,
-            IronIngot => 1,
-            IronSword => 1,
+            _ => 1,
         }
     }
 
     pub fn required_crafter(&self) -> Option<&Material> {
         match self {
             WoodenPickaxe => Some(&Material::CraftTable),
+            IronPickaxe => Some(&Material::CraftTable),
             IronSword => Some(&Material::CraftTable),
+            DiamondSword => Some(&Material::CraftTable),
             _ => None
         }
     }

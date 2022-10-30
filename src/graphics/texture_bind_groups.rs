@@ -1,20 +1,19 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
 use crate::crafting::material::Material;
-use crate::graphics::state::State;
 use crate::graphics::texture::Texture;
-use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::mobs::mob_kind::MobKind;
 
 
 /// Creates and stores wgpu texture bind groups.
 pub struct TextureBindGroups {
-    pub grass: BindGroup,
-    pub stone: BindGroup,
-    pub tree_log: BindGroup,
-    pub bedrock: BindGroup,
-    pub planks: BindGroup,
-    pub iron_ore: BindGroup,
-    pub crafting_table: BindGroup,
+    grass: BindGroup,
+    stone: BindGroup,
+    tree_log: BindGroup,
+    bedrock: BindGroup,
+    planks: BindGroup,
+    iron_ore: BindGroup,
+    crafting_table: BindGroup,
+    diamond: BindGroup,
     pub player: BindGroup,
     pub depth_indicators: [BindGroup; 4],
     zombie: BindGroup,
@@ -121,6 +120,13 @@ impl TextureBindGroups {
         );
 
         let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mc_diamond.png"), "texture.png",
+        ).unwrap();
+        let diamond = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/mobs/zombie.png"), "texture.png",
         ).unwrap();
         let zombie = Self::make_bind_group(
@@ -144,6 +150,7 @@ impl TextureBindGroups {
             planks,
             iron_ore,
             crafting_table,
+            diamond,
             player,
             depth_indicators,
             zombie,
@@ -192,6 +199,7 @@ impl TextureBindGroups {
             Plank => &self.planks,
             IronOre => &self.iron_ore,
             CraftTable => &self.crafting_table,
+            Diamond => &self.diamond,
         }
     }
 

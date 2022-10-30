@@ -1,4 +1,4 @@
-use crate::crafting::items::Item::{IronSword, WoodenPickaxe};
+use crate::crafting::items::Item::{DiamondSword, IronPickaxe, IronSword, WoodenPickaxe};
 use crate::crafting::storable::Storable;
 use crate::crafting::storable::Storable::{I, M};
 
@@ -86,19 +86,15 @@ impl Inventory {
 /// Player's stats, dependent on inventory content.
 impl Inventory {
     pub fn damage_modifier(&self) -> i32 {
-        if self.contains(I(IronSword)) {
-            20
-        } else if self.contains(I(WoodenPickaxe)){
-            10
-        } else {
-            0
-        }
+        if self.contains(I(DiamondSword)) { 30 }
+        else if self.contains(I(IronSword)) { 15 }
+        else if self.contains(I(IronPickaxe)) { 10 }
+        else if self.contains(I(WoodenPickaxe)) { 5 }
+        else { 0 }
     }
     pub fn mining_power(&self) -> i32 {
-        if self.contains(I(WoodenPickaxe)){
-            1
-        } else {
-            0
-        }
+        if self.contains(I(IronPickaxe)) { 2 }
+        else if self.contains(I(WoodenPickaxe)) { 1 }
+        else { 0 }
     }
 }

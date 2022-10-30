@@ -54,6 +54,18 @@ impl Tile {
     pub fn make_iron(tile: &mut Tile) {
         if tile.blocks[1].material == Stone {
             tile.blocks[1] = Block { material: IronOre };
+            if tile.blocks[2].material == Stone {
+                tile.blocks[2] = Block { material: IronOre };
+            }
+        }
+    }
+
+    pub fn make_diamond(tile: &mut Tile) {
+        if tile.blocks[1].material == Stone {
+            tile.blocks[1] = Block { material: Diamond };
+            if tile.blocks[2].material == Stone && rand::random() {
+                tile.blocks[2] = Block { material: Diamond };
+            }
         }
     }
 
