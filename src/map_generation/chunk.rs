@@ -103,12 +103,27 @@ impl Chunk {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].len() >= 5
     }
-    pub fn mob_at(&self, x: i32, y: i32) -> bool {
+    pub fn is_occupied(&self, x: i32, y: i32) -> bool {
         for m in &self.mobs {
             if m.pos.x == x && m.pos.y == y {
                 return true;
             }
         }
+        false
+    }
+    /// Returns if the mob died
+    pub fn damage_mob(&mut self, x: i32, y: i32, damage: i32) -> bool {
+        for i in 0..self.mobs.len() {
+            if self.mobs[i].pos.x == x && self.mobs[i].pos.y == y {
+                return if self.mobs[i].receive_damage(damage) {
+                    self.mobs.remove(i);
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+        println!("you missed a mob lol");
         false
     }
 }

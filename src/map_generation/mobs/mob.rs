@@ -21,11 +21,11 @@ pub struct Mob {
 }
 
 impl Mob {
-    pub fn new(pos: Position, kind: MobKind, hp: i32,) -> Self {
+    pub fn new(pos: Position, kind: MobKind) -> Self {
         Mob {
             pos,
             kind,
-            hp,
+            hp: kind.get_max_hp(),
             speed_buffer: 0.,
         }
     }
@@ -79,5 +79,13 @@ impl Mob {
             let direction_idx = number % 4;
             self.step(field, player, DIRECTIONS[direction_idx], min_loaded, max_loaded);
         }
+    }
+
+    pub fn receive_damage(&mut self, damage: i32) -> bool {
+        self.hp -= damage;
+        if self.hp <= 0{
+            return true;
+        }
+        false
     }
 }

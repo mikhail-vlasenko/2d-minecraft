@@ -250,8 +250,11 @@ impl Field {
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         self.get_chunk_immut(x, y).full_at(x, y)
     }
-    pub fn mob_at(&self, x: i32, y: i32) -> bool {
-        self.get_chunk_immut(x, y).mob_at(x, y) || {
+    /// This function needs to take stray mobs into account,
+    /// as it gets called during the mob movement stage,
+    /// when (some) of the mobs are extracted from chunks
+    pub fn is_occupied(&self, x: i32, y: i32) -> bool {
+        self.get_chunk_immut(x, y).is_occupied(x, y) || {
             for m in &self.stray_mobs {
                 if m.pos.x == x && m.pos.y == y {
                     return true;
@@ -259,6 +262,9 @@ impl Field {
             }
             false
         }
+    }
+    pub fn damage_mob(&mut self, x: i32, y: i32, damage: i32) -> bool {
+        self.get_chunk(x, y).damage_mob(x, y, damage)
     }
 }
 

@@ -151,7 +151,7 @@ impl AStar {
 
 pub fn can_step(field: &Field, source: (i32, i32), destination: (i32, i32), current_height: usize) -> bool {
     field.len_at(destination.0, destination.1) <= current_height + 1 &&
-        !field.mob_at(destination.0, destination.1)
+        !field.is_occupied(destination.0, destination.1)
 }
 
 fn estimate_remaining(tile: (i32, i32), destination: (i32, i32)) -> i32 {

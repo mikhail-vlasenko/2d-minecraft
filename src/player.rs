@@ -107,7 +107,15 @@ impl Player {
     ///
     /// returns: how much action was spent.
     fn step(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
-        if field.len_at(self.x + delta_x, self.y + delta_y) <= self.z + 1 {
+        let new_x = self.x + delta_x;
+        let new_y = self.y + delta_y;
+        if field.len_at(new_x, new_y) <= self.z + 1 {
+            // fighting
+            if field.is_occupied(new_x, new_y) {
+                field.damage_mob(new_x, new_y, self.get_melee_damage());
+                return 1.
+            }
+            // movement
             self.x += delta_x;
             self.y += delta_y;
             self.land(field);
