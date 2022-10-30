@@ -40,7 +40,6 @@ impl Mob {
             min_loaded.1 <= new_pos.1 && new_pos.1 <= max_loaded.1 &&
             can_step(field, (self.pos.x, self.pos.y), new_pos, self.pos.z) {
             if player.x == new_pos.0 && player.y == new_pos.1 {
-                println!("DAMAGE!!! (for now its just words, but you have to be scared)");
                 player.receive_damage(self.kind.get_melee_damage());
             } else {
                 self.pos.x = new_pos.0;

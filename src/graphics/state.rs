@@ -194,11 +194,13 @@ impl State {
                 },
                 ..
             } => {
-                // different actions take different time, so sometimes mobs are not allowed to step
-                self.turn_state += act(virtual_keycode, &mut self.player, &mut self.field);
-                while self.turn_state >= 1. {
-                    self.field.step_mobs(&mut self.player);
-                    self.turn_state -= 1.
+                if self.player.get_hp() > 0 {
+                    // different actions take different time, so sometimes mobs are not allowed to step
+                    self.turn_state += act(virtual_keycode, &mut self.player, &mut self.field);
+                    while self.turn_state >= 1. {
+                        self.field.step_mobs(&mut self.player);
+                        self.turn_state -= 1.
+                    }
                 }
                 true
             }

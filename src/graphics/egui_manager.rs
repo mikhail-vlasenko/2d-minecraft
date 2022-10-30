@@ -1,5 +1,5 @@
 use ::egui::FontDefinitions;
-use egui::{Align2, TexturesDelta};
+use egui::{Align, Align2, Color32, FontId, RichText, TexturesDelta};
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -61,6 +61,10 @@ impl EguiManager {
         self.render_place_craft_menu(player);
         self.render_inventory(player);
         self.render_info(player, turn_state);
+
+        if player.get_hp() <= 0 {
+            self.render_game_over();
+        }
 
         // End the UI frame. We could now handle the output and draw the UI with the backend.
         let full_output = self.platform.end_frame(Some(window));
@@ -145,6 +149,16 @@ impl EguiManager {
                 ui.label(format!("HP: {}", player.get_hp()));
                 ui.label(format!("Turn state: {}", turn_state));
                 ui.label(format!("Massage: {}", "no message"));
+            });
+    }
+
+    fn render_game_over(&self) {
+        egui::Window::new("").anchor(Align2::CENTER_CENTER, [0., 0.])
+            .show(&self.platform.context(), |ui| {
+                ui.label(RichText::new("Game Over!")
+                    .font(FontId::proportional(80.0))
+                    .color(Color32::RED)
+                );
             });
     }
 
