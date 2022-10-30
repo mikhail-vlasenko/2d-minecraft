@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefMut};
 use std::f32::consts::PI;
 use crate::map_generation::block::Block;
-use crate::{Field};
+use crate::map_generation::field::Field;
 use crate::crafting::inventory::Inventory;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::*;

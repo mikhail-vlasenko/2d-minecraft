@@ -1,4 +1,4 @@
-use crate::Field;
+use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::priority_queue::PriorityQueue;
 

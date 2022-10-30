@@ -1,5 +1,6 @@
 use winit::event::VirtualKeyCode;
-use crate::{Field, Player};
+use crate::player::Player;
+use crate::map_generation::field::Field;
 
 /// Makes an action, corresponding to the key.
 /// Returns how much turn was used.

@@ -10,7 +10,7 @@ use winit::{
 };
 use winit::dpi::PhysicalSize;
 
-use crate::{Field, Player};
+use crate::player::Player;
 use crate::graphics::buffers::Buffers;
 use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::instance::*;
@@ -18,6 +18,7 @@ use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
+use crate::map_generation::field::Field;
 use crate::crafting::material::Material;
 
 pub const TILES_PER_ROW: u32 = 17;
