@@ -22,6 +22,8 @@ pub struct Player {
     // Are set though UI
     pub placement_material: Material,
     pub crafting_item: Storable,
+
+    pub message: String,
 }
 
 impl Player {
@@ -34,7 +36,8 @@ impl Player {
             hp: MAX_HP,
             inventory: Inventory::new(),
             placement_material: Plank,
-            crafting_item: Storable::M(Plank)
+            crafting_item: Storable::M(Plank),
+            message: String::new(),
         };
         player.land(field);
         player
@@ -44,12 +47,12 @@ impl Player {
         let xx = self.x + delta_x;
         let yy = self.y + delta_y;
 
-        if field.get_chunk_immut(xx, yy).top_at(xx, yy).material == Bedrock {
-            println!("cannot mine bedrock");
+        let mat =  field.get_chunk_immut(xx, yy).top_at(xx, yy).material;
+        if mat.required_mining_power() > self.get_mining_power() {
+            self.message = format!("Need {} mining PWR", mat.required_mining_power());
             0.
         } else {
-            let mat =  field.get_chunk_immut(xx, yy).top_at(xx, yy).material;
-            println!("{} mined", mat.to_string());
+            println!("{} mined", mat);
             self.inventory.pickup(Storable::M(mat), 1);
             field.pop_at(self.x + delta_x, self.y + delta_y);
             1.
@@ -62,9 +65,13 @@ impl Player {
         self.mine(field, x, y)
     }
 
+    pub fn get_mining_power(&self) -> i32 {
+        self.inventory.mining_power()
+    }
+
     pub fn place(&mut self, field: &mut Field, delta_x: i32, delta_y: i32, material: Material) -> f32 {
         if field.full_at(self.x + delta_x, self.y + delta_y) {
-            println!("too high to build");
+            self.message = format!("Too high to build");
             return 0.;
         }
 
@@ -75,7 +82,7 @@ impl Player {
             println!("{} placed", material.to_string());
             1.
         } else {
-            println!("You do not have a block of {}", material.to_string());
+            self.message = format!("You do not have a block of {}", material);
             0.
         }
     }
@@ -122,11 +129,10 @@ impl Player {
             let curr_chunk = (field.chunk_pos(self.x), field.chunk_pos(self.y));
             if curr_chunk != field.get_central_chunk() {
                 field.load(curr_chunk.0, curr_chunk.1);
-                println!("new chunks loaded");
             }
             1.
         } else {
-            println!("too high to step on");
+            self.message = String::from("Too high to step on");
             0.
         }
     }
@@ -149,29 +155,30 @@ impl Player {
         return false;
     }
 
-    pub fn can_craft(&self, item: &Storable, field: &Field) -> bool {
-        let mut possible = true;
+    pub fn can_craft(&mut self, item: &Storable, field: &Field) -> bool {
         for (req, amount) in item.craft_requirements() {
             if self.inventory.count(&req) < *amount {
-                possible = false;
-                break
+                self.message = format!("Need {} of {}, have {}", amount, req, self.inventory.count(&req));
+                return false;
             }
         }
+
         let crafter = item.required_crafter();
-        let mut crafter_near = false;
-        if crafter == None {
-            crafter_near = true;
-        } else {
-            crafter_near = self.exists_around(field, crafter.unwrap());
+        let crafter_near =
+            if crafter == None { true } else {
+                self.exists_around(field, crafter.unwrap())
+            };
+        if !crafter_near {
+            self.message = format!("There is no {} nearby", crafter.unwrap())
         }
-        possible && item.is_craftable() && crafter_near
+
+        item.is_craftable() && crafter_near
     }
 
     /// If crafting the given item is possible, subtracts the ingredients and adds the item to the inventory.
     /// Else does nothing.
     pub fn craft(&mut self, item: Storable, field: &Field) -> f32 {
         if !self.can_craft(&item, field){
-            println!("cant craft!");
             return 0.
         }
         for (req, amount) in item.craft_requirements() {
@@ -179,6 +186,7 @@ impl Player {
         }
         let craft_yield = item.craft_yield();
         self.inventory.pickup(item, craft_yield);
+        self.message = format!("Crafted {} of {}", craft_yield, item);
         1.
     }
 
@@ -224,7 +232,7 @@ impl Player {
 /// HP and damage things
 impl Player {
     pub fn receive_damage(&mut self, damage: i32) {
-        println!("You are hit!");
+        self.message = format!("You are hit by {}", damage);
         self.hp -= damage
     }
 

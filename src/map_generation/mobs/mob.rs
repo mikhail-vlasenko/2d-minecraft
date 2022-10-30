@@ -36,9 +36,11 @@ impl Mob {
 
     fn step(&mut self, field: &Field, player: &mut Player, delta: (i32, i32), min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
+
         if min_loaded.0 <= new_pos.0 && new_pos.0 <= max_loaded.0 &&
             min_loaded.1 <= new_pos.1 && new_pos.1 <= max_loaded.1 &&
             can_step(field, (self.pos.x, self.pos.y), new_pos, self.pos.z) {
+
             if player.x == new_pos.0 && player.y == new_pos.1 {
                 player.receive_damage(self.kind.get_melee_damage());
             } else {

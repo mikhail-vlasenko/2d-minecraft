@@ -147,8 +147,10 @@ impl EguiManager {
             .show(&self.platform.context(), |ui| {
                 ui.label(format!("Position: {}, {}, {}", player.x, player.y, player.z));
                 ui.label(format!("HP: {}", player.get_hp()));
+                ui.label(format!("ATK: {}", player.get_melee_damage()));
+                ui.label(format!("Mining PWR: {}", player.get_mining_power()));
                 ui.label(format!("Turn state: {}", turn_state));
-                ui.label(format!("Massage: {}", "no message"));
+                ui.label(format!("{}", player.message));
             });
     }
 

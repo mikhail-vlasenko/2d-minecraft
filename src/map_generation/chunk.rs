@@ -111,7 +111,7 @@ impl Chunk {
         }
         false
     }
-    /// Returns if the mob died
+    /// Returns true if the mob died
     pub fn damage_mob(&mut self, x: i32, y: i32, damage: i32) -> bool {
         for i in 0..self.mobs.len() {
             if self.mobs[i].pos.x == x && self.mobs[i].pos.y == y {

@@ -36,16 +36,6 @@ impl Inventory {
         None
     }
 
-    pub fn damage_modifier(&self) -> i32 {
-        if self.contains(I(IronSword)) {
-            20
-        } else if self.contains(I(WoodenPickaxe)){
-            10
-        } else {
-            0
-        }
-    }
-
     pub fn pickup(&mut self, storable: Storable, amount: u32) {
         let idx = self.get_idx(&storable);
         match idx {
@@ -89,6 +79,26 @@ impl Inventory {
             if item.1 != 0 {
                 println!("{}: {}", item.0, item.1);
             }
+        }
+    }
+}
+
+/// Player's stats, dependent on inventory content.
+impl Inventory {
+    pub fn damage_modifier(&self) -> i32 {
+        if self.contains(I(IronSword)) {
+            20
+        } else if self.contains(I(WoodenPickaxe)){
+            10
+        } else {
+            0
+        }
+    }
+    pub fn mining_power(&self) -> i32 {
+        if self.contains(I(WoodenPickaxe)){
+            1
+        } else {
+            0
         }
     }
 }

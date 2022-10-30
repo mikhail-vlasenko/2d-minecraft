@@ -73,6 +73,15 @@ impl Material {
             _ => None
         }
     }
+
+    pub fn required_mining_power(&self) -> i32 {
+        match self {
+            Bedrock => 999,
+            Stone => 1,
+            IronOre => 1,
+            _ => 0
+        }
+    }
 }
 
 impl TryFrom<String> for Material {
