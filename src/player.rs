@@ -194,6 +194,10 @@ impl Player {
         self.craft(self.crafting_item, field)
     }
 
+    pub fn pickup(&mut self, storable: Storable, amount: u32) {
+        self.inventory.pickup(storable, amount)
+    }
+
     /// Rotates the Player 90 degrees (counter-)clockwise.
     ///
     /// # Arguments

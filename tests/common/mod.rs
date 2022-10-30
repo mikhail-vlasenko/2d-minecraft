@@ -41,4 +41,7 @@ impl Data {
         self.player.crafting_item = s;
         self.act(C)
     }
+    pub fn step_mobs(&mut self) {
+        self.field.step_mobs(&mut self.player);
+    }
 }

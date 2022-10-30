@@ -1,4 +1,5 @@
 mod common;
+use crate::common::Data;
 
 use minecraft::crafting::items::Item;
 use minecraft::crafting::items::Item::*;
@@ -10,7 +11,6 @@ use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
 use minecraft::player::Player;
 use winit::event::VirtualKeyCode::*;
-use crate::common::Data;
 
 
 #[test]
@@ -123,4 +123,25 @@ fn test_player_no_craft_table() {
     data.act(W); // come closer
     data.craft(Storable::I(WoodenPickaxe));
     assert!(data.player.has(Storable::I(WoodenPickaxe)));
+}
+
+#[test]
+fn test_player_mining_pwr() {
+    let mut data = Data::new();
+
+    data.act(S);
+    data.act(S);
+    data.act(S);
+    data.act(S);
+    data.act(D);
+    data.act(D);
+    data.act(D);
+    data.mine();
+    data.mine();
+    data.mine();
+    data.mine();
+    assert!(!data.player.has(Storable::M(Stone)));
+    data.player.pickup(Storable::I(WoodenPickaxe),1);
+    data.mine();
+    assert!(data.player.has(Storable::M(Stone)));
 }
