@@ -9,9 +9,11 @@ use winit::event::Event;
 use winit::window::Window;
 use crate::player::Player;
 use strum::IntoEnumIterator;
+use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
+use crate::crafting::storable::Craftable;
 
 
 /// Renders UI
@@ -128,6 +130,15 @@ impl EguiManager {
                         format!("{} x{}", item.to_string(), item.craft_yield()),
                     );
                 }
+            }
+
+            ui.label("Consumable");
+            for cons in Consumable::iter() {
+                ui.radio_value(
+                    &mut player.consumable,
+                    cons,
+                    format!("{}", cons.to_string()),
+                );
             }
         });
     }

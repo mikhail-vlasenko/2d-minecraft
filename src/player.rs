@@ -1,5 +1,7 @@
 use std::cell::{Ref, RefMut};
+use std::cmp::min;
 use std::f32::consts::PI;
+use crate::crafting::consumable::Consumable;
 use crate::map_generation::block::Block;
 use crate::map_generation::field::Field;
 use crate::crafting::inventory::Inventory;
@@ -22,6 +24,7 @@ pub struct Player {
     // Are set though UI
     pub placement_material: Material,
     pub crafting_item: Storable,
+    pub consumable: Consumable,
 
     pub message: String,
 }
@@ -37,6 +40,7 @@ impl Player {
             inventory: Inventory::new(),
             placement_material: Plank,
             crafting_item: Storable::M(Plank),
+            consumable: Consumable::Apple,
             message: String::new(),
         };
         player.land(field);
@@ -198,6 +202,23 @@ impl Player {
         self.inventory.pickup(storable, amount)
     }
 
+    pub fn consume(&mut self, consumable: Consumable) -> f32 {
+        if self.inventory.drop(&Storable::C(consumable), 1) {
+            match consumable {
+                Consumable::Apple => self.heal(20),
+                Consumable::RawMeat => self.heal(50),
+            }
+            1.
+        } else {
+            self.message = format!("You dont have {}", consumable);
+            0.
+        }
+    }
+
+    pub fn consume_current(&mut self) -> f32 {
+        self.consume(self.consumable)
+    }
+
     /// Rotates the Player 90 degrees (counter-)clockwise.
     ///
     /// # Arguments
@@ -240,8 +261,13 @@ impl Player {
 /// HP and damage things
 impl Player {
     pub fn receive_damage(&mut self, damage: i32) {
+        // todo: append
         self.message = format!("You are hit by {}", damage);
         self.hp -= damage
+    }
+
+    pub fn heal(&mut self, hp: i32) {
+        self.hp = min(MAX_HP, self.hp + hp)
     }
 
     pub fn get_melee_damage(&self) -> i32 {

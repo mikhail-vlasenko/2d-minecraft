@@ -4,7 +4,7 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use Material::*;
 use Storable::*;
-use crate::crafting::storable::Storable;
+use crate::crafting::storable::{Craftable, Storable};
 
 
 /// What a block on the field can be made of.
@@ -28,19 +28,6 @@ pub enum MaterialCategory {
 }
 
 impl Material {
-    pub fn name(&self) -> &str {
-        match self {
-            Dirt => "dirt",
-            Stone => "stone",
-            TreeLog => "tree log",
-            Bedrock => "bedrock",
-            Plank => "plank",
-            IronOre => "iron ore",
-            CraftTable => "crafting table",
-            Diamond => "diamond"
-        }
-    }
-
     pub fn glyph(&self) -> String {
         use Material::*;
         match self {
@@ -55,7 +42,32 @@ impl Material {
         }
     }
 
-    pub fn craft_requirements(&self) -> &[(&Storable, u32)] {
+    pub fn required_mining_power(&self) -> i32 {
+        match self {
+            Bedrock => 999,
+            Stone => 1,
+            IronOre => 1,
+            Diamond => 2,
+            _ => 0
+        }
+    }
+}
+
+impl Craftable for Material {
+    fn name(&self) -> &str {
+        match self {
+            Dirt => "dirt",
+            Stone => "stone",
+            TreeLog => "tree log",
+            Bedrock => "bedrock",
+            Plank => "plank",
+            IronOre => "iron ore",
+            CraftTable => "crafting table",
+            Diamond => "diamond"
+        }
+    }
+
+    fn craft_requirements(&self) -> &[(&Storable, u32)] {
         match self {
             Plank => &[(&M(TreeLog), 1)],
             CraftTable => &[(&M(Plank), 4)],
@@ -63,26 +75,10 @@ impl Material {
         }
     }
 
-    pub fn craft_yield(&self) -> u32 {
+    fn craft_yield(&self) -> u32 {
         match self {
             Plank => 4,
             CraftTable => 1,
-            _ => 0
-        }
-    }
-
-    pub fn required_crafter(&self) -> Option<&Material> {
-        match self {
-            _ => None
-        }
-    }
-
-    pub fn required_mining_power(&self) -> i32 {
-        match self {
-            Bedrock => 999,
-            Stone => 1,
-            IronOre => 1,
-            Diamond => 2,
             _ => 0
         }
     }

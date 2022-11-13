@@ -6,7 +6,7 @@ use Storable::*;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::Diamond;
-use crate::crafting::storable::Storable;
+use crate::crafting::storable::{Craftable, Storable};
 
 
 /// Something that can't be placed, but can be in the inventory.
@@ -20,8 +20,10 @@ pub enum Item {
     DiamondSword,
 }
 
-impl Item {
-    pub fn name(&self) -> &str {
+impl Item {}
+
+impl Craftable for Item {
+    fn name(&self) -> &str {
         match self {
             Stick => "stick",
             WoodenPickaxe => "wooden pickaxe",
@@ -32,7 +34,7 @@ impl Item {
         }
     }
 
-    pub fn craft_requirements(&self) -> &[(&Storable, u32)] {
+    fn craft_requirements(&self) -> &[(&Storable, u32)] {
         match self {
             Stick => &[(&M(Material::Plank), 1)],
             WoodenPickaxe => &[(&M(Material::Plank), 3), (&I(Stick), 2)],
@@ -43,14 +45,14 @@ impl Item {
         }
     }
 
-    pub fn craft_yield(&self) -> u32 {
+    fn craft_yield(&self) -> u32 {
         match self {
             Stick => 2,
             _ => 1,
         }
     }
 
-    pub fn required_crafter(&self) -> Option<&Material> {
+    fn required_crafter(&self) -> Option<&Material> {
         match self {
             WoodenPickaxe => Some(&Material::CraftTable),
             IronPickaxe => Some(&Material::CraftTable),

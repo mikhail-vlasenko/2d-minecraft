@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use Storable::*;
+use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 
@@ -10,35 +11,40 @@ use crate::crafting::material::Material;
 #[derive(PartialEq, Copy, Clone, Hash)]
 pub enum Storable {
     M(Material),
-    I(Item)
+    I(Item),
+    C(Consumable),
 }
 
 impl Storable {
     pub fn name(&self) -> &str {
         match self {
             M(mat) => mat.name(),
-            I(item) => item.name()
+            I(item) => item.name(),
+            C(cons) => cons.name(),
         }
     }
 
     pub fn craft_requirements(&self) -> &[(&Storable, u32)] {
         match self {
             M(mat) => mat.craft_requirements(),
-            I(item) => item.craft_requirements()
+            I(item) => item.craft_requirements(),
+            C(cons) => cons.craft_requirements(),
         }
     }
 
     pub fn craft_yield(&self) -> u32 {
         match self {
             M(mat) => mat.craft_yield(),
-            I(item) => item.craft_yield()
+            I(item) => item.craft_yield(),
+            C(cons) => cons.craft_yield(),
         }
     }
     
     pub fn required_crafter(&self) -> Option<&Material> {
         match self {
             M(mat) => mat.required_crafter(),
-            I(item) => item.required_crafter()
+            I(item) => item.required_crafter(),
+            C(cons) => cons.required_crafter(),
         }
     }
 
@@ -67,9 +73,20 @@ impl TryFrom<String> for Storable {
 
 impl Display for Storable {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            M(mat) => mat.name(),
-            I(item) => item.name()
-        })
+        write!(f, "{}", self.name())
+    }
+}
+
+pub trait Craftable {
+    fn name(&self) -> &str;
+    fn craft_requirements(&self) -> &[(&Storable, u32)];
+    fn craft_yield(&self) -> u32;
+    fn required_crafter(&self) -> Option<&Material> {
+        match self {
+            _ => None
+        }
+    }
+    fn is_craftable(&self) -> bool {
+        self.craft_yield() > 0
     }
 }

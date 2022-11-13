@@ -9,6 +9,7 @@ use winit::{
     window::Window,
 };
 use winit::dpi::PhysicalSize;
+use crate::crafting::consumable::Consumable;
 
 use crate::player::Player;
 use crate::graphics::buffers::Buffers;
@@ -20,6 +21,7 @@ use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::field::Field;
 use crate::crafting::material::Material;
+use crate::crafting::storable::Storable;
 
 pub const TILES_PER_ROW: u32 = 17;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
@@ -144,7 +146,8 @@ impl State {
 
         // let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
         let field = Field::new(None);
-        let player = Player::new(&field);
+        let mut player = Player::new(&field);
+        player.pickup(Storable::C(Consumable::Apple), 2);
         let turn_state = 0.;
 
         Self {
@@ -197,6 +200,7 @@ impl State {
                 ..
             } => {
                 if self.player.get_hp() > 0 {
+                    self.player.message = String::new();
                     // different actions take different time, so sometimes mobs are not allowed to step
                     self.turn_state += act(virtual_keycode, &mut self.player, &mut self.field);
                     while self.turn_state >= 1. {
