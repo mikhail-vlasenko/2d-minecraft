@@ -3,7 +3,7 @@ use wgpu::Device;
 use wgpu::util::DeviceExt;
 use crate::graphics::instance::Instance;
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
-use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, VERTICES};
+use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
 
 
 /// Creates and stores wgpu buffers
@@ -13,6 +13,8 @@ pub struct Buffers {
     pub index_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
     pub player_instance_buffer: wgpu::Buffer,
+    pub night_vertex_buffer: wgpu::Buffer,
+    pub night_instance_buffer: wgpu::Buffer,
 }
 
 impl Buffers {
@@ -97,12 +99,35 @@ impl Buffers {
             }
         );
 
+        let night_vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Night Buffer"),
+                contents: bytemuck::cast_slice(NIGHT_FILTER_VERTICES),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+        let night_instance = vec![Instance {
+            position: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+            rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+            scaling: 1.0,
+        }];
+        let night_instance_data = night_instance.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let night_instance_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&night_instance_data),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+
         Self {
             vertex_buffer,
             player_vertex_buffer,
             index_buffer,
             instance_buffer,
             player_instance_buffer,
+            night_vertex_buffer,
+            night_instance_buffer,
         }
     }
 }

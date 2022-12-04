@@ -269,6 +269,9 @@ impl State {
         render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
         let idx = self.player.get_rotation();
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
+
+        // render night filter
+        self.render_night(&mut render_pass)
     }
 
     pub fn handle_ui_event<T>(&mut self, event: &Event<T>) {
@@ -318,6 +321,15 @@ impl State {
                 |(x, y)| x.abs() <= max_drawable_index && y.abs() <= max_drawable_index
             ).collect();
             self.draw_at_indices(indices, &mut *render_pass);
+        }
+    }
+
+    fn render_night<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        if self.field.is_night() {
+            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_night(), &[]);
+            render_pass.set_vertex_buffer(0, self.buffers.night_vertex_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, self.buffers.night_instance_buffer.slice(..));
+            render_pass.draw_indexed(0..6, 0, 0..1);
         }
     }
 }

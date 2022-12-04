@@ -17,6 +17,7 @@ pub struct TextureBindGroups {
     pub player: BindGroup,
     pub depth_indicators: [BindGroup; 4],
     zombie: BindGroup,
+    night: BindGroup,
     pub bind_group_layout: BindGroupLayout,
 }
 
@@ -71,56 +72,56 @@ impl TextureBindGroups {
         let bind_group_layout = Self::make_layout(device);
 
         let grass_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_grass.png"), "mc_grass.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_grass.png"), "mc_grass.png",
         ).unwrap();
         let grass = Self::make_bind_group(
             "grass_bind_group", &grass_texture, &device, &bind_group_layout,
         );
 
         let stone_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_stone.png"), "mc_stone.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_stone.png"), "mc_stone.png",
         ).unwrap();
         let stone = Self::make_bind_group(
             "stone_bind_group", &stone_texture, &device, &bind_group_layout,
         );
 
         let tree_log_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_tree_log.png"), "mc_tree_log.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_tree_log.png"), "mc_tree_log.png",
         ).unwrap();
         let tree_log = Self::make_bind_group(
             "tree_log_bind_group", &tree_log_texture, &device, &bind_group_layout,
         );
 
         let bedrock_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_bedrock.png"), "bedrock.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_bedrock.png"), "bedrock.png",
         ).unwrap();
         let bedrock = Self::make_bind_group(
             "bedrock_bind_group", &bedrock_texture, &device, &bind_group_layout,
         );
 
         let planks_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_planks.png"), "planks.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_planks.png"), "planks.png",
         ).unwrap();
         let planks = Self::make_bind_group(
             "planks_bind_group", &planks_texture, &device, &bind_group_layout,
         );
 
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_iron_ore.png"), "texture.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_iron_ore.png"), "texture.png",
         ).unwrap();
         let iron_ore = Self::make_bind_group(
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_crafting_table.png"), "texture.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_crafting_table.png"), "texture.png",
         ).unwrap();
         let crafting_table = Self::make_bind_group(
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mc_diamond.png"), "texture.png",
+            &device, &queue, include_bytes!("../../res/tiles/mc_diamond.png"), "texture.png",
         ).unwrap();
         let diamond = Self::make_bind_group(
             "a_bind_group", &texture, &device, &bind_group_layout,
@@ -133,8 +134,15 @@ impl TextureBindGroups {
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/transparent gradient.png"), "texture.png",
+        ).unwrap();
+        let night = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
         let player_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/player_top_view.png"), "player.png",
+            &device, &queue, include_bytes!("../../res/tiles/player_top_view.png"), "player.png",
         ).unwrap();
         let player = Self::make_bind_group(
             "player_bind_group", &player_texture, &device, &bind_group_layout,
@@ -154,6 +162,7 @@ impl TextureBindGroups {
             player,
             depth_indicators,
             zombie,
+            night,
             bind_group_layout,
         }
     }
@@ -209,5 +218,9 @@ impl TextureBindGroups {
             Zombie => &self.zombie,
             _ => &self.player,
         }
+    }
+
+    pub fn get_bind_group_night(&self) -> &BindGroup {
+        &self.night
     }
 }
