@@ -56,13 +56,13 @@ impl EguiManager {
                      view: &TextureView,
                      window: &Window,
                      player: &mut Player,
-                     turn_state: f32,
+                     time: f32,
     ) -> TexturesDelta {
         self.platform.begin_frame();
 
         self.render_place_craft_menu(player);
         self.render_inventory(player);
-        self.render_info(player, turn_state);
+        self.render_info(player, time);
 
         if player.get_hp() <= 0 {
             self.render_game_over();
@@ -153,14 +153,14 @@ impl EguiManager {
         });
     }
 
-    fn render_info(&self, player: &Player, turn_state: f32) {
+    fn render_info(&self, player: &Player, time: f32) {
         egui::Window::new("Info").anchor(Align2::RIGHT_TOP, [0., 0.])
             .show(&self.platform.context(), |ui| {
                 ui.label(format!("Position: {}, {}, {}", player.x, player.y, player.z));
                 ui.label(format!("HP: {}/100", player.get_hp()));
                 ui.label(format!("ATK: {}", player.get_melee_damage()));
                 ui.label(format!("Mining PWR: {}", player.get_mining_power()));
-                ui.label(format!("Turn state: {}", turn_state));
+                ui.label(format!("Time: {}", time));
                 ui.label(format!("{}", player.message));
             });
     }

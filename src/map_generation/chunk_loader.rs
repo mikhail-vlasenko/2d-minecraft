@@ -36,8 +36,8 @@ impl ChunkLoader {
             for y in (chunk_y - self.loading_distance as i32)..=(chunk_y + self.loading_distance as i32) {
                 let key = Self::encode_key(x, y);
                 if !self.chunks.contains_key(&key) {
-                    let mut generated = Chunk::new(self.chunk_size);
-                    spawn_hostile(&mut generated, x, y);
+                    let generated = Chunk::new(self.chunk_size);
+                    // spawn_hostile(&mut generated, x, y);
                     self.chunks.insert(key, Rc::new(RefCell::new(generated)));
                 }
             }

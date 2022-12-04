@@ -16,6 +16,7 @@ use minecraft::crafting::consumable::Consumable::RawMeat;
 #[test]
 fn test_mobs_get_you_eventually() {
     let mut data = Data::new();
+    data.spawn_mobs(20);
 
     assert!(data.player.get_hp() > 0);
     for _ in 0..100 {

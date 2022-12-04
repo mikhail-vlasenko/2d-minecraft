@@ -20,7 +20,7 @@ impl Data {
         let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
 
         // Mobs dont step here, and the 0, 0 chunk doesnt spawn a mob
-        let field = Field::new(Some(test_chunk));
+        let field = Field::new(8, Some(test_chunk));
         let player = Player::new(&field);
         Self {
             field,
@@ -49,4 +49,11 @@ impl Data {
     pub fn step_mobs(&mut self) {
         self.field.step_mobs(&mut self.player);
     }
+    pub fn spawn_mobs(&mut self, amount: usize) {
+        spawn_mobs(&mut self.field, &mut self.player, amount)
+    }
+}
+
+fn spawn_mobs(field: &mut Field, player: &mut Player, amount: usize) {
+    field.spawn_mobs(player, amount)
 }

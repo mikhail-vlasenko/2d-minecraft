@@ -15,7 +15,7 @@ use winit::event::VirtualKeyCode::*;
 
 #[test]
 fn test_player_basic() {
-    let field = Field::new(None);
+    let field = Field::new(8, None);
     let player = Player::new(&field);
 
     assert_eq!(player.get_hp(), 100);

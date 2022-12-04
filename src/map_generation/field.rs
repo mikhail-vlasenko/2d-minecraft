@@ -1,7 +1,10 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::mem::swap;
+use std::ops::DerefMut;
 use std::panic;
 use std::rc::Rc;
+use rand::Rng;
+use rand::rngs::ThreadRng;
 use crate::crafting::material::Material;
 use crate::player::Player;
 
@@ -12,6 +15,7 @@ use crate::map_generation::chunk_loader::ChunkLoader;
 use crate::map_generation::mobs::a_star::AStar;
 use crate::map_generation::mobs::mob::{Mob, Position};
 use crate::map_generation::mobs::mob_kind::MobKind;
+use crate::map_generation::mobs::spawning::spawn_hostile;
 
 
 /// The playing grid
@@ -20,19 +24,24 @@ pub struct Field {
     chunk_loader: ChunkLoader,
     /// tiles from these chunks can be accessed
     loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
-    /// position of the center of the currently loaded chunks
+    /// position of the center of the currently loaded chunks. (usually the player's chunk)
     central_chunk: (i32, i32),
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
+    /// what the player sees
+    render_distance: usize,
     /// struct for pathing
     a_star: AStar,
     /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
     stray_mobs: Vec<Mob>,
+    /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
+    time: f32,
+    rng: ThreadRng,
 }
 
 impl Field {
-    pub fn new(starting_chunk: Option<Chunk>) -> Self {
+    pub fn new(render_distance: usize, starting_chunk: Option<Chunk>) -> Self {
         let loading_distance = 4;
         let chunk_size = 16;
 
@@ -45,8 +54,11 @@ impl Field {
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
 
-        let a_star_radius = 20;
+        let a_star_radius = 30;
         let a_star = AStar::new(a_star_radius);
+
+        let time = 0.;
+        let rng = rand::thread_rng();
 
         let mut field = Self{
             chunk_loader,
@@ -54,13 +66,110 @@ impl Field {
             central_chunk,
             chunk_size,
             loading_distance,
+            render_distance,
             a_star,
             stray_mobs,
+            time,
+            rng
         };
         field.load(central_chunk.0, central_chunk.1);
         field
     }
 
+    /// Load a new set of loaded_chunks around the given chunk
+    pub fn load(&mut self, chunk_x: i32, chunk_y:i32) {
+        self.chunk_loader.generate_close_chunks(chunk_x, chunk_y);
+        self.loaded_chunks = self.chunk_loader.load_around(chunk_x, chunk_y);
+        self.central_chunk = (chunk_x, chunk_y);
+    }
+
+    /// Steps the field for the given time.
+    /// Time increases, mobs may step.
+    ///
+    /// # Arguments
+    ///
+    /// * `passed_time`: for how long the field should be ran
+    /// * `player`: the player
+    pub fn step_time(&mut self, mut passed_time: f32, player: &mut Player) {
+        while passed_time >= 1. {
+            if self.is_night() {
+                let rng: f32 = self.rng.gen();
+                if rng > 0.9 {
+                    self.spawn_mobs(player, 5)
+                }
+            }
+            self.step_mobs(player);
+            passed_time -= 1.;
+            self.time += 1.;
+        }
+        self.time += passed_time
+    }
+
+    pub fn is_night(&self) -> bool {
+        (self.time as i32 % 100) >= 50
+    }
+
+    pub fn get_time(&self) -> f32 {
+        self.time
+    }
+
+    pub fn step_mobs(&mut self, player: &mut Player) {
+        for i in 0..self.loaded_chunks.len() {
+            for j in 0..self.loaded_chunks[i].len() {
+                self.stray_mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
+            }
+        }
+        for _ in 0..self.stray_mobs.len() {
+            let mut m = self.stray_mobs.pop().unwrap();
+            m.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
+            let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
+            self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
+        }
+    }
+
+    /// Spawns mobs on the loaded chunks.
+    /// Positions are chosen randomly.
+    /// The more mobs exists, the less will be spawned for the given fraction
+    ///
+    /// # Arguments
+    ///
+    /// * `player`: the player (for its position)
+    /// * `amount`: how many mobs should be spawn (at most)
+    pub fn spawn_mobs(&mut self, player: &Player, amount: usize) {
+        let game_time = self.time;
+        for _ in 0..amount {
+            let tile = self.pick_tile();
+            // not too close
+            if ((tile.0 - player.x).abs() + (tile.1 - player.y).abs()) >
+                (2 * self.render_distance) as i32 {
+
+                let chunk_pos = (self.chunk_pos(tile.0), self.chunk_pos(tile.1));
+                let mut chunk = self.get_chunk(tile.0, tile.1);
+                // not too crowded
+                if chunk.get_mobs().len() < 2 {
+                    spawn_hostile(chunk.deref_mut(),  chunk_pos.0, chunk_pos.1, game_time);
+                }
+            }
+        }
+    }
+
+    pub fn full_pathing(&mut self, source: (i32, i32), destination: (i32, i32), player: (i32, i32)) -> (i32, i32) {
+        self.a_star.reset(player.0, player.1);
+        let mut secondary_a_star = AStar::default();
+        swap(&mut secondary_a_star, &mut self.a_star);
+        // now secondary_a_star is the actual self.a_star now
+        let res = secondary_a_star.full_pathing(self, source, destination);
+        swap(&mut secondary_a_star, &mut self.a_star);
+        res
+    }
+
+    pub fn get_a_star_radius(&self) -> i32 {
+        self.a_star.get_radius()
+    }
+}
+
+/// Chunk logic
+impl Field {
     /// Gives the Chunk owning the absolute map position, from the loaded chunks only.
     ///
     /// # Arguments
@@ -103,6 +212,11 @@ impl Field {
     }
 
     /// Chunk's index for this absolute map coordinate
+    /// /// # Arguments
+    ///
+    /// * `coord`: absolute x or y position on the map
+    ///
+    /// returns: absolute chunk index (x or y) on this axis corresponding to this coord
     pub fn chunk_pos(&self, coord: i32) -> i32 {
         let mut new_coord = coord;
         if new_coord < 0 {
@@ -115,7 +229,10 @@ impl Field {
     pub fn get_central_chunk(&self) -> (i32, i32) {
         self.central_chunk
     }
+}
 
+/// Rendering-related
+impl Field {
     pub fn min_loaded_idx(&self) -> (i32, i32) {
         let x = (self.central_chunk.0 - self.loading_distance as i32) * self.chunk_size as i32;
         let y = (self.central_chunk.1 - self.loading_distance as i32) * self.chunk_size as i32;
@@ -157,7 +274,7 @@ impl Field {
     ///
     /// * `player`: the player
     /// * `material`: index only blocks of this material
-    /// * `radius`: how far field from player is included
+    /// * `RADIUS`: how far field from player is included
     ///
     /// returns: (2d Vector: the list of positions)
     pub fn texture_indices(&self, player: &Player, material: Material, radius: usize) -> Vec<(i32, i32)> {
@@ -201,41 +318,6 @@ impl Field {
         }
         res
     }
-
-    /// Load a new set of loaded_chunks around the given chunk
-    pub fn load(&mut self, chunk_x: i32, chunk_y:i32) {
-        self.chunk_loader.generate_close_chunks(chunk_x, chunk_y);
-        self.loaded_chunks = self.chunk_loader.load_around(chunk_x, chunk_y);
-        self.central_chunk = (chunk_x, chunk_y);
-    }
-
-    pub fn step_mobs(&mut self, player: &mut Player) {
-        for i in 0..self.loaded_chunks.len() {
-            for j in 0..self.loaded_chunks[i].len() {
-                self.stray_mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
-            }
-        }
-        for _ in 0..self.stray_mobs.len() {
-            let mut m = self.stray_mobs.pop().unwrap();
-            m.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
-            let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
-            self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
-        }
-    }
-
-    pub fn full_pathing(&mut self, source: (i32, i32), destination: (i32, i32), player: (i32, i32)) -> (i32, i32) {
-        self.a_star.reset(player.0, player.1);
-        let mut secondary_a_star = AStar::default();
-        swap(&mut secondary_a_star, &mut self.a_star);
-        // now secondary_a_star is the actual self.a_star now
-        let res = secondary_a_star.full_pathing(self, source, destination);
-        swap(&mut secondary_a_star, &mut self.a_star);
-        res
-    }
-
-    pub fn get_a_star_radius(&self) -> i32 {
-        self.a_star.get_radius()
-    }
 }
 
 /// API for Tile interaction, x and y are absolute map positions.
@@ -270,6 +352,13 @@ impl Field {
     }
     pub fn damage_mob(&mut self, x: i32, y: i32, damage: i32) -> bool {
         self.get_chunk(x, y).damage_mob(x, y, damage)
+    }
+    pub fn pick_tile(&mut self) -> (i32, i32) {
+        let min = self.min_loaded_idx();
+        let max = self.max_loaded_idx();
+        let x = self.rng.gen_range(min.0..=max.0);
+        let y = self.rng.gen_range(min.1..=max.1);
+        (x, y)
     }
 }
 

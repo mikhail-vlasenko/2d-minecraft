@@ -30,6 +30,7 @@ pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
     0.0,
 );
+pub const RENDER_DISTANCE: usize = ((TILES_PER_ROW - 1) / 2) as usize;
 
 /// The main class of the application.
 /// Initializes graphics.
@@ -49,8 +50,6 @@ pub struct State {
     egui_manager: EguiManager,
     field: Field,
     player: Player,
-    /// when reaches 1, mobs (and other things) are allowed to step
-    turn_state: f32,
 }
 
 impl State {
@@ -145,10 +144,13 @@ impl State {
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0, };
 
         // let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
-        let field = Field::new(None);
+        let mut field = Field::new(RENDER_DISTANCE, None);
         let mut player = Player::new(&field);
         player.pickup(Storable::C(Consumable::Apple), 2);
-        let turn_state = 0.;
+
+        // spawn some initial mobs
+        let amount = (0.2 * (RENDER_DISTANCE * 2).pow(2) as f32) as usize;
+        field.spawn_mobs(&player, amount);
 
         Self {
             surface,
@@ -163,7 +165,6 @@ impl State {
             egui_manager,
             field,
             player,
-            turn_state,
         }
     }
 
@@ -202,11 +203,8 @@ impl State {
                 if self.player.get_hp() > 0 {
                     self.player.message = String::new();
                     // different actions take different time, so sometimes mobs are not allowed to step
-                    self.turn_state += act(virtual_keycode, &mut self.player, &mut self.field);
-                    while self.turn_state >= 1. {
-                        self.field.step_mobs(&mut self.player);
-                        self.turn_state -= 1.
-                    }
+                    let passed_time = act(virtual_keycode, &mut self.player, &mut self.field);
+                    self.field.step_time(passed_time, &mut self.player);
                 }
                 true
             }
@@ -231,7 +229,8 @@ impl State {
         self.render_game(&mut encoder, &view);
 
         let texture_delta = self.egui_manager.render_ui(
-            &self.config, &self.device, &self.queue, &mut encoder, &view, window, &mut self.player, self.turn_state
+            &self.config, &self.device, &self.queue, &mut encoder, &view, window,
+            &mut self.player, self.field.get_time()
         );
 
         self.queue.submit(iter::once(encoder.finish()));
@@ -277,8 +276,7 @@ impl State {
     }
 
     fn convert_index(x: i32, y: i32) -> u32 {
-        let radius = (TILES_PER_ROW - 1) / 2;
-        (y + radius as i32) as u32 * TILES_PER_ROW + (x + radius as i32) as u32
+        (y + RENDER_DISTANCE as i32) as u32 * TILES_PER_ROW + (x + RENDER_DISTANCE as i32) as u32
     }
 
     fn draw_at_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass) {
@@ -296,19 +294,17 @@ impl State {
     ///
     /// * `render_pass`: the primary render pass
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
-        let radius = ((TILES_PER_ROW - 1) / 2) as usize;
-
         // draw tiles of the same material together
         for material in Material::iter() {
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
-            let tiles = self.field.texture_indices(&self.player, material, radius);
+            let tiles = self.field.texture_indices(&self.player, material, RENDER_DISTANCE);
             self.draw_at_indices(tiles, &mut *render_pass);
         }
 
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
             render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[i], &[]);
-            let depth = self.field.depth_indices(&self.player, i+2, radius);
+            let depth = self.field.depth_indices(&self.player, i+2, RENDER_DISTANCE);
             self.draw_at_indices(depth, &mut *render_pass);
         }
     }
