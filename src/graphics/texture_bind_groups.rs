@@ -17,6 +17,7 @@ pub struct TextureBindGroups {
     pub player: BindGroup,
     pub depth_indicators: [BindGroup; 4],
     zombie: BindGroup,
+    zergling: BindGroup,
     night: BindGroup,
     pub bind_group_layout: BindGroupLayout,
 }
@@ -135,6 +136,13 @@ impl TextureBindGroups {
         );
 
         let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mobs/zergling.png"), "texture.png",
+        ).unwrap();
+        let zergling = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/transparent gradient.png"), "texture.png",
         ).unwrap();
         let night = Self::make_bind_group(
@@ -162,6 +170,7 @@ impl TextureBindGroups {
             player,
             depth_indicators,
             zombie,
+            zergling,
             night,
             bind_group_layout,
         }
@@ -216,6 +225,7 @@ impl TextureBindGroups {
         use MobKind::*;
         match mob {
             Zombie => &self.zombie,
+            Zergling => &self.zergling,
             _ => &self.player,
         }
     }

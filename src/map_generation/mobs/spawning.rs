@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{random, Rng};
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::mobs::mob::{Mob, Position};
 use crate::map_generation::mobs::mob_kind::MobKind;
@@ -32,5 +32,10 @@ fn pick_mob_kind(dist: i32, game_time: f32) -> MobKind {
     if game_time > 200. {
         // todo: banes
     }
-    MobKind::Zombie
+    let rng: f32 = random();
+    if rng > 0.8 {
+        MobKind::Zergling
+    } else {
+        MobKind::Zombie
+    }
 }
