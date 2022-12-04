@@ -204,10 +204,7 @@ impl Player {
 
     pub fn consume(&mut self, consumable: Consumable) -> f32 {
         if self.inventory.drop(&Storable::C(consumable), 1) {
-            match consumable {
-                Consumable::Apple => self.heal(20),
-                Consumable::RawMeat => self.heal(50),
-            }
+            consumable.apply_effect(self);
             1.
         } else {
             self.message = format!("You dont have {}", consumable);

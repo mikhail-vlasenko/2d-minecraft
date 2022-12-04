@@ -6,6 +6,7 @@ use Storable::*;
 use crate::crafting::storable::{Craftable, Storable};
 use crate::crafting::consumable::Consumable::*;
 use crate::crafting::material::Material;
+use crate::player::Player;
 
 
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
@@ -14,7 +15,14 @@ pub enum Consumable {
     RawMeat,
 }
 
-impl Consumable { }
+impl Consumable {
+    pub fn apply_effect(&self, player: &mut Player) {
+        match self {
+            Apple => player.heal(20),
+            RawMeat => player.heal(50),
+        }
+    }
+}
 
 impl Craftable for Consumable {
     fn name(&self) -> &str {

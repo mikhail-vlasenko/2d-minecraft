@@ -5,6 +5,7 @@ use minecraft::map_generation::read_chunk::read_file;
 use minecraft::player::Player;
 use winit::event::VirtualKeyCode;
 use winit::event::VirtualKeyCode::*;
+use minecraft::crafting::consumable::Consumable;
 use minecraft::crafting::material::Material;
 use minecraft::crafting::storable::Storable;
 
@@ -40,6 +41,10 @@ impl Data {
     pub fn craft(&mut self, s: Storable) {
         self.player.crafting_item = s;
         self.act(C)
+    }
+    pub fn consume(&mut self, consumable: Consumable) {
+        self.player.consumable = consumable;
+        self.act(F)
     }
     pub fn step_mobs(&mut self) {
         self.field.step_mobs(&mut self.player);

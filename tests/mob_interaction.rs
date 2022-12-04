@@ -11,6 +11,7 @@ use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
 use minecraft::player::Player;
 use winit::event::VirtualKeyCode::*;
+use minecraft::crafting::consumable::Consumable::RawMeat;
 
 #[test]
 fn test_mobs_get_you_eventually() {
@@ -21,4 +22,18 @@ fn test_mobs_get_you_eventually() {
         data.step_mobs();
     }
     assert!(data.player.get_hp() <= 0);
+}
+
+#[test]
+fn test_healing() {
+    let mut data = Data::new();
+
+    let init_hp = data.player.get_hp();
+    data.player.pickup(Storable::C(RawMeat), 1);
+
+    data.player.receive_damage(10);
+    assert!(data.player.get_hp() < init_hp);
+
+    data.consume(RawMeat);
+    assert_eq!(data.player.get_hp(), init_hp);
 }
