@@ -253,7 +253,13 @@ impl Player {
             }
         }
         if weapon.ammo() == &Arrow {
-            field.add_loot_at(vec![I(Arrow)], curr_tile);
+            // arrows can be reused, but sometimes break
+            let rng: f32 = rand::random();
+            if rng > 0.3 {
+                field.add_loot_at(vec![I(Arrow)], curr_tile);
+            } else {
+                self.add_message(&"Arrow broke");
+            }
         }
         1.0
     }
