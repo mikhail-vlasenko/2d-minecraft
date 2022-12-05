@@ -53,10 +53,10 @@ impl Player {
 
         let mat =  field.get_chunk_immut(xx, yy).top_at(xx, yy).material;
         if mat.required_mining_power() > self.get_mining_power() {
-            self.message = format!("Need {} mining PWR", mat.required_mining_power());
+            self.add_message(&format!("Need {} mining PWR", mat.required_mining_power()));
             0.
         } else {
-            println!("{} mined", mat);
+            self.add_message(&format!("Mined {}", mat));
             self.inventory.pickup(Storable::M(mat), 1);
             field.pop_at(self.x + delta_x, self.y + delta_y);
             1.
@@ -75,7 +75,7 @@ impl Player {
 
     pub fn place(&mut self, field: &mut Field, delta_x: i32, delta_y: i32, material: Material) -> f32 {
         if field.full_at(self.x + delta_x, self.y + delta_y) {
-            self.message = format!("Too high to build");
+            self.add_message(&format!("Too high to build"));
             return 0.;
         }
 
@@ -83,10 +83,9 @@ impl Player {
 
         if self.inventory.drop(&Storable::M(material), 1) {
             field.push_at(placement_block, self.x + delta_x, self.y + delta_y);
-            println!("{} placed", material.to_string());
             1.
         } else {
-            self.message = format!("You do not have a block of {}", material);
+            self.add_message(&format!("You do not have a block of {}", material));
             0.
         }
     }
@@ -130,13 +129,24 @@ impl Player {
             self.x += delta_x;
             self.y += delta_y;
             self.land(field);
+
+            // loot
+            let loot = field.gather_loot_at(self.x, self.y);
+            if loot.len() > 0 {
+                for l in loot {
+                    self.add_message(&format!("Looted {}", l));
+                    self.pickup(l, 1);
+                }
+            }
+
+            // chunk loading
             let curr_chunk = (field.chunk_pos(self.x), field.chunk_pos(self.y));
             if curr_chunk != field.get_central_chunk() {
                 field.load(curr_chunk.0, curr_chunk.1);
             }
             1.
         } else {
-            self.message = String::from("Too high to step on");
+            self.add_message(&"Too high to step on");
             0.
         }
     }
@@ -162,7 +172,7 @@ impl Player {
     pub fn can_craft(&mut self, item: &Storable, field: &Field) -> bool {
         for (req, amount) in item.craft_requirements() {
             if self.inventory.count(&req) < *amount {
-                self.message = format!("Need {} of {}, have {}", amount, req, self.inventory.count(&req));
+                self.add_message(&format!("Need {} of {}, have {}", amount, req, self.inventory.count(&req)));
                 return false;
             }
         }
@@ -173,7 +183,7 @@ impl Player {
                 self.exists_around(field, crafter.unwrap())
             };
         if !crafter_near {
-            self.message = format!("There is no {} nearby", crafter.unwrap())
+            self.add_message(&format!("There is no {} nearby", crafter.unwrap()));
         }
 
         item.is_craftable() && crafter_near
@@ -190,7 +200,7 @@ impl Player {
         }
         let craft_yield = item.craft_yield();
         self.inventory.pickup(item, craft_yield);
-        self.message = format!("Crafted {} of {}", craft_yield, item);
+        self.add_message(&format!("Crafted {} of {}", craft_yield, item));
         1.
     }
 
@@ -207,7 +217,7 @@ impl Player {
             consumable.apply_effect(self);
             1.
         } else {
-            self.message = format!("You dont have {}", consumable);
+            self.add_message(&format!("You dont have {}", consumable));
             0.
         }
     }
@@ -253,13 +263,22 @@ impl Player {
     pub fn render_inventory(&self) {
         self.inventory.render();
     }
+
+    pub fn add_message(&mut self, new: &str) {
+        if !self.message.is_empty() {
+            self.message.push_str("\n");
+        }
+        self.message.push_str(new);
+    }
+     pub fn reset_message(&mut self) {
+         self.message = String::new();
+     }
 }
 
 /// HP and damage things
 impl Player {
     pub fn receive_damage(&mut self, damage: i32) {
-        // todo: append
-        self.message = format!("You are hit by {}", damage);
+        self.add_message(&format!("You are hit by {}", damage));
         self.hp -= damage
     }
 

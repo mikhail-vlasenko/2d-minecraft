@@ -115,15 +115,15 @@ impl Chunk {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].len() >= 5
     }
-    pub fn get_loot(&self, x: i32, y: i32) -> &Vec<Storable> {
+    pub fn get_loot_at(&self, x: i32, y: i32) -> &Vec<Storable> {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].get_loot()
     }
-    pub fn add_loot(&mut self, new: Vec<Storable>, x: i32, y: i32) {
+    pub fn add_loot_at(&mut self, new: Vec<Storable>, x: i32, y: i32) {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].add_loot(new)
     }
-    pub fn gather_loot(&mut self, x: i32, y: i32) -> Vec<Storable> {
+    pub fn gather_loot_at(&mut self, x: i32, y: i32) -> Vec<Storable> {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].gather_loot()
     }
@@ -140,7 +140,7 @@ impl Chunk {
         for i in 0..self.mobs.len() {
             if self.mobs[i].pos.x == x && self.mobs[i].pos.y == y {
                 return if self.mobs[i].receive_damage(damage) {
-                    self.add_loot(self.mobs[i].get_kind().loot(), self.mobs[i].pos.x, self.mobs[i].pos.y);
+                    self.add_loot_at(self.mobs[i].get_kind().loot(), self.mobs[i].pos.x, self.mobs[i].pos.y);
 
                     self.mobs.remove(i);
                     true

@@ -6,6 +6,7 @@ use std::rc::Rc;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 use crate::crafting::material::Material;
+use crate::crafting::storable::Storable;
 use crate::player::Player;
 
 use crate::map_generation::tile::{randomly_augment, Tile};
@@ -310,7 +311,7 @@ impl Field {
         let mut res: Vec<(i32, i32)> = Vec::new();
         for i in (player.x - r)..=(player.x + r) {
             for j in (player.y - r)..=(player.y + r) {
-                if self.get_chunk_immut(i, j).get_loot(i, j).len() > 0 {
+                if self.get_chunk_immut(i, j).get_loot_at(i, j).len() > 0 {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -350,6 +351,12 @@ impl Field {
     }
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         self.get_chunk_immut(x, y).full_at(x, y)
+    }
+    pub fn add_loot_at(&mut self, new: Vec<Storable>, x: i32, y: i32) {
+        self.get_chunk(x, y).add_loot_at(new, x, y)
+    }
+    pub fn gather_loot_at(&mut self, x: i32, y: i32) -> Vec<Storable> {
+        self.get_chunk(x, y).gather_loot_at(x, y)
     }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,
