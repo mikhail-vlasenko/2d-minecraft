@@ -150,7 +150,8 @@ impl State {
 
         // spawn some initial mobs
         let amount = (0.2 * (RENDER_DISTANCE * 2).pow(2) as f32) as usize;
-        field.spawn_mobs(&player, amount);
+        field.spawn_mobs(&player, amount, true);
+        field.spawn_mobs(&player, amount * 2, false);
 
         Self {
             surface,

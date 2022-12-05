@@ -16,7 +16,7 @@ use crate::map_generation::chunk_loader::ChunkLoader;
 use crate::map_generation::mobs::a_star::AStar;
 use crate::map_generation::mobs::mob::{Mob, Position};
 use crate::map_generation::mobs::mob_kind::MobKind;
-use crate::map_generation::mobs::spawning::spawn_hostile;
+use crate::map_generation::mobs::spawning::create_mob;
 
 
 /// The playing grid
@@ -55,7 +55,7 @@ impl Field {
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
 
-        let a_star_radius = 30;
+        let a_star_radius = 20;
         let a_star = AStar::new(a_star_radius);
 
         let time = 0.;
@@ -93,10 +93,14 @@ impl Field {
     /// * `player`: the player
     pub fn step_time(&mut self, mut passed_time: f32, player: &mut Player) {
         while passed_time >= 1. {
+            let rng: f32 = self.rng.gen();
             if self.is_night() {
-                let rng: f32 = self.rng.gen();
                 if rng > 0.9 {
-                    self.spawn_mobs(player, 5)
+                    self.spawn_mobs(player, 5, true)
+                }
+            } else {
+                if rng > 0.9 {
+                    self.spawn_mobs(player, 2, false)
                 }
             }
             self.step_mobs(player);
@@ -136,7 +140,7 @@ impl Field {
     ///
     /// * `player`: the player (for its position)
     /// * `amount`: how many mobs should be spawn (at most)
-    pub fn spawn_mobs(&mut self, player: &Player, amount: usize) {
+    pub fn spawn_mobs(&mut self, player: &Player, amount: usize, hostile: bool) {
         let game_time = self.time;
         for _ in 0..amount {
             let tile = self.pick_tile();
@@ -146,9 +150,9 @@ impl Field {
 
                 let chunk_pos = (self.chunk_pos(tile.0), self.chunk_pos(tile.1));
                 let mut chunk = self.get_chunk(tile.0, tile.1);
-                // not too crowded
-                if chunk.get_mobs().len() < 2 {
-                    spawn_hostile(chunk.deref_mut(),  chunk_pos.0, chunk_pos.1, game_time);
+                // not too crowded, allow more for friendly
+                if chunk.get_mobs().len() < 3 - (hostile as usize) {
+                    create_mob(chunk.deref_mut(), chunk_pos, tile, game_time, hostile);
                 }
             }
         }
@@ -166,6 +170,10 @@ impl Field {
 
     pub fn get_a_star_radius(&self) -> i32 {
         self.a_star.get_radius()
+    }
+
+    pub fn get_towards_player_radius(&self) -> i32 {
+        30
     }
 }
 

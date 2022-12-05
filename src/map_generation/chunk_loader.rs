@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
-use crate::map_generation::mobs::spawning::spawn_hostile;
 
 
 pub struct ChunkLoader {

@@ -66,7 +66,7 @@ impl Mob {
 
     fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
-        if dist <= field.get_a_star_radius() {
+        if self.kind.hostile() && dist <= field.get_a_star_radius() {
             // within a* range, so do full path search
             let direction = field.full_pathing(
                 (self.pos.x, self.pos.y),
@@ -74,12 +74,27 @@ impl Mob {
                 (player.x, player.y)
             );
             self.step(field, player, direction, min_loaded, max_loaded);
+        }
+        else if self.kind.hostile() && dist <= field.get_towards_player_radius() {
+            self.step_towards_player(field, player, min_loaded, max_loaded);
         } else {
-            // random valid move
-            let mut rng = rand::thread_rng();
-            let number: usize = rng.gen();
-            let direction_idx = number % 4;
-            self.step(field, player, DIRECTIONS[direction_idx], min_loaded, max_loaded);
+            self.random_step(field, player, min_loaded, max_loaded);
+        }
+    }
+
+    /// Moves in a random direction, not walking out of loaded chunks
+    fn random_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+        let number: usize = rand::random();
+        let direction_idx = number % 4;
+        self.step(field, player, DIRECTIONS[direction_idx], min_loaded, max_loaded);
+    }
+
+    fn step_towards_player(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+        let directions = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
+        if directions.1 == 0 || (rand::random() && directions.0 != 0) {
+            self.step(field, player, (directions.0, 0), min_loaded, max_loaded)
+        } else {
+            self.step(field, player, (0, directions.1), min_loaded, max_loaded)
         }
     }
 

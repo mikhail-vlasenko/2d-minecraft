@@ -49,11 +49,11 @@ impl Data {
     pub fn step_mobs(&mut self) {
         self.field.step_mobs(&mut self.player);
     }
-    pub fn spawn_mobs(&mut self, amount: usize) {
-        spawn_mobs(&mut self.field, &mut self.player, amount)
+    pub fn spawn_mobs(&mut self, amount: usize, hostile: bool) {
+        spawn_mobs(&mut self.field, &mut self.player, amount, hostile)
     }
 }
 
-fn spawn_mobs(field: &mut Field, player: &mut Player, amount: usize) {
-    field.spawn_mobs(player, amount)
+fn spawn_mobs(field: &mut Field, player: &mut Player, amount: usize, hostile: bool) {
+    field.spawn_mobs(player, amount, hostile)
 }

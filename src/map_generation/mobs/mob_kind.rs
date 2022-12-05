@@ -22,7 +22,7 @@ impl MobKind {
         match self {
             Zombie => 10,
             Zergling => 10,
-            Cow => 0,
+            Cow => 5,
         }
     }
     /// 1 - acts every turn
@@ -32,7 +32,14 @@ impl MobKind {
         match self {
             Zombie => 0.5,
             Zergling => 1.5,
-            Cow => 0.25,
+            Cow => 0.75,
+        }
+    }
+
+    pub fn hostile(&self) -> bool {
+        match self {
+            Cow => false,
+            _ => true
         }
     }
 

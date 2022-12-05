@@ -7,16 +7,17 @@ use crate::map_generation::mobs::mob_kind::MobKind;
 /// Takes into account how far away from center the player is
 /// and how much time has passed since start.
 /// (both increase mob difficulty)
-pub fn spawn_hostile(chunk: & mut Chunk, x_chunk: i32, y_chunk: i32, game_time: f32) {
-    let size = chunk.get_size() as i32;
-    let (x, y) = pick_tile(&size);
-    
+pub fn create_mob(chunk: &mut Chunk, chunk_pos: (i32, i32), tile: (i32, i32), game_time: f32, hostile: bool) {
     let pos = Position {
-        x: x + size * x_chunk,
-        y: y + size * y_chunk,
-        z: chunk.len_at(x, y),
+        x: tile.0,
+        y: tile.1,
+        z: chunk.len_at(tile.0, tile.1),
     };
-    let kind = pick_mob_kind(x_chunk + y_chunk, game_time);
+    let kind = if hostile {
+        pick_hostile_kind(chunk_pos.0 + chunk_pos.1, game_time)
+    } else {
+        pick_friendly_kind()
+    };
     let mob = Mob::new(pos, kind);
     chunk.add_mob(mob);
 }
@@ -28,7 +29,7 @@ fn pick_tile(size: &i32) -> (i32, i32) {
     (x, y)
 }
 
-fn pick_mob_kind(dist: i32, game_time: f32) -> MobKind {
+fn pick_hostile_kind(dist: i32, game_time: f32) -> MobKind {
     if game_time > 200. {
         // todo: banes
     }
@@ -38,4 +39,8 @@ fn pick_mob_kind(dist: i32, game_time: f32) -> MobKind {
     } else {
         MobKind::Zombie
     }
+}
+
+fn pick_friendly_kind() -> MobKind {
+    MobKind::Cow
 }
