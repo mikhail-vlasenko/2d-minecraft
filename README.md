@@ -23,6 +23,8 @@ mine tree -> make crafting table -> make pickaxe -> etc.
 But would require no computer vision, and would run significantly faster than the original.
 
 ## Gameplay screenshots:
+<img width="848" alt="image" src="https://user-images.githubusercontent.com/27450370/205680241-c074a1d6-f313-4c28-b18d-93cf71e76321.png">
+
 <img width="800" alt="image" src="https://user-images.githubusercontent.com/27450370/198876634-ac05daad-5f30-4b95-ad6b-970feb02e8a1.png">
 
 <img width="801" alt="image" src="https://user-images.githubusercontent.com/27450370/198854546-10c64335-58cb-4a22-93f7-06bdbebad75b.png">
