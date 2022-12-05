@@ -7,6 +7,7 @@ use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::MobKind;
 
 
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Position {
     pub x: i32,
     pub y: i32,

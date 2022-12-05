@@ -12,9 +12,10 @@ use minecraft::map_generation::read_chunk::read_file;
 use minecraft::player::Player;
 use winit::event::VirtualKeyCode::*;
 use minecraft::crafting::consumable::Consumable::RawMeat;
+use minecraft::crafting::ranged_weapon::RangedWeapon::Bow;
 use minecraft::crafting::storable::Storable;
 use minecraft::map_generation::mobs::mob::{Mob, Position};
-use minecraft::map_generation::mobs::mob_kind::MobKind::Cow;
+use minecraft::map_generation::mobs::mob_kind::MobKind::{Cow, Zergling, Zombie};
 
 #[test]
 fn test_mobs_get_you_eventually() {
@@ -63,4 +64,44 @@ fn test_killing_and_looting() {
     data.act(S);
     data.act(S);
     assert!(data.player.inventory_count(&Storable::C(RawMeat)) > init_meat)
+}
+
+#[test]
+fn test_shooting() {
+    let mut data = Data::new();
+    let pos = Position {
+        x: 2,
+        y: 0,
+        z: 2,
+    };
+    let kind = Zergling;
+    let mob = Mob::new(pos.clone(), kind);
+    data.field.get_chunk(0, 2).add_mob(mob);
+
+    data.act(Right);
+    data.act(Right);
+
+    // cant shoot
+    data.act(X);
+    data.act(X);
+    assert!(data.field.is_occupied((2, 0)));
+
+    data.player.pickup(RW(Bow), 1);
+    // no ammo
+    data.act(X);
+    data.act(X);
+    assert!(data.field.is_occupied((2, 0)));
+
+    data.player.pickup(Storable::I(Arrow), 2);
+    data.act(X);
+    data.act(X);
+    // killed
+    assert!(!data.field.is_occupied((2, 0)));
+
+    let mob = Mob::new(pos.clone(), kind);
+    data.field.get_chunk(0, 2).add_mob(mob);
+    // out of ammo
+    data.act(X);
+    data.act(X);
+    assert!(data.field.is_occupied((2, 0)));
 }
