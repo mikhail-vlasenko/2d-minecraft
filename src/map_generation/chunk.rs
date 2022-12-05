@@ -4,6 +4,7 @@ use crate::map_generation::block::Block;
 use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::crafting::material::Material;
+use crate::crafting::storable::Storable;
 use crate::map_generation::read_chunk::read_file;
 
 pub struct Chunk {
@@ -114,6 +115,18 @@ impl Chunk {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].len() >= 5
     }
+    pub fn get_loot(&self, x: i32, y: i32) -> &Vec<Storable> {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].get_loot()
+    }
+    pub fn add_loot(&mut self, new: Vec<Storable>, x: i32, y: i32) {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].add_loot(new)
+    }
+    pub fn gather_loot(&mut self, x: i32, y: i32) -> Vec<Storable> {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].gather_loot()
+    }
     pub fn is_occupied(&self, x: i32, y: i32) -> bool {
         for m in &self.mobs {
             if m.pos.x == x && m.pos.y == y {
@@ -127,6 +140,8 @@ impl Chunk {
         for i in 0..self.mobs.len() {
             if self.mobs[i].pos.x == x && self.mobs[i].pos.y == y {
                 return if self.mobs[i].receive_damage(damage) {
+                    self.add_loot(self.mobs[i].get_kind().loot(), self.mobs[i].pos.x, self.mobs[i].pos.y);
+
                     self.mobs.remove(i);
                     true
                 } else {

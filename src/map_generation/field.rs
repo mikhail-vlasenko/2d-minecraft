@@ -304,6 +304,20 @@ impl Field {
         res
     }
 
+    /// Makes a list of positions of blocks that have loot on them
+    pub fn loot_indices(&self, player: &Player, radius: usize) -> Vec<(i32, i32)> {
+        let r = radius as i32;
+        let mut res: Vec<(i32, i32)> = Vec::new();
+        for i in (player.x - r)..=(player.x + r) {
+            for j in (player.y - r)..=(player.y + r) {
+                if self.get_chunk_immut(i, j).get_loot(i, j).len() > 0 {
+                    res.push((i as i32 - player.x, j as i32 - player.y));
+                }
+            }
+        }
+        res
+    }
+
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32)> {
         let mut res: Vec<(i32, i32)> = Vec::new();
 

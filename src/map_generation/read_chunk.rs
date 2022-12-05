@@ -21,7 +21,7 @@ pub fn read_file(file_path: String) -> Vec<Vec<Tile>> {
     for i in 0..size {
         tiles.push(Vec::new());
         for _ in 0..size {
-            tiles[i].push(Tile { blocks: Vec::new() });
+            tiles[i].push(Tile { blocks: Vec::new(), loot: vec![] });
         }
     }
 

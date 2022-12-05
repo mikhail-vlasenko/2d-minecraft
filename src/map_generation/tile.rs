@@ -1,8 +1,10 @@
 use std::fmt;
 use std::fmt::Display;
+use std::mem::take;
 use crate::map_generation::block::Block;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::*;
+use crate::crafting::storable::Storable;
 
 
 /// A square "column" on the field. Acts as a stack of Blocks.
@@ -10,6 +12,7 @@ use crate::crafting::material::Material::*;
 #[derive(Clone)]
 pub struct Tile {
     pub blocks: Vec<Block>,
+    pub loot: Vec<Storable>
 }
 
 impl Display for Tile {
@@ -37,11 +40,19 @@ impl Tile {
     pub fn top_material(&self) -> Material {
         self.top().material.clone()
     }
+    pub fn get_loot(&self) -> &Vec<Storable> { &self.loot }
+    pub fn add_loot(&mut self, new: Vec<Storable> ) {
+        self.loot.extend(new)
+    }
+    pub fn gather_loot(&mut self) -> Vec<Storable> {
+        take(&mut self.loot)
+    }
     pub fn make_dirt() -> Tile {
         return Tile {
             blocks: vec![Block { material: Bedrock },
                          Block { material: Stone },
                          Block { material: Dirt }],
+            loot: Vec::new(),
         };
     }
     pub fn add_tree(tile: &mut Tile) {

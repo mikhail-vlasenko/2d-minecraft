@@ -19,6 +19,7 @@ pub struct TextureBindGroups {
     zombie: BindGroup,
     zergling: BindGroup,
     night: BindGroup,
+    loot_sack: BindGroup,
     pub bind_group_layout: BindGroupLayout,
 }
 
@@ -149,6 +150,13 @@ impl TextureBindGroups {
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/loot sack.png"), "texture.png",
+        ).unwrap();
+        let loot_sack = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
         let player_texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/tiles/player_top_view.png"), "player.png",
         ).unwrap();
@@ -172,6 +180,7 @@ impl TextureBindGroups {
             zombie,
             zergling,
             night,
+            loot_sack,
             bind_group_layout,
         }
     }
@@ -232,5 +241,9 @@ impl TextureBindGroups {
 
     pub fn get_bind_group_night(&self) -> &BindGroup {
         &self.night
+    }
+
+    pub fn get_bind_group_loot(&self) -> &BindGroup {
+        &self.loot_sack
     }
 }

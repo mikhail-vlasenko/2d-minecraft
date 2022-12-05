@@ -310,6 +310,11 @@ impl State {
             let depth = self.field.depth_indices(&self.player, i+2, RENDER_DISTANCE);
             self.draw_at_indices(depth, &mut *render_pass);
         }
+
+        // draw loot where exists
+        render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_loot(), &[]);
+        let loot = self.field.loot_indices(&self.player, RENDER_DISTANCE);
+        self.draw_at_indices(loot, &mut *render_pass);
     }
 
     fn render_mobs<'a>(&'a self, render_pass: &mut RenderPass<'a>) {

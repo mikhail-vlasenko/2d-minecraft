@@ -1,4 +1,6 @@
 use strum_macros::EnumIter;
+use crate::crafting::consumable::Consumable::RawMeat;
+use crate::crafting::storable::Storable;
 use crate::map_generation::mobs::mob_kind::MobKind::*;
 
 #[derive(PartialEq, Copy, Clone, EnumIter, Debug)]
@@ -31,6 +33,15 @@ impl MobKind {
             Zombie => 0.5,
             Zergling => 1.5,
             Cow => 0.25,
+        }
+    }
+
+    pub fn loot(&self) -> Vec<Storable> {
+        let rng: f32 = rand::random();
+        match self {
+            Zombie => vec![],
+            Zergling => if rng > 0.8 { vec![Storable::C(RawMeat)] } else { vec![] },
+            Cow => vec![Storable::C(RawMeat), Storable::C(RawMeat)],
         }
     }
 }
