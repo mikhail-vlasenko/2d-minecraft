@@ -44,8 +44,8 @@ impl Inventory {
         }
     }
 
-    pub fn contains(&self, storable: Storable) -> bool {
-        match self.get(&storable) {
+    pub fn contains(&self, storable: &Storable) -> bool {
+        match self.get(storable) {
             Some(amount) => amount > 0,
             None => false
         }
@@ -86,15 +86,15 @@ impl Inventory {
 /// Player's stats, dependent on inventory content.
 impl Inventory {
     pub fn damage_modifier(&self) -> i32 {
-        if self.contains(I(DiamondSword)) { 30 }
-        else if self.contains(I(IronSword)) { 15 }
-        else if self.contains(I(IronPickaxe)) { 10 }
-        else if self.contains(I(WoodenPickaxe)) { 5 }
+        if self.contains(&I(DiamondSword)) { 30 }
+        else if self.contains(&I(IronSword)) { 15 }
+        else if self.contains(&I(IronPickaxe)) { 10 }
+        else if self.contains(&I(WoodenPickaxe)) { 5 }
         else { 0 }
     }
     pub fn mining_power(&self) -> i32 {
-        if self.contains(I(IronPickaxe)) { 2 }
-        else if self.contains(I(WoodenPickaxe)) { 1 }
+        if self.contains(&I(IronPickaxe)) { 2 }
+        else if self.contains(&I(WoodenPickaxe)) { 1 }
         else { 0 }
     }
 }

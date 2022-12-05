@@ -252,8 +252,12 @@ impl Player {
         }
     }
 
-    pub fn has(&self, storable: Storable) -> bool {
+    pub fn has(&self, storable: &Storable) -> bool {
         self.inventory.contains(storable)
+    }
+
+    pub fn inventory_count(&self, storable: &Storable) -> u32 {
+        self.inventory.count(storable)
     }
 
     pub fn get_inventory(&self) -> &Vec<(Storable, u32)> {

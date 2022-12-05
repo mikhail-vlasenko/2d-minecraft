@@ -45,9 +45,9 @@ fn test_player_good_weather() {
     assert_eq!(data.player.get_mining_power(), 0);
     data.craft(Storable::I(WoodenPickaxe));
     assert_eq!(data.player.get_mining_power(), 1);
-    assert!(data.player.has(Storable::I(WoodenPickaxe)));
+    assert!(data.player.has(&Storable::I(WoodenPickaxe)));
 
-    assert!(!data.player.has(Storable::I(IronPickaxe)));
+    assert!(!data.player.has(&Storable::I(IronPickaxe)));
     data.act(Left);
     data.act(Left);
     data.mine();
@@ -60,12 +60,12 @@ fn test_player_good_weather() {
     data.craft(Storable::I(IronIngot));
     data.craft(Storable::I(Stick));
     data.craft(Storable::I(IronPickaxe));
-    assert!(data.player.has(Storable::I(IronPickaxe)));
-    assert!(!data.player.has(Storable::I(IronIngot)));
+    assert!(data.player.has(&Storable::I(IronPickaxe)));
+    assert!(!data.player.has(&Storable::I(IronIngot)));
     assert_eq!(data.player.get_mining_power(), 2);
 
     data.craft(Storable::I(IronSword));
-    assert!(!data.player.has(Storable::I(IronSword)));
+    assert!(!data.player.has(&Storable::I(IronSword)));
 
     data.act(S);
     assert_eq!(data.player.z, 1);
@@ -75,7 +75,7 @@ fn test_player_good_weather() {
     data.craft(Storable::I(Stick));
 
     data.craft(Storable::I(IronSword)); // not enough iron ingots
-    assert!(!data.player.has(Storable::I(IronSword)));
+    assert!(!data.player.has(&Storable::I(IronSword)));
 
     data.craft(Storable::I(IronIngot));
     data.craft(Storable::I(IronIngot));
@@ -83,7 +83,7 @@ fn test_player_good_weather() {
     let default_dmg = data.player.get_melee_damage();
     // craft table diagonally
     data.craft(Storable::I(IronSword));
-    assert!(data.player.has(Storable::I(IronSword)));
+    assert!(data.player.has(&Storable::I(IronSword)));
     assert!(data.player.get_melee_damage() > default_dmg);
 }
 
@@ -91,7 +91,7 @@ fn test_player_good_weather() {
 fn test_player_no_craft_table() {
     let mut data = Data::new();
 
-    assert!(!data.player.has(Storable::I(WoodenPickaxe)));
+    assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
     data.act(Right);
     data.mine();
     data.mine();
@@ -109,7 +109,7 @@ fn test_player_no_craft_table() {
 
     data.craft(Storable::I(WoodenPickaxe));
     assert_eq!(data.player.get_mining_power(), 0);
-    assert!(!data.player.has(Storable::I(WoodenPickaxe)));
+    assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
 
     data.place(CraftTable);
     data.act(S);
@@ -118,11 +118,11 @@ fn test_player_no_craft_table() {
 
     // too far from crafting table
     data.craft(Storable::I(WoodenPickaxe));
-    assert!(!data.player.has(Storable::I(WoodenPickaxe)));
+    assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
 
     data.act(W); // come closer
     data.craft(Storable::I(WoodenPickaxe));
-    assert!(data.player.has(Storable::I(WoodenPickaxe)));
+    assert!(data.player.has(&Storable::I(WoodenPickaxe)));
 }
 
 #[test]
@@ -140,8 +140,8 @@ fn test_player_mining_pwr() {
     data.mine();
     data.mine();
     data.mine();
-    assert!(!data.player.has(Storable::M(Stone)));
+    assert!(!data.player.has(&Storable::M(Stone)));
     data.player.pickup(Storable::I(WoodenPickaxe),1);
     data.mine();
-    assert!(data.player.has(Storable::M(Stone)));
+    assert!(data.player.has(&Storable::M(Stone)));
 }
