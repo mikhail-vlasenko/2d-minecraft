@@ -58,6 +58,7 @@ impl Inventory {
         }
     }
 
+    /// Returns whether the drop was successful
     pub fn drop(&mut self, storable: &Storable, amount: u32) -> bool {
         let idx = self.get_idx(storable);
         match idx {

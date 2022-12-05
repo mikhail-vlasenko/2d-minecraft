@@ -12,6 +12,7 @@ use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
+use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
 use crate::crafting::storable::Craftable;
 
@@ -131,6 +132,15 @@ impl EguiManager {
                     );
                 }
             }
+            for rw in RangedWeapon::iter() {
+                if rw.craft_yield() > 0 {
+                    ui.radio_value(
+                        &mut player.crafting_item,
+                        Storable::RW(rw),
+                        format!("{} x{}", rw.to_string(), rw.craft_yield()),
+                    );
+                }
+            }
 
             ui.label("Consumable");
             for cons in Consumable::iter() {
@@ -138,6 +148,15 @@ impl EguiManager {
                     &mut player.consumable,
                     cons,
                     format!("{}", cons.to_string()),
+                );
+            }
+
+            ui.label("Ranged weapon");
+            for rw in RangedWeapon::iter() {
+                ui.radio_value(
+                    &mut player.ranged_weapon,
+                    rw,
+                    format!("{}", rw.to_string()),
                 );
             }
         });

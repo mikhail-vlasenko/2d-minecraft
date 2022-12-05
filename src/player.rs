@@ -5,9 +5,12 @@ use crate::crafting::consumable::Consumable;
 use crate::map_generation::block::Block;
 use crate::map_generation::field::Field;
 use crate::crafting::inventory::Inventory;
+use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::*;
+use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
+use crate::crafting::storable::Storable::{I, RW};
 
 pub const MAX_HP: i32 = 100;
 
@@ -25,6 +28,7 @@ pub struct Player {
     pub placement_material: Material,
     pub crafting_item: Storable,
     pub consumable: Consumable,
+    pub ranged_weapon: RangedWeapon,
 
     pub message: String,
 }
@@ -41,6 +45,7 @@ impl Player {
             placement_material: Plank,
             crafting_item: Storable::M(Plank),
             consumable: Consumable::Apple,
+            ranged_weapon: RangedWeapon::Bow,
             message: String::new(),
         };
         player.land(field);
@@ -226,6 +231,38 @@ impl Player {
         self.consume(self.consumable)
     }
 
+    pub fn shoot(&mut self, field: &mut Field, weapon: RangedWeapon) -> f32 {
+        if !self.has(&RW(weapon)) {
+            self.add_message(&format!("You do not have {}", weapon));
+            return 0.0;
+        }
+        if !self.inventory.drop(&I(*weapon.ammo()), 1) {
+            self.add_message(&format!("No ammo! ({})", weapon.ammo()));
+            return 0.0;
+        }
+        let direction = self.coords_from_rotation();
+        let mut curr_tile = (self.x, self. y);
+        let height = self.z + 1;
+        for _ in 0..weapon.range() {
+            curr_tile = (curr_tile.0 + direction.0, curr_tile.1 + direction.1);
+            if field.len_at(curr_tile.0, curr_tile.1) > height {
+                break;
+            }
+            if field.is_occupied(curr_tile.0, curr_tile.1) {
+                field.damage_mob(curr_tile.0, curr_tile.1, weapon.damage());
+                break;
+            }
+        }
+        if weapon.ammo() == &Arrow {
+            field.add_loot_at(vec![I(Arrow)], curr_tile.0, curr_tile.1);
+        }
+        1.0
+    }
+
+    pub fn shoot_current(&mut self, field: &mut Field) -> f32 {
+        self.shoot(field, self.ranged_weapon)
+    }
+
     /// Rotates the Player 90 degrees (counter-)clockwise.
     ///
     /// # Arguments
@@ -234,7 +271,7 @@ impl Player {
     /// returns: how much action was spent.
     pub fn turn(&mut self, side: i32) -> f32 {
         self.rotation += side as f32;
-        1.
+        0.25
     }
 
     /// Computes delta_x and delta_y that, added to the Player position, give a cell in front of him.

@@ -18,6 +18,7 @@ pub enum Item {
     IronIngot,
     IronSword,
     DiamondSword,
+    Arrow,
 }
 
 impl Item {}
@@ -31,6 +32,7 @@ impl Craftable for Item {
             IronIngot => "iron ingot",
             IronSword => "iron sword",
             DiamondSword => "diamond sword",
+            Arrow => "arrow"
         }
     }
 
@@ -42,12 +44,14 @@ impl Craftable for Item {
             IronIngot => &[(&M(Material::IronOre), 1)],
             IronSword => &[(&I(IronIngot), 2), (&I(Stick), 1)],
             DiamondSword => &[(&M(Diamond), 2), (&I(Stick), 1)],
+            Arrow => &[(&I(IronIngot), 1), (&I(Stick), 2)],
         }
     }
 
     fn craft_yield(&self) -> u32 {
         match self {
             Stick => 2,
+            Arrow => 2,
             _ => 1,
         }
     }

@@ -38,6 +38,7 @@ pub struct Field {
     stray_mobs: Vec<Mob>,
     /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
     time: f32,
+    accumulated_time: f32,
     rng: ThreadRng,
 }
 
@@ -59,6 +60,7 @@ impl Field {
         let a_star = AStar::new(a_star_radius);
 
         let time = 0.;
+        let accumulated_time = 0.;
         let rng = rand::thread_rng();
 
         let mut field = Self{
@@ -71,6 +73,7 @@ impl Field {
             a_star,
             stray_mobs,
             time,
+            accumulated_time,
             rng
         };
         field.load(central_chunk.0, central_chunk.1);
@@ -86,13 +89,15 @@ impl Field {
 
     /// Steps the field for the given time.
     /// Time increases, mobs may step.
+    /// Everything steps only when the turn switches (accumulated_time >= 1).
     ///
     /// # Arguments
     ///
     /// * `passed_time`: for how long the field should be ran
     /// * `player`: the player
-    pub fn step_time(&mut self, mut passed_time: f32, player: &mut Player) {
-        while passed_time >= 1. {
+    pub fn step_time(&mut self, passed_time: f32, player: &mut Player) {
+        self.accumulated_time += passed_time;
+        while self.accumulated_time >= 1. {
             let rng: f32 = self.rng.gen();
             if self.is_night() {
                 if rng > 0.9 {
@@ -104,10 +109,9 @@ impl Field {
                 }
             }
             self.step_mobs(player);
-            passed_time -= 1.;
+            self.accumulated_time -= 1.;
             self.time += 1.;
         }
-        self.time += passed_time
     }
 
     pub fn is_night(&self) -> bool {
@@ -115,7 +119,7 @@ impl Field {
     }
 
     pub fn get_time(&self) -> f32 {
-        self.time
+        self.time + self.accumulated_time
     }
 
     pub fn step_mobs(&mut self, player: &mut Player) {

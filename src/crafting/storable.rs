@@ -4,6 +4,7 @@ use Storable::*;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
+use crate::crafting::ranged_weapon::RangedWeapon;
 
 
 /// Represents anything that can be stored in the inventory.
@@ -13,6 +14,7 @@ pub enum Storable {
     M(Material),
     I(Item),
     C(Consumable),
+    RW(RangedWeapon),
 }
 
 impl Storable {
@@ -21,6 +23,7 @@ impl Storable {
             M(mat) => mat.name(),
             I(item) => item.name(),
             C(cons) => cons.name(),
+            RW(rw) => rw.name(),
         }
     }
 
@@ -29,6 +32,7 @@ impl Storable {
             M(mat) => mat.craft_requirements(),
             I(item) => item.craft_requirements(),
             C(cons) => cons.craft_requirements(),
+            RW(rw) => rw.craft_requirements(),
         }
     }
 
@@ -37,6 +41,7 @@ impl Storable {
             M(mat) => mat.craft_yield(),
             I(item) => item.craft_yield(),
             C(cons) => cons.craft_yield(),
+            RW(rw) => rw.craft_yield(),
         }
     }
     
@@ -45,6 +50,7 @@ impl Storable {
             M(mat) => mat.required_crafter(),
             I(item) => item.required_crafter(),
             C(cons) => cons.required_crafter(),
+            RW(rw) => rw.required_crafter(),
         }
     }
 
@@ -77,7 +83,7 @@ impl Display for Storable {
     }
 }
 
-pub trait Craftable {
+pub trait Craftable: Display {
     fn name(&self) -> &str;
     fn craft_requirements(&self) -> &[(&Storable, u32)];
     fn craft_yield(&self) -> u32;

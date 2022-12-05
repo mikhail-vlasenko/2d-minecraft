@@ -19,6 +19,7 @@ pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field)
         Some(VirtualKeyCode::P) => player.place_current(field),
         Some(VirtualKeyCode::C) => player.craft_current(field),
         Some(VirtualKeyCode::F) => player.consume_current(),
+        Some(VirtualKeyCode::X) => player.shoot_current(field),
         _ => { println!("Unknown action"); 0. }
     }
 }
