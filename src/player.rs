@@ -63,7 +63,7 @@ impl Player {
         } else {
             self.add_message(&format!("Mined {}", mat));
             self.inventory.pickup(Storable::M(mat), 1);
-            field.pop_at(self.x + delta_x, self.y + delta_y);
+            field.pop_at((self.x + delta_x, self.y + delta_y));
             1.
         }
     }
@@ -79,7 +79,7 @@ impl Player {
     }
 
     pub fn place(&mut self, field: &mut Field, delta_x: i32, delta_y: i32, material: Material) -> f32 {
-        if field.full_at(self.x + delta_x, self.y + delta_y) {
+        if field.full_at((self.x + delta_x, self.y + delta_y)) {
             self.add_message(&format!("Too high to build"));
             return 0.;
         }
@@ -87,7 +87,7 @@ impl Player {
         let placement_block = Block { material };
 
         if self.inventory.drop(&Storable::M(material), 1) {
-            field.push_at(placement_block, self.x + delta_x, self.y + delta_y);
+            field.push_at(placement_block, (self.x + delta_x, self.y + delta_y));
             1.
         } else {
             self.add_message(&format!("You do not have a block of {}", material));
@@ -122,12 +122,11 @@ impl Player {
     ///
     /// returns: how much action was spent.
     fn step(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
-        let new_x = self.x + delta_x;
-        let new_y = self.y + delta_y;
-        if field.len_at(new_x, new_y) <= self.z + 1 {
+        let new_pos = (self.x + delta_x, self.y + delta_y);
+        if field.len_at(new_pos) <= self.z + 1 {
             // fighting
-            if field.is_occupied(new_x, new_y) {
-                field.damage_mob(new_x, new_y, self.get_melee_damage());
+            if field.is_occupied(new_pos) {
+                field.damage_mob(new_pos, self.get_melee_damage());
                 return 1.
             }
             // movement
@@ -136,7 +135,7 @@ impl Player {
             self.land(field);
 
             // loot
-            let loot = field.gather_loot_at(self.x, self.y);
+            let loot = field.gather_loot_at((self.x, self.y));
             if loot.len() > 0 {
                 for l in loot {
                     self.add_message(&format!("Looted {}", l));
@@ -158,7 +157,7 @@ impl Player {
 
     /// Sets the z coordinate of the Player
     pub fn land(&mut self, field: &Field) {
-        self.z = field.len_at(self.x, self.y);
+        self.z = field.len_at((self.x, self.y));
     }
 
     fn exists_around(&self, field: &Field, material: &Material) -> bool {
@@ -166,7 +165,7 @@ impl Player {
         let y_indices = vec![-1, 0, 1];
         for x in x_indices {
             for y in &y_indices {
-                if &field.top_material_at(self.x + x, self.y + y) == material {
+                if &field.top_material_at((self.x + x, self.y + y)) == material {
                     return true;
                 }
             }
@@ -245,16 +244,16 @@ impl Player {
         let height = self.z + 1;
         for _ in 0..weapon.range() {
             curr_tile = (curr_tile.0 + direction.0, curr_tile.1 + direction.1);
-            if field.len_at(curr_tile.0, curr_tile.1) > height {
+            if field.len_at(curr_tile) > height {
                 break;
             }
-            if field.is_occupied(curr_tile.0, curr_tile.1) {
-                field.damage_mob(curr_tile.0, curr_tile.1, weapon.damage());
+            if field.is_occupied(curr_tile) {
+                field.damage_mob(curr_tile, weapon.damage());
                 break;
             }
         }
         if weapon.ammo() == &Arrow {
-            field.add_loot_at(vec![I(Arrow)], curr_tile.0, curr_tile.1);
+            field.add_loot_at(vec![I(Arrow)], curr_tile);
         }
         1.0
     }

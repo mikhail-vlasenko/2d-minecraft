@@ -53,7 +53,7 @@ impl Mob {
     }
 
     pub fn land(&mut self, field: &Field) {
-        self.pos.z = field.len_at(self.pos.x, self.pos.y);
+        self.pos.z = field.len_at((self.pos.x, self.pos.y));
     }
 
     pub fn act_with_speed(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {

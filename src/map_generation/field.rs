@@ -349,42 +349,42 @@ impl Field {
 
 /// API for Tile interaction, x and y are absolute map positions.
 impl Field {
-    pub fn len_at(&self, x: i32, y: i32) -> usize {
-        self.get_chunk_immut(x, y).len_at(x, y)
+    pub fn len_at(&self, xy: (i32, i32)) -> usize {
+        self.get_chunk_immut(xy.0, xy.1).len_at(xy.0, xy.1)
     }
-    pub fn push_at(&mut self, block: Block, x: i32, y: i32) {
-        self.get_chunk(x, y).push_at(block, x, y)
+    pub fn push_at(&mut self, block: Block, xy: (i32, i32)) {
+        self.get_chunk(xy.0, xy.1).push_at(block, xy.0, xy.1)
     }
-    pub fn top_material_at(&self, x: i32, y: i32) -> Material {
-        self.get_chunk_immut(x, y).top_material_at(x, y)
+    pub fn top_material_at(&self, xy: (i32, i32)) -> Material {
+        self.get_chunk_immut(xy.0, xy.1).top_material_at(xy.0, xy.1)
     }
-    pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
-        self.get_chunk(x, y).pop_at(x, y)
+    pub fn pop_at(&mut self, xy: (i32, i32)) -> Option<Block> {
+        self.get_chunk(xy.0, xy.1).pop_at(xy.0, xy.1)
     }
-    pub fn full_at(&self, x: i32, y: i32) -> bool {
-        self.get_chunk_immut(x, y).full_at(x, y)
+    pub fn full_at(&self, xy: (i32, i32)) -> bool {
+        self.get_chunk_immut(xy.0, xy.1).full_at(xy.0, xy.1)
     }
-    pub fn add_loot_at(&mut self, new: Vec<Storable>, x: i32, y: i32) {
-        self.get_chunk(x, y).add_loot_at(new, x, y)
+    pub fn add_loot_at(&mut self, new: Vec<Storable>, xy: (i32, i32)) {
+        self.get_chunk(xy.0, xy.1).add_loot_at(new, xy.0, xy.1)
     }
-    pub fn gather_loot_at(&mut self, x: i32, y: i32) -> Vec<Storable> {
-        self.get_chunk(x, y).gather_loot_at(x, y)
+    pub fn gather_loot_at(&mut self, xy: (i32, i32)) -> Vec<Storable> {
+        self.get_chunk(xy.0, xy.1).gather_loot_at(xy.0, xy.1)
     }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,
     /// when (some) of the mobs are extracted from chunks
-    pub fn is_occupied(&self, x: i32, y: i32) -> bool {
-        self.get_chunk_immut(x, y).is_occupied(x, y) || {
+    pub fn is_occupied(&self, xy: (i32, i32)) -> bool {
+        self.get_chunk_immut(xy.0, xy.1).is_occupied(xy.0, xy.1) || {
             for m in &self.stray_mobs {
-                if m.pos.x == x && m.pos.y == y {
+                if m.pos.x == xy.0 && m.pos.y == xy.1 {
                     return true;
                 }
             }
             false
         }
     }
-    pub fn damage_mob(&mut self, x: i32, y: i32, damage: i32) -> bool {
-        self.get_chunk(x, y).damage_mob(x, y, damage)
+    pub fn damage_mob(&mut self, xy: (i32, i32), damage: i32) -> bool {
+        self.get_chunk(xy.0, xy.1).damage_mob(xy.0, xy.1, damage)
     }
     pub fn pick_tile(&mut self) -> (i32, i32) {
         let min = self.min_loaded_idx();

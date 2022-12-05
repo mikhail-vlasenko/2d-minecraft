@@ -106,7 +106,7 @@ impl AStar {
     }
 
     fn get_neighbours(&self, field: &Field, tile: (i32, i32)) -> Vec<(i32, i32)> {
-        let this_height = field.len_at(tile.0, tile.1);
+        let this_height = field.len_at(tile);
         let mut res = Vec::new();
 
         for d in &DIRECTIONS {
@@ -150,8 +150,8 @@ impl AStar {
 }
 
 pub fn can_step(field: &Field, source: (i32, i32), destination: (i32, i32), current_height: usize) -> bool {
-    field.len_at(destination.0, destination.1) <= current_height + 1 &&
-        !field.is_occupied(destination.0, destination.1)
+    field.len_at(destination) <= current_height + 1 &&
+        !field.is_occupied(destination)
 }
 
 fn estimate_remaining(tile: (i32, i32), destination: (i32, i32)) -> i32 {
