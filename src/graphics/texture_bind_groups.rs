@@ -18,6 +18,7 @@ pub struct TextureBindGroups {
     pub depth_indicators: [BindGroup; 4],
     zombie: BindGroup,
     zergling: BindGroup,
+    baneling: BindGroup,
     cow: BindGroup,
     night: BindGroup,
     loot_sack: BindGroup,
@@ -145,6 +146,13 @@ impl TextureBindGroups {
         );
 
         let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/mobs/baneling.png"), "texture.png",
+        ).unwrap();
+        let baneling = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/mobs/mc_cow.png"), "texture.png",
         ).unwrap();
         let cow = Self::make_bind_group(
@@ -187,6 +195,7 @@ impl TextureBindGroups {
             depth_indicators,
             zombie,
             zergling,
+            baneling,
             cow,
             night,
             loot_sack,
@@ -244,6 +253,7 @@ impl TextureBindGroups {
         match mob {
             Zombie => &self.zombie,
             Zergling => &self.zergling,
+            Baneling => &self.baneling,
             Cow => &self.cow,
         }
     }

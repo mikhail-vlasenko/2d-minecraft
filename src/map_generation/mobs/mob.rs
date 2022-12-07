@@ -4,7 +4,8 @@ use crate::map_generation::mobs::a_star::{AStar, can_step};
 use crate::player::Player;
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
-use crate::map_generation::mobs::mob_kind::MobKind;
+use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind};
+use crate::map_generation::mobs::mob_kind::MobKind::Baneling;
 
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -67,7 +68,8 @@ impl Mob {
 
     fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
-        if self.kind.hostile() && dist <= field.get_a_star_radius() {
+        // hostile mobs within smaller range use optimal pathing. Banelings always go head on
+        if self.kind.hostile() && dist <= field.get_a_star_radius() && self.kind != Baneling {
             // within a* range, so do full path search
             let direction = field.full_pathing(
                 (self.pos.x, self.pos.y),
@@ -92,6 +94,30 @@ impl Mob {
 
     fn step_towards_player(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let directions = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
+
+        if self.kind == Baneling {
+            // baneling will explode if the shortest path to player is blocked, or it is next to the player
+            // todo: no explosion when blocked by mobs
+            // todo: explode only when visible
+            let this_height = field.len_at((self.pos.x, self.pos.y));
+            let vertical_cant_go = directions.0 == 0 || !can_step(
+                field, (self.pos.x, self.pos.y), (self.pos.x + directions.0, self.pos.y), this_height);
+            let horizontal_cant_go = directions.1 == 0 || !can_step(
+                field, (self.pos.x, self.pos.y), (self.pos.x, self.pos.y + directions.1), this_height);
+
+            let next_to_player = self.pos.x + directions.0 == player.x && self.pos.y + directions.1 == player.y;
+
+            if vertical_cant_go && horizontal_cant_go  || next_to_player {
+                field.explosion((self.pos.x, self.pos.y),
+                                BANELING_EXPLOSION_RAD,
+                                BANELING_EXPLOSION_PWR,
+                                player);
+                // baneling dies
+                self.receive_damage(self.kind.get_max_hp());
+                return;
+            }
+        }
+
         if directions.1 == 0 || (rand::random() && directions.0 != 0) {
             self.step(field, player, (directions.0, 0), min_loaded, max_loaded)
         } else {
@@ -106,4 +132,12 @@ impl Mob {
         }
         false
     }
+
+    pub fn is_alive(&self) -> bool {
+        self.hp > 0
+    }
+}
+
+pub fn mob_act_with_speed(mob: &mut Mob, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    mob.act_with_speed(field, player, min_loaded, max_loaded)
 }

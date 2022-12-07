@@ -56,7 +56,7 @@ impl Player {
         let xx = self.x + delta_x;
         let yy = self.y + delta_y;
 
-        let mat =  field.get_chunk_immut(xx, yy).top_at(xx, yy).material;
+        let mat =  field.top_material_at((xx, yy));
         if mat.required_mining_power() > self.get_mining_power() {
             self.add_message(&format!("Need {} mining PWR", mat.required_mining_power()));
             0.

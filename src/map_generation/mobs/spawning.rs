@@ -30,6 +30,7 @@ fn pick_tile(size: &i32) -> (i32, i32) {
 }
 
 fn pick_hostile_kind(dist: i32, game_time: f32) -> MobKind {
+    return MobKind::Baneling;
     if game_time > 200. {
         // todo: banes
     }

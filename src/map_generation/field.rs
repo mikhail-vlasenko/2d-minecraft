@@ -129,10 +129,19 @@ impl Field {
             }
         }
         for _ in 0..self.stray_mobs.len() {
-            let mut m = self.stray_mobs.pop().unwrap();
+            let optional_mob = self.stray_mobs.pop();
+            if optional_mob.is_none() {
+                println!("amount of mobs decreased during their turn");
+                break;
+            }
+            let mut m = optional_mob.unwrap();
             m.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
-            self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
+
+            if m.is_alive() {
+                // mobs can self-destruct, dont add them in that case.
+                self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
+            }
         }
     }
 
@@ -162,6 +171,37 @@ impl Field {
         }
     }
 
+    /// Removes top layer of the tiles in the radius.
+    ///
+    /// # Arguments
+    ///
+    /// * `center`: x and y of tile that is the epicenter
+    /// * `radius`: radius in manhattan distance
+    /// * `destruction_power`: mining power applied to remove blocks
+    ///
+    /// returns: ()
+    pub fn explosion(&mut self, center: (i32, i32), radius: i32, destruction_power: i32, player: &mut Player) {
+        let start_height = self.len_at(center);
+        let damage = destruction_power * 10;
+        for i in (center.0 - radius)..=(center.0 + radius) {
+            for j in (center.1 - radius)..=(center.1 + radius) {
+                if self.top_material_at((i, j)).required_mining_power() <= destruction_power {
+                    self.pop_at((i, j));
+                    // pop twice if this tile is high
+                    if self.len_at((i, j)) > start_height &&
+                        self.top_material_at((i, j)).required_mining_power() <= destruction_power {
+                        self.pop_at((i, j));
+                    }
+                }
+                self.damage_mob((i, j), damage);
+                if player.x == i && player.y == j {
+                    player.receive_damage(damage);
+                }
+            }
+        }
+        player.add_message(&format!("BOOM!!! (at {}, {})", center.0, center.1));
+    }
+
     pub fn full_pathing(&mut self, source: (i32, i32), destination: (i32, i32), player: (i32, i32)) -> (i32, i32) {
         self.a_star.reset(player.0, player.1);
         let mut secondary_a_star = AStar::default();
@@ -177,7 +217,7 @@ impl Field {
     }
 
     pub fn get_towards_player_radius(&self) -> i32 {
-        30
+        35
     }
 }
 
@@ -295,7 +335,7 @@ impl Field {
         let mut res: Vec<(i32, i32)> = Vec::new();
         for i in (player.x - r)..=(player.x + r) {
             for j in (player.y - r)..=(player.y + r) {
-                if self.get_chunk_immut(i, j).top_at(i, j).material == material {
+                if self.top_material_at((i, j)) == material {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -309,7 +349,7 @@ impl Field {
         let mut res: Vec<(i32, i32)> = Vec::new();
         for i in (player.x - r)..=(player.x + r) {
             for j in (player.y - r)..=(player.y + r) {
-                if self.get_chunk_immut(i, j).len_at(i, j) == height {
+                if self.len_at((i, j)) == height {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -384,6 +424,22 @@ impl Field {
         }
     }
     pub fn damage_mob(&mut self, xy: (i32, i32), damage: i32) -> bool {
+        if self.stray_mobs.len() > 0 {
+            for i in 0..self.stray_mobs.len() {
+                // found the mob in strays
+                if self.stray_mobs[i].pos.x == xy.0 && self.stray_mobs[i].pos.y == xy.1 {
+                    return if self.stray_mobs[i].receive_damage(damage) {
+                        self.add_loot_at(self.stray_mobs[i].get_kind().loot(),
+                                         (self.stray_mobs[i].pos.x, self.stray_mobs[i].pos.y));
+                        self.stray_mobs.remove(i);
+                        println!("stray mob removed");
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+        }
         self.get_chunk(xy.0, xy.1).damage_mob(xy.0, xy.1, damage)
     }
     pub fn pick_tile(&mut self) -> (i32, i32) {

@@ -7,6 +7,7 @@ use crate::map_generation::mobs::mob_kind::MobKind::*;
 pub enum MobKind {
     Zombie,
     Zergling,
+    Baneling,
     Cow,
 }
 
@@ -15,6 +16,7 @@ impl MobKind {
         match self {
             Zombie => 40,
             Zergling => 20,
+            Baneling => 20,
             Cow => 20,
         }
     }
@@ -22,6 +24,7 @@ impl MobKind {
         match self {
             Zombie => 10,
             Zergling => 10,
+            Baneling => 0,
             Cow => 5,
         }
     }
@@ -32,6 +35,7 @@ impl MobKind {
         match self {
             Zombie => 0.5,
             Zergling => 1.5,
+            Baneling => 0.75,
             Cow => 0.75,
         }
     }
@@ -48,7 +52,11 @@ impl MobKind {
         match self {
             Zombie => vec![],
             Zergling => if rng > 0.7 { vec![Storable::C(RawMeat)] } else { vec![] },
-            Cow => vec![Storable::C(RawMeat), Storable::C(RawMeat)],
+            Baneling => vec![],
+            Cow => vec![Storable::C(RawMeat)],
         }
     }
 }
+
+pub const BANELING_EXPLOSION_RAD: i32 = 1;
+pub const BANELING_EXPLOSION_PWR: i32 = 2;

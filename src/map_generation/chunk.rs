@@ -149,7 +149,6 @@ impl Chunk {
                 }
             }
         }
-        println!("you missed a mob lol");
         false
     }
 }
