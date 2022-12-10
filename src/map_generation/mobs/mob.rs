@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use rand::Rng;
+use crate::graphics::state::RENDER_DISTANCE;
 use crate::map_generation::mobs::a_star::{AStar, can_step};
 use crate::player::Player;
 use crate::map_generation::field::Field;
@@ -97,17 +98,17 @@ impl Mob {
 
         if self.kind == Baneling {
             // baneling will explode if the shortest path to player is blocked, or it is next to the player
-            // todo: no explosion when blocked by mobs
-            // todo: explode only when visible
             let this_height = field.len_at((self.pos.x, self.pos.y));
-            let vertical_cant_go = directions.0 == 0 || !can_step(
-                field, (self.pos.x, self.pos.y), (self.pos.x + directions.0, self.pos.y), this_height);
-            let horizontal_cant_go = directions.1 == 0 || !can_step(
-                field, (self.pos.x, self.pos.y), (self.pos.x, self.pos.y + directions.1), this_height);
+            let vertical_cant_go = directions.0 == 0 ||
+                !field.len_at((self.pos.x + directions.0, self.pos.y)) <= this_height + 1;
+            let horizontal_cant_go = directions.1 == 0 ||
+                !field.len_at((self.pos.x, self.pos.y + directions.1)) <= this_height + 1;
 
             let next_to_player = self.pos.x + directions.0 == player.x && self.pos.y + directions.1 == player.y;
+            let visible = (max((player.x - self.pos.x).abs(),
+                               (player.y - self.pos.y).abs()) as usize) <= RENDER_DISTANCE;
 
-            if vertical_cant_go && horizontal_cant_go  || next_to_player {
+            if (vertical_cant_go && horizontal_cant_go  || next_to_player) && visible {
                 field.explosion((self.pos.x, self.pos.y),
                                 BANELING_EXPLOSION_RAD,
                                 BANELING_EXPLOSION_PWR,

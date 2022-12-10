@@ -5,6 +5,7 @@ use strum_macros::EnumIter;
 use Storable::*;
 use crate::crafting::items::Item;
 use crate::crafting::items::Item::*;
+use crate::crafting::ranged_weapon::RangedWeapon::*;
 use crate::crafting::material::Material;
 use crate::crafting::storable::{Craftable, Storable};
 
