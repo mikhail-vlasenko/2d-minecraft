@@ -38,7 +38,10 @@ impl Mob {
         &self.kind
     }
 
-    fn step(&mut self, field: &Field, player: &mut Player, delta: (i32, i32), min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    /// Makes a step, or a melee hit, if it is possible.
+    /// Returns whether an action was made.
+    fn step(&mut self, field: &Field, player: &mut Player, delta: (i32, i32),
+            min_loaded: (i32, i32), max_loaded: (i32, i32)) -> bool {
         let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
 
         if min_loaded.0 <= new_pos.0 && new_pos.0 <= max_loaded.0 &&
@@ -52,7 +55,9 @@ impl Mob {
                 self.pos.y = new_pos.1;
                 self.land(field);
             }
+            return true;
         }
+        false
     }
 
     pub fn land(&mut self, field: &Field) {
@@ -72,10 +77,11 @@ impl Mob {
         // hostile mobs within smaller range use optimal pathing. Banelings always go head on
         if self.kind.hostile() && dist <= field.get_a_star_radius() && self.kind != Baneling {
             // within a* range, so do full path search
-            let direction = field.full_pathing(
+            let (direction, _) = field.full_pathing(
                 (self.pos.x, self.pos.y),
                 (player.x, player.y),
-                (player.x, player.y)
+                (player.x, player.y),
+                None
             );
             self.step(field, player, direction, min_loaded, max_loaded);
         }
@@ -103,12 +109,22 @@ impl Mob {
                 !field.len_at((self.pos.x + directions.0, self.pos.y)) <= this_height + 1;
             let horizontal_cant_go = directions.1 == 0 ||
                 !field.len_at((self.pos.x, self.pos.y + directions.1)) <= this_height + 1;
+            let terrain_blocked = vertical_cant_go && horizontal_cant_go && {
+                let (a_star_directions, len) = field.full_pathing(
+                    (self.pos.x, self.pos.y),
+                    (player.x, player.y),
+                    (player.x, player.y),
+                    Some(2)
+                );
+                a_star_directions == (0, 0)
+            };
 
             let next_to_player = self.pos.x + directions.0 == player.x && self.pos.y + directions.1 == player.y;
             let visible = (max((player.x - self.pos.x).abs(),
                                (player.y - self.pos.y).abs()) as usize) <= RENDER_DISTANCE;
 
-            if (vertical_cant_go && horizontal_cant_go  || next_to_player) && visible {
+            if (terrain_blocked  || next_to_player) && visible {
+                // no route found with tiny detour
                 field.explosion((self.pos.x, self.pos.y),
                                 BANELING_EXPLOSION_RAD,
                                 BANELING_EXPLOSION_PWR,
@@ -120,9 +136,9 @@ impl Mob {
         }
 
         if directions.1 == 0 || (rand::random() && directions.0 != 0) {
-            self.step(field, player, (directions.0, 0), min_loaded, max_loaded)
+            self.step(field, player, (directions.0, 0), min_loaded, max_loaded);
         } else {
-            self.step(field, player, (0, directions.1), min_loaded, max_loaded)
+            self.step(field, player, (0, directions.1), min_loaded, max_loaded);
         }
     }
 

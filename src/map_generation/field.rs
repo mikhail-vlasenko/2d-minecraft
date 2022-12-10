@@ -202,12 +202,20 @@ impl Field {
         player.add_message(&format!("BOOM!!! (at {}, {})", center.0, center.1));
     }
 
-    pub fn full_pathing(&mut self, source: (i32, i32), destination: (i32, i32), player: (i32, i32)) -> (i32, i32) {
+    pub fn full_pathing(&mut self, 
+                        source: (i32, i32), destination: (i32, i32), 
+                        player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
+        let detour = 
+            if max_detour.is_none() {
+                10
+            } else {
+                max_detour.unwrap()
+            };
         self.a_star.reset(player.0, player.1);
         let mut secondary_a_star = AStar::default();
         swap(&mut secondary_a_star, &mut self.a_star);
         // now secondary_a_star is the actual self.a_star now
-        let res = secondary_a_star.full_pathing(self, source, destination);
+        let res = secondary_a_star.full_pathing(self, source, destination, detour);
         swap(&mut secondary_a_star, &mut self.a_star);
         res
     }

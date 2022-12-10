@@ -36,9 +36,11 @@ impl AStar {
         }
     }
 
-    /// Produces the next step (direction) according to a*.
-    pub fn full_pathing(&mut self, field: &Field, source: (i32, i32), destination: (i32, i32)) -> (i32, i32) {
-        let max_priority = Self::max_acceptable_priority(source, destination);
+    /// Produces the next step (direction) according to a*, and the route length.
+    pub fn full_pathing(&mut self, field: &Field, 
+                        source: (i32, i32), destination: (i32, i32), 
+                        max_detour: i32) -> ((i32, i32), i32) {
+        let max_priority = Self::shortest_len(source, destination) + max_detour;
 
         self.visit(source);
         let idx = self.convert_idx(source);
@@ -52,16 +54,18 @@ impl AStar {
                 // restore path
                 if current_tile == source {
                     println!("destination reached");
-                    return (0, 0);
+                    return ((0, 0), 0);
                 }
 
+                let mut route_len = 1;
                 loop {
                     let curr_idx = self.convert_idx(current_tile);
                     let prev = self.parent[curr_idx.0][curr_idx.1];
                     if prev == source {
-                        return (current_tile.0 - source.0, current_tile.1 - source.1);
+                        return ((current_tile.0 - source.0, current_tile.1 - source.1), route_len);
                     }
                     current_tile = prev;
+                    route_len += 1
                 }
             }
             let idx = self.convert_idx(current_tile);
@@ -77,7 +81,7 @@ impl AStar {
             }
         }
         println!("no route found");
-        (0, 0)
+        ((0, 0), 0)
     }
 
     /// A* works on a potentially smaller part of the field, then all loaded chunks.
@@ -124,9 +128,8 @@ impl AStar {
         res
     }
 
-    /// Priority higher than this results in a route that is too long
-    fn max_acceptable_priority(source: (i32, i32), destination: (i32, i32)) -> i32 {
-        estimate_remaining(source, destination) + 10
+    fn shortest_len(source: (i32, i32), destination: (i32, i32)) -> i32 {
+        estimate_remaining(source, destination)
     }
 
     pub fn get_radius(&self) -> i32 {
