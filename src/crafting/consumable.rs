@@ -19,7 +19,7 @@ impl Consumable {
     pub fn apply_effect(&self, player: &mut Player) {
         match self {
             Apple => player.heal(20),
-            RawMeat => player.heal(50),
+            RawMeat => player.heal(20),
         }
     }
 }

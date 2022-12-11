@@ -164,7 +164,7 @@ impl Field {
                 let chunk_pos = (self.chunk_pos(tile.0), self.chunk_pos(tile.1));
                 let mut chunk = self.get_chunk(tile.0, tile.1);
                 // not too crowded, allow more for friendly
-                if chunk.get_mobs().len() < 3 - (hostile as usize) {
+                if chunk.get_mobs().len() < 3 {
                     create_mob(chunk.deref_mut(), chunk_pos, tile, game_time, hostile);
                 }
             }
@@ -225,7 +225,7 @@ impl Field {
     }
 
     pub fn get_towards_player_radius(&self) -> i32 {
-        35
+        if self.get_time() < 200. { 35 } else { 45 }
     }
 }
 

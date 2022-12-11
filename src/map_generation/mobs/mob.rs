@@ -74,8 +74,13 @@ impl Mob {
 
     fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+
+        if dist <= field.get_towards_player_radius() && self.kind == Baneling {
+            self.baneling_step(field, player, min_loaded, max_loaded);
+        }
+
         // hostile mobs within smaller range use optimal pathing. Banelings always go head on
-        if self.kind.hostile() && dist <= field.get_a_star_radius() && self.kind != Baneling {
+        if self.kind.hostile() && dist <= field.get_a_star_radius() {
             // within a* range, so do full path search
             let (direction, _) = field.full_pathing(
                 (self.pos.x, self.pos.y),
@@ -83,7 +88,11 @@ impl Mob {
                 (player.x, player.y),
                 None
             );
-            self.step(field, player, direction, min_loaded, max_loaded);
+            if direction != (0, 0) {
+                self.step(field, player, direction, min_loaded, max_loaded);
+            } else {
+                self.step_towards_player(field, player, min_loaded, max_loaded);
+            }
         }
         else if self.kind.hostile() && dist <= field.get_towards_player_radius() {
             self.step_towards_player(field, player, min_loaded, max_loaded);
@@ -102,38 +111,6 @@ impl Mob {
     fn step_towards_player(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let directions = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
 
-        if self.kind == Baneling {
-            // baneling will explode if the shortest path to player is blocked, or it is next to the player
-            let this_height = field.len_at((self.pos.x, self.pos.y));
-            let vertical_cant_go = directions.0 == 0 ||
-                field.len_at((self.pos.x + directions.0, self.pos.y)) > this_height + 1;
-            let horizontal_cant_go = directions.1 == 0 ||
-                field.len_at((self.pos.x, self.pos.y + directions.1)) > this_height + 1;
-
-            let next_to_player = self.pos.x + directions.0 == player.x && self.pos.y + directions.1 == player.y;
-            let visible = (max((player.x - self.pos.x).abs(),
-                               (player.y - self.pos.y).abs()) as usize) <= RENDER_DISTANCE;
-
-            if (vertical_cant_go && horizontal_cant_go  || next_to_player) && visible {
-                let (a_star_directions, len) = field.full_pathing(
-                    (self.pos.x, self.pos.y),
-                    (player.x, player.y),
-                    (player.x, player.y),
-                    Some(2)
-                );
-                if a_star_directions == (0, 0) || next_to_player {
-                    // no route found with tiny detour or already near player
-                    field.explosion((self.pos.x, self.pos.y),
-                                    BANELING_EXPLOSION_RAD,
-                                    BANELING_EXPLOSION_PWR,
-                                    player);
-                    // baneling dies
-                    self.receive_damage(self.kind.get_max_hp());
-                    return;
-                }
-            }
-        }
-
         let mut possible = Vec::new();
         let mut good = Vec::new();
         for dir in DIRECTIONS {
@@ -150,6 +127,40 @@ impl Mob {
             self.step(field, player, good[idx % good.len()], min_loaded, max_loaded);
         } else if possible.len() > 0 {
             self.step(field, player, possible[idx % possible.len()], min_loaded, max_loaded);
+        }
+    }
+
+    fn baneling_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+        let directions = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
+
+        // baneling will explode if the shortest path to player is blocked, or it is next to the player
+        let this_height = field.len_at((self.pos.x, self.pos.y));
+        let vertical_cant_go = directions.0 == 0 ||
+            field.len_at((self.pos.x + directions.0, self.pos.y)) > this_height + 1;
+        let horizontal_cant_go = directions.1 == 0 ||
+            field.len_at((self.pos.x, self.pos.y + directions.1)) > this_height + 1;
+
+        let next_to_player = self.pos.x + directions.0 == player.x && self.pos.y + directions.1 == player.y;
+        let visible = (max((player.x - self.pos.x).abs(),
+                           (player.y - self.pos.y).abs()) as usize) <= RENDER_DISTANCE;
+
+        if (vertical_cant_go && horizontal_cant_go  || next_to_player) && visible {
+            let (a_star_directions, len) = field.full_pathing(
+                (self.pos.x, self.pos.y),
+                (player.x, player.y),
+                (player.x, player.y),
+                Some(2)
+            );
+            if a_star_directions == (0, 0) || next_to_player {
+                // no route found with tiny detour or already near player
+                field.explosion((self.pos.x, self.pos.y),
+                                BANELING_EXPLOSION_RAD,
+                                BANELING_EXPLOSION_PWR,
+                                player);
+                // baneling dies
+                self.receive_damage(self.kind.get_max_hp());
+                return;
+            }
         }
     }
 
