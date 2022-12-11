@@ -20,7 +20,7 @@ use minecraft::map_generation::mobs::mob_kind::MobKind::{Cow, Zergling, Zombie};
 #[test]
 fn test_mobs_get_you_eventually() {
     let mut data = Data::new();
-    data.spawn_mobs(30, true);
+    data.spawn_mobs(50, true);
 
     assert!(data.player.get_hp() > 0);
     for _ in 0..200 {

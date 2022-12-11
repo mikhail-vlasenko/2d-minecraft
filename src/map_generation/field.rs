@@ -202,10 +202,10 @@ impl Field {
         player.add_message(&format!("BOOM!!! (at {}, {})", center.0, center.1));
     }
 
-    pub fn full_pathing(&mut self, 
-                        source: (i32, i32), destination: (i32, i32), 
+    pub fn full_pathing(&mut self,
+                        source: (i32, i32), destination: (i32, i32),
                         player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
-        let detour = 
+        let detour =
             if max_detour.is_none() {
                 10
             } else {

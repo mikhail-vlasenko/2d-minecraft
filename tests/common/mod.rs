@@ -16,9 +16,7 @@ pub struct Data {
 }
 
 impl Data {
-    pub fn new() -> Self {
-        let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
-
+    pub fn create_with_chunk(test_chunk: Chunk) -> Self {
         // Mobs dont step here, and the 0, 0 chunk doesnt spawn a mob
         let field = Field::new(8, Some(test_chunk));
         let player = Player::new(&field);
@@ -26,6 +24,15 @@ impl Data {
             field,
             player
         }
+    }
+    pub fn new() -> Self {
+        let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
+        Self::create_with_chunk(test_chunk)
+    }
+
+    pub fn maze() -> Self {
+        let test_chunk = Chunk::from(read_file(String::from("res/chunks/maze_chunk.txt")));
+        Self::create_with_chunk(test_chunk)
     }
 
     pub fn act(&mut self, key: VirtualKeyCode) {
