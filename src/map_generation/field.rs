@@ -17,6 +17,7 @@ use crate::map_generation::mobs::a_star::AStar;
 use crate::map_generation::mobs::mob::{Mob, Position};
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::mobs::spawning::create_mob;
+use crate::SETTINGS;
 
 
 /// The playing grid
@@ -44,7 +45,7 @@ pub struct Field {
 
 impl Field {
     pub fn new(render_distance: usize, starting_chunk: Option<Chunk>) -> Self {
-        let loading_distance = 4;
+        let loading_distance = SETTINGS.get::<usize>("field.loading_distance").unwrap();
         let chunk_size = 16;
 
         let chunk_loader = if starting_chunk.is_some() {
@@ -56,8 +57,7 @@ impl Field {
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
 
-        let a_star_radius = 20;
-        let a_star = AStar::new(a_star_radius);
+        let a_star = AStar::new(SETTINGS.get::<i32>("pathing.a_star_radius").unwrap());
 
         let time = 0.;
         let accumulated_time = 0.;
@@ -207,7 +207,7 @@ impl Field {
                         player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
         let detour =
             if max_detour.is_none() {
-                10
+                SETTINGS.get::<i32>("pathing.default_detour").unwrap()
             } else {
                 max_detour.unwrap()
             };
@@ -226,6 +226,10 @@ impl Field {
 
     pub fn get_towards_player_radius(&self) -> i32 {
         if self.get_time() < 200. { 35 } else { 45 }
+    }
+
+    pub fn get_loading_distance(&self) -> usize {
+        self.loading_distance
     }
 }
 

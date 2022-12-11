@@ -18,6 +18,8 @@ pollster = "0.2"
 bytemuck = { version = "1.4", features = [ "derive" ] }
 anyhow = "1.0"
 cgmath = "0.18"
+lazy_static = "1.4.0"
+config = "0.13.1"
 
 egui = "0.18"
 egui_wgpu_backend = "0.18"

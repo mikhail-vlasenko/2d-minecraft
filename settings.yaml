@@ -1,0 +1,7 @@
+field:
+  render_distance: 8
+  loading_distance: 5
+
+pathing:
+  a_star_radius: 20
+  default_detour: 10
