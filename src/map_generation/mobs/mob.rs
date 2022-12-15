@@ -18,6 +18,7 @@ pub struct Position {
 
 pub struct Mob {
     pub pos: Position,
+    rotation: i32,
     kind: MobKind,
     hp: i32,
     /// when this reaches 1, the mob is eligible to act
@@ -28,6 +29,7 @@ impl Mob {
     pub fn new(pos: Position, kind: MobKind) -> Self {
         Mob {
             pos,
+            rotation: 0,
             kind,
             hp: kind.get_max_hp(),
             speed_buffer: 0.,
@@ -48,6 +50,7 @@ impl Mob {
             min_loaded.1 <= new_pos.1 && new_pos.1 <= max_loaded.1 &&
             can_step(field, (self.pos.x, self.pos.y), new_pos, self.pos.z) {
 
+            self.set_rotation(Self::coords_to_rotation(delta));
             if player.x == new_pos.0 && player.y == new_pos.1 {
                 player.receive_damage(self.kind.get_melee_damage());
             } else {
@@ -174,6 +177,30 @@ impl Mob {
 
     pub fn is_alive(&self) -> bool {
         self.hp > 0
+    }
+
+    fn coords_to_rotation(coords: (i32, i32)) -> i32 {
+        match coords {
+            (-1, 0) => 0,
+            (0, -1) => 1,
+            (1, 0) => 2,
+            (0, 1) => 3,
+            _ => panic!("bad coords {}, {}", coords.0, coords.1)
+        }
+    }
+
+    fn set_rotation(&mut self, rotation: i32) {
+        self.rotation = rotation
+    }
+
+    /// Computes rotation as an integer between 0 and 4, where 0 is up, and 3 is right.
+    pub fn get_rotation(&self) -> u32 {
+        let modulus = self.rotation % 4;
+        if modulus >= 0 {
+            modulus as u32
+        } else {
+            (modulus + 4) as u32
+        }
     }
 }
 

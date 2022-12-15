@@ -383,14 +383,15 @@ impl Field {
         res
     }
 
-    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32)> {
-        let mut res: Vec<(i32, i32)> = Vec::new();
+    /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
+    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32, u32)> {
+        let mut res: Vec<(i32, i32, u32)> = Vec::new();
 
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
                 for m in self.loaded_chunks[i][j].borrow().get_mobs() {
                     if m.get_kind() == &kind {
-                        res.push((m.pos.x - player.x, m.pos.y - player.y))
+                        res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_rotation()));
                     }
                 }
             }

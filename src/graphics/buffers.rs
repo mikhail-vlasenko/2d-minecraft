@@ -19,20 +19,28 @@ pub struct Buffers {
 
 impl Buffers {
     pub fn new(device: &Device) -> Self {
-        let instances = (0..TILES_PER_ROW).flat_map(|y| {
-            (0..TILES_PER_ROW).map(move |x| {
-                let position =
-                    cgmath::Vector3 { x: x as f32 * DISP_COEF, y: y as f32 * DISP_COEF, z: 0.0 }
-                        + INITIAL_POS;
+        let instances = (0..4).flat_map(|angle| {
+            let x_rot_compensation = if angle == 1 || angle == 2 { 1 } else { 0 };
+            let y_rot_compensation = if angle > 1 { 1 } else { 0 };
+            (0..TILES_PER_ROW).flat_map(move |y| {
+                (0..TILES_PER_ROW).map(move |x| {
+                    let position =
+                        cgmath::Vector3 {
+                            x: (x + x_rot_compensation) as f32 * DISP_COEF,
+                            y: (y + y_rot_compensation) as f32 * DISP_COEF,
+                            z: 0.0
+                        }
+                            + INITIAL_POS;
 
-                let rotation =
-                    cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0));
+                    let rotation =
+                        cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(90.0 * angle as f32));
 
-                Instance {
-                    position,
-                    rotation,
-                    scaling: DISP_COEF,
-                }
+                    Instance {
+                        position,
+                        rotation,
+                        scaling: DISP_COEF,
+                    }
+                })
             })
         }).collect::<Vec<_>>();
 
@@ -60,7 +68,7 @@ impl Buffers {
                 cgmath::Vector3 {
                     x: (((TILES_PER_ROW - 1) / 2) + x_rot_compensation) as f32 * DISP_COEF,
                     y: (((TILES_PER_ROW - 1) / 2) + y_rot_compensation) as f32 * DISP_COEF,
-                    z: 0.0
+                    z: 0.0,
                 }
                     + INITIAL_POS;
 

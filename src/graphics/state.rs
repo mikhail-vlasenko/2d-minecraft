@@ -283,11 +283,17 @@ impl State {
         (y + RENDER_DISTANCE as i32) as u32 * TILES_PER_ROW + (x + RENDER_DISTANCE as i32) as u32
     }
 
-    fn draw_at_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass) {
-        for pos in indices {
+    fn draw_at_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
+        let rots = if rotations.is_some() {
+            rotations.unwrap()
+        } else {
+            vec![0; indices.len()]
+        };
+        for i in 0..indices.len() {
             // Here we want x to be horizontal, like mathematical coords
             // Also, second component should be greater when higher (so negate it)
-            let idx = State::convert_index(pos.1, -pos.0);
+            let pos = indices[i];
+            let idx = State::convert_index(pos.1, -pos.0) + (rots[i] * TILES_PER_ROW.pow(2));
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
         }
     }
@@ -302,31 +308,33 @@ impl State {
         for material in Material::iter() {
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
             let tiles = self.field.texture_indices(&self.player, material, RENDER_DISTANCE);
-            self.draw_at_indices(tiles, &mut *render_pass);
+            self.draw_at_indices(tiles, &mut *render_pass, None);
         }
 
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
             render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[i], &[]);
             let depth = self.field.depth_indices(&self.player, i+2, RENDER_DISTANCE);
-            self.draw_at_indices(depth, &mut *render_pass);
+            self.draw_at_indices(depth, &mut *render_pass, None);
         }
 
         // draw loot where exists
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_loot(), &[]);
         let loot = self.field.loot_indices(&self.player, RENDER_DISTANCE);
-        self.draw_at_indices(loot, &mut *render_pass);
+        self.draw_at_indices(loot, &mut *render_pass, None);
     }
 
     fn render_mobs<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         let max_drawable_index = ((TILES_PER_ROW - 1) / 2) as i32;
         for mob_kind in MobKind::iter() {
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_mob(mob_kind), &[]);
-            let mut indices = self.field.mob_indices(&self.player, mob_kind);
-            indices = indices.into_iter().filter(
-                |(x, y)| x.abs() <= max_drawable_index && y.abs() <= max_drawable_index
+            let mut mobs = self.field.mob_indices(&self.player, mob_kind);
+            mobs = mobs.into_iter().filter(
+                |(x, y, _)| x.abs() <= max_drawable_index && y.abs() <= max_drawable_index
             ).collect();
-            self.draw_at_indices(indices, &mut *render_pass);
+            let rotations: Vec<u32> = mobs.clone().into_iter().map(|(x, y, rot)| rot).collect();
+            let positions = mobs.into_iter().map(|(x, y, rot)| (x, y)).collect();
+            self.draw_at_indices(positions, &mut *render_pass, Some(rotations));
         }
     }
 
