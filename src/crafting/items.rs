@@ -6,7 +6,8 @@ use Storable::*;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::Diamond;
-use crate::crafting::storable::{Craftable, Storable};
+use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
+use crate::crafting::storable::CraftMenuSection::*;
 
 
 /// Something that can't be placed, but can be in the inventory.
@@ -63,6 +64,18 @@ impl Craftable for Item {
             IronSword => Some(&Material::CraftTable),
             DiamondSword => Some(&Material::CraftTable),
             _ => None
+        }
+    }
+
+    fn menu_section(&self) -> CraftMenuSection {
+        match self {
+            Stick => Ingredients,
+            WoodenPickaxe => Tools,
+            IronPickaxe => Tools,
+            IronIngot => Ingredients,
+            IronSword => Weapons,
+            DiamondSword => Weapons,
+            Arrow => Weapons,
         }
     }
 }

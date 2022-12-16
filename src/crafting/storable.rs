@@ -83,6 +83,14 @@ impl Display for Storable {
     }
 }
 
+pub enum CraftMenuSection {
+    Placeables,
+    Ingredients,
+    Tools,
+    Weapons,
+    Uncraftable,
+}
+
 pub trait Craftable: Display {
     fn name(&self) -> &str;
     fn craft_requirements(&self) -> &[(&Storable, u32)];
@@ -94,5 +102,10 @@ pub trait Craftable: Display {
     }
     fn is_craftable(&self) -> bool {
         self.craft_yield() > 0
+    }
+    fn menu_section(&self) -> CraftMenuSection {
+        match self {
+            _ => CraftMenuSection::Uncraftable
+        }
     }
 }

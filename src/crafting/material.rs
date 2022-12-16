@@ -4,7 +4,8 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use Material::*;
 use Storable::*;
-use crate::crafting::storable::{Craftable, Storable};
+use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
+use crate::crafting::storable::CraftMenuSection::*;
 
 
 /// What a block on the field can be made of.
@@ -80,6 +81,14 @@ impl Craftable for Material {
             Plank => 4,
             CraftTable => 1,
             _ => 0
+        }
+    }
+
+    fn menu_section(&self) -> CraftMenuSection {
+        match self {
+            Plank => Placeables,
+            CraftTable => Placeables,
+            _ => Uncraftable,
         }
     }
 }

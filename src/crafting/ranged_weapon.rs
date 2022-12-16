@@ -7,7 +7,8 @@ use crate::crafting::items::Item;
 use crate::crafting::items::Item::*;
 use crate::crafting::ranged_weapon::RangedWeapon::*;
 use crate::crafting::material::Material;
-use crate::crafting::storable::{Craftable, Storable};
+use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
+use crate::crafting::storable::CraftMenuSection::Weapons;
 
 
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
@@ -52,6 +53,12 @@ impl Craftable for RangedWeapon {
     fn required_crafter(&self) -> Option<&Material> {
         match self {
             Bow => Some(&Material::CraftTable),
+        }
+    }
+
+    fn menu_section(&self) -> CraftMenuSection {
+        match self {
+            _ => Weapons
         }
     }
 }
