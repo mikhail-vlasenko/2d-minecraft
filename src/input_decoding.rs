@@ -1,10 +1,12 @@
+use std::cell::RefCell;
+use std::ops::Not;
 use winit::event::VirtualKeyCode;
 use crate::player::Player;
 use crate::map_generation::field::Field;
 
 /// Makes an action, corresponding to the key.
 /// Returns how much turn was used.
-pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field) -> f32 {
+pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field, craft_menu_open: &RefCell<bool>) -> f32 {
     match key {
         None => { println!("Unrecognized virtual key"); 0. },
         Some(VirtualKeyCode::W) => player.walk("w", field),
@@ -20,6 +22,7 @@ pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field)
         Some(VirtualKeyCode::C) => player.craft_current(field),
         Some(VirtualKeyCode::F) => player.consume_current(),
         Some(VirtualKeyCode::X) => player.shoot_current(field),
+        Some(VirtualKeyCode::Space) => { craft_menu_open.replace(!craft_menu_open.take()); 0. },
         _ => { println!("Unknown action"); 0. }
     }
 }

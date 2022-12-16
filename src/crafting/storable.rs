@@ -5,6 +5,8 @@ use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 
 /// Represents anything that can be stored in the inventory.
@@ -83,6 +85,7 @@ impl Display for Storable {
     }
 }
 
+#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
 pub enum CraftMenuSection {
     Placeables,
     Ingredients,

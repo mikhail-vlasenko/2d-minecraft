@@ -1,5 +1,6 @@
+use std::cell::RefCell;
 use ::egui::FontDefinitions;
-use egui::{Align, Align2, Color32, FontId, RichText, TexturesDelta};
+use egui::{Align2, Color32, FontId, RichText, TexturesDelta};
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -13,7 +14,7 @@ use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
-use crate::crafting::storable::Storable;
+use crate::crafting::storable::{CraftMenuSection, Storable};
 use crate::crafting::storable::Craftable;
 
 
@@ -21,6 +22,7 @@ use crate::crafting::storable::Craftable;
 pub struct EguiManager {
     platform: Platform,
     render_pass: egui_wgpu_backend::RenderPass,
+    pub craft_menu_open: RefCell<bool>,
 }
 
 impl EguiManager {
@@ -46,6 +48,7 @@ impl EguiManager {
         Self {
             platform,
             render_pass,
+            craft_menu_open: RefCell::new(false),
         }
     }
 
@@ -64,6 +67,9 @@ impl EguiManager {
         self.render_place_craft_menu(player);
         self.render_inventory(player);
         self.render_info(player, time);
+        if *self.craft_menu_open.borrow() {
+            self.render_craft_menu(player);
+        }
 
         if player.get_hp() <= 0 {
             self.render_game_over();
@@ -110,37 +116,12 @@ impl EguiManager {
         egui::Window::new("Menu").show(&self.platform.context(), |ui| {
             ui.label("Placing material");
             for material in Material::iter() {
-                ui.radio_value(&mut player.placement_material, material, material.to_string());
+                if player.has(&Storable::M(material)) {
+                    ui.radio_value(&mut player.placement_material, material, material.to_string());
+                }
             }
 
-            ui.label("Crafting item");
-            for material in Material::iter() {
-                if material.craft_yield() > 0 {
-                    ui.radio_value(
-                        &mut player.crafting_item,
-                        Storable::M(material),
-                        format!("{} x{}", material.to_string(), material.craft_yield()),
-                    );
-                }
-            }
-            for item in Item::iter() {
-                if item.craft_yield() > 0 {
-                    ui.radio_value(
-                        &mut player.crafting_item,
-                        Storable::I(item),
-                        format!("{} x{}", item.to_string(), item.craft_yield()),
-                    );
-                }
-            }
-            for rw in RangedWeapon::iter() {
-                if rw.craft_yield() > 0 {
-                    ui.radio_value(
-                        &mut player.crafting_item,
-                        Storable::RW(rw),
-                        format!("{} x{}", rw.to_string(), rw.craft_yield()),
-                    );
-                }
-            }
+            ui.label(format!("Crafting item: \n{}", player.crafting_item));
 
             ui.label("Consumable");
             for cons in Consumable::iter() {
@@ -160,6 +141,49 @@ impl EguiManager {
                 );
             }
         });
+    }
+
+    fn render_craft_menu(&self, player: &mut Player) {
+        egui::Window::new("Craft Menu").anchor(Align2::CENTER_CENTER, [0., 0.])
+            .collapsible(false)
+            .default_width(600.)
+            .show(&self.platform.context(), |ui| {
+                let mut menu_iter = CraftMenuSection::iter();
+                let count = menu_iter.clone().count();
+                ui.columns(count, |columns| {
+                    for i in 0..count {
+                        let section: CraftMenuSection = menu_iter.next().unwrap();
+                        columns[i].label(format!("{:?}", section));
+                        for material in Material::iter() {
+                            if material.menu_section() == section {
+                                columns[i].selectable_value(
+                                    &mut player.crafting_item,
+                                    Storable::M(material),
+                                    format!("{} x{}", material.to_string(), material.craft_yield()),
+                                );
+                            }
+                        }
+                        for item in Item::iter() {
+                            if item.menu_section() == section {
+                                columns[i].selectable_value(
+                                    &mut player.crafting_item,
+                                    Storable::I(item),
+                                    format!("{} x{}", item.to_string(), item.craft_yield()),
+                                );
+                            }
+                        }
+                        for rw in RangedWeapon::iter() {
+                            if rw.menu_section() == section {
+                                columns[i].selectable_value(
+                                    &mut player.crafting_item,
+                                    Storable::RW(rw),
+                                    format!("{} x{}", rw.to_string(), rw.craft_yield()),
+                                );
+                            }
+                        }
+                    }
+                });
+            });
     }
 
     fn render_inventory(&self, player: &Player) {

@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::iter;
 
 use cgmath::{InnerSpace, Rotation3, Zero};
@@ -204,7 +205,9 @@ impl State {
                 if self.player.get_hp() > 0 {
                     self.player.message = String::new();
                     // different actions take different time, so sometimes mobs are not allowed to step
-                    let passed_time = act(virtual_keycode, &mut self.player, &mut self.field);
+                    let passed_time = act(virtual_keycode,
+                                          &mut self.player, &mut self.field,
+                                          &self.egui_manager.craft_menu_open);
                     self.field.step_time(passed_time, &mut self.player);
                 }
                 true
