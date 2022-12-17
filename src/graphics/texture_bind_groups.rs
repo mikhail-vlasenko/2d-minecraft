@@ -175,7 +175,7 @@ impl TextureBindGroups {
         );
 
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/arrow.png"), "texture.png",
+            &device, &queue, include_bytes!("../../res/fat_arrow.png"), "texture.png",
         ).unwrap();
         let arrow = Self::make_bind_group(
             "a_bind_group", &texture, &device, &bind_group_layout,
