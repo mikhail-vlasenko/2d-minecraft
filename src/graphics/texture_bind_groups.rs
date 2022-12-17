@@ -22,6 +22,7 @@ pub struct TextureBindGroups {
     cow: BindGroup,
     night: BindGroup,
     loot_sack: BindGroup,
+    arrow: BindGroup,
     pub bind_group_layout: BindGroupLayout,
 }
 
@@ -173,6 +174,13 @@ impl TextureBindGroups {
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/arrow.png"), "texture.png",
+        ).unwrap();
+        let arrow = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
         let player_texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/tiles/player_top_view.png"), "player.png",
         ).unwrap();
@@ -199,6 +207,7 @@ impl TextureBindGroups {
             cow,
             night,
             loot_sack,
+            arrow,
             bind_group_layout,
         }
     }
@@ -264,5 +273,9 @@ impl TextureBindGroups {
 
     pub fn get_bind_group_loot(&self) -> &BindGroup {
         &self.loot_sack
+    }
+
+    pub fn get_bind_group_arrow(&self) -> &BindGroup {
+        &self.arrow
     }
 }

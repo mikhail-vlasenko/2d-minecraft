@@ -5,6 +5,7 @@ use std::panic;
 use std::rc::Rc;
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
 use crate::player::Player;
@@ -342,12 +343,17 @@ impl Field {
     /// * `RADIUS`: how far field from player is included
     ///
     /// returns: (2d Vector: the list of positions)
-    pub fn texture_indices(&self, player: &Player, material: Material, radius: usize) -> Vec<(i32, i32)> {
-        let r = radius as i32;
+    pub fn texture_indices(&self, player: &Player, material: Material) -> Vec<(i32, i32)> {
+        let cond = |i, j| { self.top_material_at((i, j)) == material };
+        self.indices_around_player(player, cond)
+    }
+
+    fn indices_around_player<F>(&self, player: &Player, condition: F) -> Vec<(i32, i32)> where F: Fn(i32, i32) -> bool {
+        let r = self.render_distance as i32;
         let mut res: Vec<(i32, i32)> = Vec::new();
         for i in (player.x - r)..=(player.x + r) {
             for j in (player.y - r)..=(player.y + r) {
-                if self.top_material_at((i, j)) == material {
+                if condition(i, j) {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -356,31 +362,33 @@ impl Field {
     }
 
     /// Makes a list of positions of blocks of given height around the player.
-    pub fn depth_indices(&self, player: &Player, height: usize, radius: usize) -> Vec<(i32, i32)> {
-        let r = radius as i32;
-        let mut res: Vec<(i32, i32)> = Vec::new();
-        for i in (player.x - r)..=(player.x + r) {
-            for j in (player.y - r)..=(player.y + r) {
-                if self.len_at((i, j)) == height {
-                    res.push((i as i32 - player.x, j as i32 - player.y));
+    pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<(i32, i32)> {
+        let cond = |i, j| { self.len_at((i, j)) == height };
+        self.indices_around_player(player, cond)
+    }
+
+    /// Makes a list of positions of blocks that have loot on them.
+    /// Does not count arrows as loot.
+    pub fn loot_indices(&self, player: &Player) -> Vec<(i32, i32)> {
+        let cond = |i, j| {
+            let chunk = self.get_chunk_immut(i, j);
+            let loot = chunk.get_loot_at(i, j);
+            for l in loot {
+                if l != &Storable::I(Arrow) {
+                    return true;
                 }
             }
-        }
-        res
+            false
+        };
+        self.indices_around_player(player, cond)
     }
 
     /// Makes a list of positions of blocks that have loot on them
-    pub fn loot_indices(&self, player: &Player, radius: usize) -> Vec<(i32, i32)> {
-        let r = radius as i32;
-        let mut res: Vec<(i32, i32)> = Vec::new();
-        for i in (player.x - r)..=(player.x + r) {
-            for j in (player.y - r)..=(player.y + r) {
-                if self.get_chunk_immut(i, j).get_loot_at(i, j).len() > 0 {
-                    res.push((i as i32 - player.x, j as i32 - player.y));
-                }
-            }
-        }
-        res
+    pub fn arrow_indices(&self, player: &Player) -> Vec<(i32, i32)> {
+        let cond = |i, j| {
+            self.get_chunk_immut(i, j).get_loot_at(i, j).contains(&Storable::I(Arrow))
+        };
+        self.indices_around_player(player, cond)
     }
 
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.

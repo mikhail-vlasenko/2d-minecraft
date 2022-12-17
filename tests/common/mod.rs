@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use minecraft::input_decoding::act;
 use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
@@ -36,7 +37,7 @@ impl Data {
     }
 
     pub fn act(&mut self, key: VirtualKeyCode) {
-        act(&Some(key), &mut self.player, &mut self.field);
+        act(&Some(key), &mut self.player, &mut self.field, &RefCell::new(false));
     }
     pub fn mine(&mut self) {
         self.act(Q)

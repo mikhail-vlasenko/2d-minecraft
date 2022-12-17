@@ -11,6 +11,7 @@ use winit::{
 };
 use winit::dpi::PhysicalSize;
 use crate::crafting::consumable::Consumable;
+use crate::crafting::items::Item;
 
 use crate::player::Player;
 use crate::graphics::buffers::Buffers;
@@ -22,6 +23,7 @@ use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::field::Field;
 use crate::crafting::material::Material;
+use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
 
 pub const TILES_PER_ROW: u32 = 17;
@@ -148,6 +150,8 @@ impl State {
         let mut field = Field::new(RENDER_DISTANCE, None);
         let mut player = Player::new(&field);
         player.pickup(Storable::C(Consumable::Apple), 2);
+        // player.pickup(Storable::RW(RangedWeapon::Bow), 1);
+        // player.pickup(Storable::I(Item::Arrow), 10);
 
         // spawn some initial mobs
         let amount = (0.2 * (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as usize;
@@ -310,20 +314,25 @@ impl State {
         // draw tiles of the same material together
         for material in Material::iter() {
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
-            let tiles = self.field.texture_indices(&self.player, material, RENDER_DISTANCE);
+            let tiles = self.field.texture_indices(&self.player, material);
             self.draw_at_indices(tiles, &mut *render_pass, None);
         }
 
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
             render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[i], &[]);
-            let depth = self.field.depth_indices(&self.player, i+2, RENDER_DISTANCE);
+            let depth = self.field.depth_indices(&self.player, i+2);
             self.draw_at_indices(depth, &mut *render_pass, None);
         }
 
         // draw loot where exists
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_loot(), &[]);
-        let loot = self.field.loot_indices(&self.player, RENDER_DISTANCE);
+        let loot = self.field.loot_indices(&self.player);
+        self.draw_at_indices(loot, &mut *render_pass, None);
+
+        // draw arrows left from shooting
+        render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_arrow(), &[]);
+        let loot = self.field.arrow_indices(&self.player);
         self.draw_at_indices(loot, &mut *render_pass, None);
     }
 
