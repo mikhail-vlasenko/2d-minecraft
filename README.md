@@ -13,6 +13,8 @@ Key features:
  - Your attack damage depends on the items in your inventory.
  - Whether you can break some blocks depends on the items in your inventory.
  - Zombies on unloaded chunks do not vanish. They remain in place until the chunk is loaded again.
+ - Banelings (hostile mobs) are better than creepers: they blow up and destroy walls if they can't find a route to player, even if the player is a few blocks away from the explosion radius.
+ - Shot arrows can be reused if they don't break.
 
 ### AI-friendly
 Part of the purpose of this project is to build a training environment for ML agents.
@@ -23,7 +25,9 @@ mine tree -> make crafting table -> make pickaxe -> etc.
 But would require no computer vision, and would run significantly faster than the original.
 
 ## Gameplay screenshots:
-<img width="848" alt="image" src="https://user-images.githubusercontent.com/27450370/205680241-c074a1d6-f313-4c28-b18d-93cf71e76321.png">
+<img width="800" alt="image" src="https://user-images.githubusercontent.com/27450370/205680241-c074a1d6-f313-4c28-b18d-93cf71e76321.png">
+
+<img width="802" alt="image" src="https://user-images.githubusercontent.com/27450370/208272156-e5e712cf-3fe6-4f8d-afff-71f8c5db42aa.png">
 
 <img width="800" alt="image" src="https://user-images.githubusercontent.com/27450370/198876634-ac05daad-5f30-4b95-ad6b-970feb02e8a1.png">
 
