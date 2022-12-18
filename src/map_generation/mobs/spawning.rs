@@ -30,7 +30,7 @@ fn pick_tile(size: &i32) -> (i32, i32) {
 }
 
 fn pick_hostile_kind(dist: i32, game_time: f32) -> MobKind {
-    let bane_prob = if game_time > 200. { 0.2 } else { 0. };
+    let bane_prob = if game_time > 200. { 0.3 } else { 0. };
     let ling_prob = 0.2;
     let rng: f32 = random();
     if rng > 1. - bane_prob {

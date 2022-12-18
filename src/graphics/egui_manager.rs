@@ -194,7 +194,7 @@ impl EguiManager {
         if item.is_craftable() {
             format!("{} x{} ({})", item.to_string(), item.craft_yield(), current)
         } else {
-            format!("{}", item.to_string())
+            format!("{} ({})", item.to_string(), current)
         }
     }
 
