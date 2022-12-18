@@ -50,3 +50,9 @@ impl Display for Consumable {
         write!(f, "{}", self.name())
     }
 }
+
+impl Into<Storable> for Consumable {
+    fn into(self) -> Storable {
+        C(self)
+    }
+}

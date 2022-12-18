@@ -111,3 +111,9 @@ impl Display for Material {
         write!(f, "{}", self.name())
     }
 }
+
+impl Into<Storable> for Material {
+    fn into(self) -> Storable {
+        M(self)
+    }
+}

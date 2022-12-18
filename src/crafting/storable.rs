@@ -4,6 +4,7 @@ use Storable::*;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
+use crate::crafting::material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -94,7 +95,7 @@ pub enum CraftMenuSection {
     Uncraftable,
 }
 
-pub trait Craftable: Display {
+pub trait Craftable: Display + Into<Storable> {
     fn name(&self) -> &str;
     fn craft_requirements(&self) -> &[(&Storable, u32)];
     fn craft_yield(&self) -> u32;

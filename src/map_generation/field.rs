@@ -348,7 +348,7 @@ impl Field {
         self.indices_around_player(player, cond)
     }
 
-    fn indices_around_player<F>(&self, player: &Player, condition: F) -> Vec<(i32, i32)> where F: Fn(i32, i32) -> bool {
+    fn indices_around_player<F: Fn(i32, i32) -> bool>(&self, player: &Player, condition: F) -> Vec<(i32, i32)> {
         let r = self.render_distance as i32;
         let mut res: Vec<(i32, i32)> = Vec::new();
         for i in (player.x - r)..=(player.x + r) {

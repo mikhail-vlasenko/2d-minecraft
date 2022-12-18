@@ -146,7 +146,8 @@ impl EguiManager {
     fn render_craft_menu(&self, player: &mut Player) {
         egui::Window::new("Craft Menu").anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
-            .default_width(600.)
+            .default_width(700.)
+            .default_height(300.)
             .show(&self.platform.context(), |ui| {
                 let mut menu_iter = CraftMenuSection::iter();
                 let count = menu_iter.clone().count();
@@ -156,34 +157,45 @@ impl EguiManager {
                         columns[i].label(format!("{:?}", section));
                         for material in Material::iter() {
                             if material.menu_section() == section {
+                                let count = player.inventory_count(&material.into());
                                 columns[i].selectable_value(
                                     &mut player.crafting_item,
                                     Storable::M(material),
-                                    format!("{} x{}", material.to_string(), material.craft_yield()),
+                                    Self::format_item_description(material, count),
                                 );
                             }
                         }
                         for item in Item::iter() {
                             if item.menu_section() == section {
+                                let count = player.inventory_count(&item.into());
                                 columns[i].selectable_value(
                                     &mut player.crafting_item,
                                     Storable::I(item),
-                                    format!("{} x{}", item.to_string(), item.craft_yield()),
+                                    Self::format_item_description(item, count),
                                 );
                             }
                         }
                         for rw in RangedWeapon::iter() {
                             if rw.menu_section() == section {
+                                let count = player.inventory_count(&rw.into());
                                 columns[i].selectable_value(
                                     &mut player.crafting_item,
                                     Storable::RW(rw),
-                                    format!("{} x{}", rw.to_string(), rw.craft_yield()),
+                                    Self::format_item_description(rw, count),
                                 );
                             }
                         }
                     }
                 });
             });
+    }
+
+    fn format_item_description(item: impl Craftable, current: u32) -> String {
+        if item.is_craftable() {
+            format!("{} x{} ({})", item.to_string(), item.craft_yield(), current)
+        } else {
+            format!("{}", item.to_string())
+        }
     }
 
     fn render_inventory(&self, player: &Player) {

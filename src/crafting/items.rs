@@ -99,3 +99,8 @@ impl Display for Item {
     }
 }
 
+impl Into<Storable> for Item {
+    fn into(self) -> Storable {
+        I(self)
+    }
+}

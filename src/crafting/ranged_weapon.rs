@@ -68,3 +68,9 @@ impl Display for RangedWeapon {
         write!(f, "{}", self.name())
     }
 }
+
+impl Into<Storable> for RangedWeapon {
+    fn into(self) -> Storable {
+        RW(self)
+    }
+}
