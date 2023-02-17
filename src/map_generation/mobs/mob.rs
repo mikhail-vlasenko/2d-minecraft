@@ -67,6 +67,7 @@ impl Mob {
         self.pos.z = field.len_at((self.pos.x, self.pos.y));
     }
 
+    /// Calls Mob.act() 0 or more times, depending on the mob's speed.
     pub fn act_with_speed(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         self.speed_buffer += self.kind.speed();
         while self.speed_buffer >= 1.{
@@ -75,10 +76,19 @@ impl Mob {
         }
     }
 
+    /// Performs a single turn on the mob.
+    /// The mob cant wander out of loaded chunks.
+    ///
+    /// # Arguments
+    /// * `field` - the field the mob is on
+    /// * `player` - the player
+    /// * `min_loaded` - the minimum loaded coordinate
+    /// * `max_loaded` - the maximum loaded coordinate
     fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
 
         if dist <= field.get_towards_player_radius() && self.kind == Baneling {
+            // a bane can explode if the path is blocked, so it has a special step function
             self.baneling_step(field, player, min_loaded, max_loaded);
         }
 
@@ -100,6 +110,7 @@ impl Mob {
         else if self.kind.hostile() && dist <= field.get_towards_player_radius() {
             self.step_towards_player(field, player, min_loaded, max_loaded);
         } else {
+            // not hostile, or too far away, so just wander
             self.random_step(field, player, min_loaded, max_loaded);
         }
     }

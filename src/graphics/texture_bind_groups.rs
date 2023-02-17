@@ -21,6 +21,7 @@ pub struct TextureBindGroups {
     baneling: BindGroup,
     cow: BindGroup,
     night: BindGroup,
+    red_moon: BindGroup,
     loot_sack: BindGroup,
     arrow: BindGroup,
     pub bind_group_layout: BindGroupLayout,
@@ -168,6 +169,13 @@ impl TextureBindGroups {
         );
 
         let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/red_moon_grad.png"), "texture.png",
+        ).unwrap();
+        let red_moon = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/loot sack.png"), "texture.png",
         ).unwrap();
         let loot_sack = Self::make_bind_group(
@@ -206,6 +214,7 @@ impl TextureBindGroups {
             baneling,
             cow,
             night,
+            red_moon,
             loot_sack,
             arrow,
             bind_group_layout,
@@ -269,6 +278,10 @@ impl TextureBindGroups {
 
     pub fn get_bind_group_night(&self) -> &BindGroup {
         &self.night
+    }
+
+    pub fn get_bind_group_red_moon(&self) -> &BindGroup {
+        &self.red_moon
     }
 
     pub fn get_bind_group_loot(&self) -> &BindGroup {

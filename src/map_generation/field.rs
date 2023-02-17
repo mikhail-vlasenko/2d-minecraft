@@ -102,7 +102,8 @@ impl Field {
             let rng: f32 = self.rng.gen();
             if self.is_night() {
                 if rng > 0.9 {
-                    self.spawn_mobs(player, 5, true)
+                    let spawn_amount = 5 + 2 * (self.is_red_moon() as usize) + (self.time as usize / 200);
+                    self.spawn_mobs(player, spawn_amount, true)
                 }
             } else {
                 if rng > 0.9 {
@@ -116,7 +117,11 @@ impl Field {
     }
 
     pub fn is_night(&self) -> bool {
-        (self.time as i32 % 100) >= 50
+        (self.time as i32 % 100) >= 50 || self.is_red_moon()
+    }
+
+    pub fn is_red_moon(&self) -> bool {
+        (self.time as i32 % 600) >= 450
     }
 
     pub fn get_time(&self) -> f32 {
@@ -162,10 +167,11 @@ impl Field {
             if ((tile.0 - player.x).abs() + (tile.1 - player.y).abs()) >
                 (2 * self.render_distance) as i32 {
 
+                let is_red_moon = self.is_red_moon();
                 let chunk_pos = (self.chunk_pos(tile.0), self.chunk_pos(tile.1));
                 let mut chunk = self.get_chunk(tile.0, tile.1);
-                // not too crowded, allow more for friendly
-                if chunk.get_mobs().len() < 3 {
+                // limit so it is not too crowded, but allow more mobs during red moon
+                if chunk.get_mobs().len() < 3 || is_red_moon {
                     create_mob(chunk.deref_mut(), chunk_pos, tile, game_time, hostile);
                 }
             }
@@ -179,8 +185,6 @@ impl Field {
     /// * `center`: x and y of tile that is the epicenter
     /// * `radius`: radius in manhattan distance
     /// * `destruction_power`: mining power applied to remove blocks
-    ///
-    /// returns: ()
     pub fn explosion(&mut self, center: (i32, i32), radius: i32, destruction_power: i32, player: &mut Player) {
         let start_height = self.len_at(center);
         let damage = destruction_power * 10;
@@ -203,6 +207,7 @@ impl Field {
         player.add_message(&format!("BOOM!!! (at {}, {})", center.0, center.1));
     }
 
+    /// Perform a full A* pathing from source to destination.
     pub fn full_pathing(&mut self,
                         source: (i32, i32), destination: (i32, i32),
                         player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
@@ -221,14 +226,23 @@ impl Field {
         res
     }
 
+    /// From how many tiles away do mobs start to use full a pathing algorithm
     pub fn get_a_star_radius(&self) -> i32 {
         self.a_star.get_radius()
     }
 
+    /// From how many tiles away do mobs start to move towards the player ('sense' him).
     pub fn get_towards_player_radius(&self) -> i32 {
-        if self.get_time() < 200. { 35 } else { 45 }
+        if self.get_time() < 200. {
+            SETTINGS.get::<i32>("pathing.towards_player_radius.early").unwrap()
+        } else if self.is_red_moon() {
+            SETTINGS.get::<i32>("pathing.towards_player_radius.red_moon").unwrap()
+        } else {
+            SETTINGS.get::<i32>("pathing.towards_player_radius.usual").unwrap()
+        }
     }
 
+    /// How far from the player's chunk the chunks are loaded
     pub fn get_loading_distance(&self) -> usize {
         self.loading_distance
     }

@@ -5,3 +5,7 @@ field:
 pathing:
   a_star_radius: 20
   default_detour: 10
+  towards_player_radius: 
+    early: 35
+    usual: 45
+    red_moon: 55
