@@ -52,6 +52,7 @@ impl EguiManager {
         }
     }
 
+    /// Renders all of the necessary UI elements.
     pub fn render_ui(&mut self,
                      config: &SurfaceConfiguration,
                      device: &Device,
@@ -143,6 +144,7 @@ impl EguiManager {
         });
     }
 
+    /// Render the menu with all the items for crafting.
     fn render_craft_menu(&self, player: &mut Player) {
         egui::Window::new("Craft Menu").anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
@@ -156,39 +158,42 @@ impl EguiManager {
                         let section: CraftMenuSection = menu_iter.next().unwrap();
                         columns[i].label(format!("{:?}", section));
                         for material in Material::iter() {
-                            if material.menu_section() == section {
-                                let count = player.inventory_count(&material.into());
-                                columns[i].selectable_value(
-                                    &mut player.crafting_item,
-                                    Storable::M(material),
-                                    Self::format_item_description(material, count),
-                                );
-                            }
+                            Self::display_for_section(player, section, columns, material, i);
                         }
                         for item in Item::iter() {
-                            if item.menu_section() == section {
-                                let count = player.inventory_count(&item.into());
-                                columns[i].selectable_value(
-                                    &mut player.crafting_item,
-                                    Storable::I(item),
-                                    Self::format_item_description(item, count),
-                                );
-                            }
+                            Self::display_for_section(player, section, columns, item, i);
                         }
                         for rw in RangedWeapon::iter() {
-                            if rw.menu_section() == section {
-                                let count = player.inventory_count(&rw.into());
-                                columns[i].selectable_value(
-                                    &mut player.crafting_item,
-                                    Storable::RW(rw),
-                                    Self::format_item_description(rw, count),
-                                );
-                            }
+                            Self::display_for_section(player, section, columns, rw, i);
                         }
                     }
                 });
             });
     }
+
+    /// Display the item in the given craft menu section.
+    fn display_for_section(player: &mut Player,
+                           section: CraftMenuSection,
+                           columns: &mut [egui::Ui],
+                           craftable: impl Craftable,
+                           i: usize) {
+        if craftable.menu_section() == section {
+            let count = player.inventory_count(&craftable.into());
+            let has_all = player.has_all_ingredients(&craftable.into());
+            columns[i].selectable_value(
+                &mut player.crafting_item,
+                craftable.into(),
+                RichText::new(
+                    Self::format_item_description(craftable, count)
+                ).color(if has_all || !craftable.is_craftable() {
+                            Color32::WHITE
+                        } else {
+                            Color32::LIGHT_RED
+                        }),
+            );
+        }
+    }
+
 
     fn format_item_description(item: impl Craftable, current: u32) -> String {
         if item.is_craftable() {

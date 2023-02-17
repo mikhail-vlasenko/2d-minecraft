@@ -173,6 +173,7 @@ impl Player {
         return false;
     }
 
+    /// Returns true if the player can craft the item right now.
     pub fn can_craft(&mut self, item: &Storable, field: &Field) -> bool {
         for (req, amount) in item.craft_requirements() {
             if self.inventory.count(&req) < *amount {
@@ -191,6 +192,20 @@ impl Player {
         }
 
         item.is_craftable() && crafter_near
+    }
+
+    /// Returns true if the player has all the ingredients to craft the item,
+    /// but not necessarily can craft it now.
+    pub fn has_all_ingredients(&self, item: &Storable) -> bool {
+        if !item.is_craftable() {
+            return false;
+        }
+        for (req, amount) in item.craft_requirements() {
+            if self.inventory.count(&req) < *amount {
+                return false;
+            }
+        }
+        true
     }
 
     /// If crafting the given item is possible, subtracts the ingredients and adds the item to the inventory.

@@ -95,7 +95,7 @@ pub enum CraftMenuSection {
     Uncraftable,
 }
 
-pub trait Craftable: Display + Into<Storable> {
+pub trait Craftable: Display + Into<Storable> + Copy {
     fn name(&self) -> &str;
     fn craft_requirements(&self) -> &[(&Storable, u32)];
     fn craft_yield(&self) -> u32;
