@@ -51,7 +51,7 @@ impl MobKind {
         let rng: f32 = rand::random();
         match self {
             Zombie => vec![],
-            Zergling => if rng > 0.7 { vec![Storable::C(RawMeat)] } else { vec![] },
+            Zergling => if rng > 0.5 { vec![Storable::C(RawMeat)] } else { vec![] },
             Baneling => vec![],
             Cow => vec![Storable::C(RawMeat)],
         }

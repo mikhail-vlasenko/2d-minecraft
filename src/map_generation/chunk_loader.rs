@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
+use std::time::Instant;
 
 
 pub struct ChunkLoader {

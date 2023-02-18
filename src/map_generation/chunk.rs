@@ -6,6 +6,7 @@ use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
 use crate::map_generation::read_chunk::read_file;
+use crate::SETTINGS;
 
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
@@ -23,7 +24,7 @@ impl Chunk {
             }
         }
         let mobs = Vec::new();
-        Self{
+        Self {
             tiles,
             size,
             mobs,
@@ -60,10 +61,14 @@ impl Chunk {
     /// Randomly generate a Tile (a cell on the field)
     pub fn gen_tile() -> Tile {
         let mut tile = Tile::make_dirt();
-        randomly_augment(&mut tile, &Tile::make_rock, 0.05);
-        randomly_augment(&mut tile, &Tile::add_tree, 0.07);
-        randomly_augment(&mut tile, &Tile::make_diamond, 0.07);
-        randomly_augment(&mut tile, &Tile::make_iron, 0.2);
+        randomly_augment(&mut tile, &Tile::make_rock,
+                         SETTINGS.field.generation.rock_proba);
+        randomly_augment(&mut tile, &Tile::add_tree,
+                         SETTINGS.field.generation.tree_proba);
+        randomly_augment(&mut tile, &Tile::make_iron,
+                         SETTINGS.field.generation.iron_proba);
+        randomly_augment(&mut tile, &Tile::make_diamond,
+                         SETTINGS.field.generation.diamond_proba);
         tile
     }
 
@@ -146,7 +151,7 @@ impl Chunk {
                     true
                 } else {
                     false
-                }
+                };
             }
         }
         false

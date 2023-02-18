@@ -46,7 +46,7 @@ pub struct Field {
 
 impl Field {
     pub fn new(render_distance: usize, starting_chunk: Option<Chunk>) -> Self {
-        let loading_distance = SETTINGS.get::<usize>("field.loading_distance").unwrap();
+        let loading_distance = SETTINGS.field.loading_distance as usize;
         let chunk_size = 16;
 
         let chunk_loader = if starting_chunk.is_some() {
@@ -58,7 +58,7 @@ impl Field {
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
 
-        let a_star = AStar::new(SETTINGS.get::<i32>("pathing.a_star_radius").unwrap());
+        let a_star = AStar::new(SETTINGS.pathing.a_star_radius);
 
         let time = 0.;
         let accumulated_time = 0.;
@@ -102,12 +102,16 @@ impl Field {
             let rng: f32 = self.rng.gen();
             if self.is_night() {
                 if rng > 0.9 {
-                    let spawn_amount = 5 + 2 * (self.is_red_moon() as usize) + (self.time as usize / 200);
+                    let spawn_amount =
+                        SETTINGS.mobs.spawning.base_night_amount as usize
+                            + 2 * (self.is_red_moon() as usize) + (self.time as usize / 200);
                     self.spawn_mobs(player, spawn_amount, true)
                 }
             } else {
                 if rng > 0.9 {
-                    self.spawn_mobs(player, 2, false)
+                    self.spawn_mobs(player,
+                                    SETTINGS.mobs.spawning.base_day_amount as usize,
+                                    false)
                 }
             }
             self.step_mobs(player);
@@ -121,7 +125,7 @@ impl Field {
     }
 
     pub fn is_red_moon(&self) -> bool {
-        (self.time as i32 % 600) >= 450
+        (self.time as i32 % 700) >= 550
     }
 
     pub fn get_time(&self) -> f32 {
@@ -213,7 +217,7 @@ impl Field {
                         player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
         let detour =
             if max_detour.is_none() {
-                SETTINGS.get::<i32>("pathing.default_detour").unwrap()
+                SETTINGS.pathing.default_detour
             } else {
                 max_detour.unwrap()
             };
@@ -234,11 +238,11 @@ impl Field {
     /// From how many tiles away do mobs start to move towards the player ('sense' him).
     pub fn get_towards_player_radius(&self) -> i32 {
         if self.get_time() < 200. {
-            SETTINGS.get::<i32>("pathing.towards_player_radius.early").unwrap()
+            SETTINGS.pathing.towards_player_radius.early
         } else if self.is_red_moon() {
-            SETTINGS.get::<i32>("pathing.towards_player_radius.red_moon").unwrap()
+            SETTINGS.pathing.towards_player_radius.red_moon
         } else {
-            SETTINGS.get::<i32>("pathing.towards_player_radius.usual").unwrap()
+            SETTINGS.pathing.towards_player_radius.usual
         }
     }
 

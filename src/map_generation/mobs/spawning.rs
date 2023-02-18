@@ -2,6 +2,7 @@ use rand::{random, Rng};
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::mobs::mob::{Mob, Position};
 use crate::map_generation::mobs::mob_kind::MobKind;
+use crate::SETTINGS;
 
 
 /// Takes into account how far away from center the player is
@@ -30,8 +31,10 @@ fn pick_tile(size: &i32) -> (i32, i32) {
 }
 
 fn pick_hostile_kind(dist: i32, game_time: f32) -> MobKind {
-    let bane_prob = if game_time > 200. { 0.3 } else { 0. };
-    let ling_prob = 0.2;
+    let bane_prob = if game_time > 200. {
+        SETTINGS.mobs.spawning.probabilities.bane
+    } else { 0. };
+    let ling_prob = SETTINGS.mobs.spawning.probabilities.ling;
     let rng: f32 = random();
     if rng > 1. - bane_prob {
         MobKind::Baneling

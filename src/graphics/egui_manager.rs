@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use ::egui::FontDefinitions;
-use egui::{Align2, Color32, FontId, RichText, TexturesDelta};
+use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -204,7 +204,8 @@ impl EguiManager {
     }
 
     fn render_inventory(&self, player: &Player) {
-        egui::Window::new("Inventory").show(&self.platform.context(), |ui| {
+        egui::Window::new("Inventory").anchor(Align2::LEFT_BOTTOM, [0., 0.])
+            .show(&self.platform.context(), |ui| {
             for item in player.get_inventory() {
                 if item.1 != 0 {
                     ui.label(format!("{}: {}", item.0, item.1));
@@ -216,7 +217,9 @@ impl EguiManager {
     fn render_info(&self, player: &Player, time: f32) {
         egui::Window::new("Info").anchor(Align2::RIGHT_TOP, [0., 0.])
             .show(&self.platform.context(), |ui| {
-                ui.label(format!("Position: {}, {}, {}", player.x, player.y, player.z));
+                ui.add(Label::new(
+                    format!("Position: {}, {}, {}", player.x, player.y, player.z)
+                ).wrap(false));
                 ui.label(format!("HP: {}/100", player.get_hp()));
                 ui.label(format!("ATK: {}", player.get_melee_damage()));
                 ui.label(format!("Mining PWR: {}", player.get_mining_power()));
@@ -228,10 +231,11 @@ impl EguiManager {
     fn render_game_over(&self) {
         egui::Window::new("").anchor(Align2::CENTER_CENTER, [0., 0.])
             .show(&self.platform.context(), |ui| {
-                ui.label(RichText::new("Game Over!")
+                ui.add(Label::new(RichText::new("Game Over!")
                     .font(FontId::proportional(80.0))
                     .color(Color32::RED)
-                );
+                    .strong()
+                ).wrap(false));
             });
     }
 

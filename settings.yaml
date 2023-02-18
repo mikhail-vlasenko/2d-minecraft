@@ -1,6 +1,11 @@
 field:
   render_distance: 8
   loading_distance: 5
+  generation:
+    rock_proba: 0.05
+    tree_proba: 0.07
+    iron_proba: 0.2
+    diamond_proba: 0.05
 
 pathing:
   a_star_radius: 20
@@ -9,3 +14,12 @@ pathing:
     early: 35
     usual: 45
     red_moon: 55
+
+mobs:
+  spawning:
+    base_day_amount: 2
+    base_night_amount: 5
+    probabilities:
+      bane: 0.3
+      ling: 0.2
+      # rest is zombie
