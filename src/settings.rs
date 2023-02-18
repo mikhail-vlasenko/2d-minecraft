@@ -3,7 +3,7 @@
 
 use std::borrow::Cow;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct Settings {
     pub field: _Config__field,
@@ -11,7 +11,7 @@ pub struct Settings {
     pub pathing: _Config__pathing,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__field {
     pub generation: _Config__field__generation,
@@ -19,7 +19,7 @@ pub struct _Config__field {
     pub render_distance: i32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__field__generation {
     pub diamond_proba: f32,
@@ -28,13 +28,13 @@ pub struct _Config__field__generation {
     pub tree_proba: f32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__mobs {
     pub spawning: _Config__mobs__spawning,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__mobs__spawning {
     pub base_day_amount: i32,
@@ -42,14 +42,14 @@ pub struct _Config__mobs__spawning {
     pub probabilities: _Config__mobs__spawning__probabilities,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__mobs__spawning__probabilities {
     pub bane: f32,
     pub ling: f32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__pathing {
     pub a_star_radius: i32,
@@ -57,7 +57,7 @@ pub struct _Config__pathing {
     pub towards_player_radius: _Config__pathing__towards_player_radius,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__pathing__towards_player_radius {
     pub early: i32,
@@ -65,7 +65,7 @@ pub struct _Config__pathing__towards_player_radius {
     pub usual: i32,
 }
 
-pub const SETTINGS: Settings = Settings {
+pub const DEFAULT_SETTINGS: Settings = Settings {
     field: _Config__field {
         generation: _Config__field__generation {
             diamond_proba: 0.05,
@@ -96,3 +96,30 @@ pub const SETTINGS: Settings = Settings {
         },
     },
 };
+
+#[cfg(debug_assertions)]
+impl Settings {
+    pub fn load() -> Cow<'static, Self> {
+        let filepath = concat!(env!("CARGO_MANIFEST_DIR"), "/settings.yaml");
+        Self::load_from(filepath.as_ref()).expect("Failed to load Settings.")
+    }
+
+    pub fn load_from(filepath: &::std::path::Path) -> Result<Cow<'static, Self>, Box<dyn ::std::error::Error>> {
+        let file_contents = ::std::fs::read_to_string(filepath)?;
+        let result: Self = ::serde_yaml::from_str(&file_contents)?;
+        Ok(Cow::Owned(result))
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl Settings {
+    #[inline(always)]
+    pub fn load() -> Cow<'static, Self> {
+        Cow::Borrowed(&DEFAULT_SETTINGS)
+    }
+
+    #[inline(always)]
+    pub fn load_from(_: &::std::path::Path) -> Result<Cow<'static, Self>, Box<dyn ::std::error::Error>> {
+        Ok(Cow::Borrowed(&DEFAULT_SETTINGS))
+    }
+}
