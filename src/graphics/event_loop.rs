@@ -8,15 +8,16 @@ use winit::{
 };
 use winit::dpi::PhysicalSize;
 use crate::graphics::state::State;
+use crate::SETTINGS;
 
-const INITIAL_SIZE: PhysicalSize<u32> = PhysicalSize { width: 1600, height: 1600 };
 
 pub async fn run() {
+    let initial_size = PhysicalSize { width: SETTINGS.window.width, height: SETTINGS.window.height };
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("Minecraft")
-        .with_inner_size(INITIAL_SIZE)
+        .with_inner_size(initial_size)
         .build(&event_loop)
         .unwrap();
 

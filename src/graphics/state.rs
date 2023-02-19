@@ -282,7 +282,7 @@ impl State {
         // render player
         render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.player_instance_buffer.slice(..));
-        render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
+        render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_player(), &[]);
         let idx = self.player.get_rotation();
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
 
@@ -328,7 +328,7 @@ impl State {
 
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
-            render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[i], &[]);
+            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_depth(i), &[]);
             let depth = self.field.depth_indices(&self.player, i + 2);
             self.draw_at_indices(depth, &mut *render_pass, None);
         }

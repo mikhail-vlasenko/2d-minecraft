@@ -1,3 +1,7 @@
+window:
+  width: 1600
+  height: 1600
+
 field:
   render_distance: 8
   loading_distance: 5

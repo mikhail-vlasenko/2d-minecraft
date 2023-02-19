@@ -11,6 +11,7 @@ use winit::window::Window;
 use crate::character::player::Player;
 use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
+use crate::crafting::interactable::Interactable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
@@ -69,7 +70,7 @@ impl EguiManager {
         self.render_inventory(player);
         self.render_info(player, time);
         if *self.craft_menu_open.borrow() {
-            self.render_craft_menu(player);
+            self.render_craft_menu(player, config.width as f32 / 2.1);
         }
 
         if player.get_hp() <= 0 {
@@ -114,7 +115,8 @@ impl EguiManager {
     }
 
     fn render_place_craft_menu(&self, player: &mut Player) {
-        egui::Window::new("Menu").show(&self.platform.context(), |ui| {
+        egui::Window::new("Menu").auto_sized()
+            .show(&self.platform.context(), |ui| {
             ui.label("Placing material");
             for material in Material::iter() {
                 let count = player.inventory_count(&material.into());
@@ -149,11 +151,10 @@ impl EguiManager {
     }
 
     /// Render the menu with all the items for crafting.
-    fn render_craft_menu(&self, player: &mut Player) {
+    fn render_craft_menu(&self, player: &mut Player, width: f32) {
         egui::Window::new("Craft Menu").anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
-            .default_width(700.)
-            .default_height(300.)
+            .fixed_size([width, 300.])
             .show(&self.platform.context(), |ui| {
                 let mut menu_iter = CraftMenuSection::iter();
                 let count = menu_iter.clone().count();
@@ -169,6 +170,9 @@ impl EguiManager {
                         }
                         for rw in RangedWeapon::iter() {
                             Self::display_for_section(player, section, columns, rw, i);
+                        }
+                        for it in Interactable::iter() {
+                            Self::display_for_section(player, section, columns, it, i);
                         }
                     }
                 });

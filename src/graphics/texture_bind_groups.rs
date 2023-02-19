@@ -1,4 +1,5 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
+use crate::crafting::interactable::Interactable;
 use crate::crafting::material::Material;
 use crate::graphics::texture::Texture;
 use crate::map_generation::mobs::mob_kind::MobKind;
@@ -14,8 +15,8 @@ pub struct TextureBindGroups {
     iron_ore: BindGroup,
     crafting_table: BindGroup,
     diamond: BindGroup,
-    pub player: BindGroup,
-    pub depth_indicators: [BindGroup; 4],
+    player: BindGroup,
+    depth_indicators: [BindGroup; 4],
     zombie: BindGroup,
     zergling: BindGroup,
     baneling: BindGroup,
@@ -24,6 +25,7 @@ pub struct TextureBindGroups {
     red_moon: BindGroup,
     loot_sack: BindGroup,
     arrow: BindGroup,
+    crossbow_turret: BindGroup,
     pub bind_group_layout: BindGroupLayout,
 }
 
@@ -189,6 +191,13 @@ impl TextureBindGroups {
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/interactables/crossbow.png"), "texture.png",
+        ).unwrap();
+        let crossbow_turret = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
         let player_texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/tiles/player_top_view.png"), "player.png",
         ).unwrap();
@@ -217,6 +226,7 @@ impl TextureBindGroups {
             red_moon,
             loot_sack,
             arrow,
+            crossbow_turret,
             bind_group_layout,
         }
     }
@@ -274,6 +284,26 @@ impl TextureBindGroups {
             Baneling => &self.baneling,
             Cow => &self.cow,
         }
+    }
+
+    pub fn get_bind_group_interactable(&self, interactable: Interactable) -> &BindGroup {
+        match interactable {
+            CrossbowTurret => &self.crossbow_turret,
+        }
+    }
+
+    pub fn get_bind_group_depth(&self, depth: usize) -> &BindGroup {
+        match depth {
+            0 => &self.depth_indicators[0],
+            1 => &self.depth_indicators[1],
+            2 => &self.depth_indicators[2],
+            3 => &self.depth_indicators[3],
+            _ => panic!("Depth {} is not supported", depth)
+        }
+    }
+
+    pub fn get_bind_group_player(&self) -> &BindGroup {
+        &self.player
     }
 
     pub fn get_bind_group_night(&self) -> &BindGroup {

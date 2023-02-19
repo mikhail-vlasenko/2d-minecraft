@@ -10,6 +10,7 @@ pub struct Settings {
     pub mobs: _Config__mobs,
     pub pathing: _Config__pathing,
     pub player: _Config__player,
+    pub window: _Config__window,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -73,6 +74,13 @@ pub struct _Config__player {
     pub cheating_start: bool,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__window {
+    pub height: i32,
+    pub width: i32,
+}
+
 pub const DEFAULT_SETTINGS: Settings = Settings {
     field: _Config__field {
         from_test_chunk: false,
@@ -106,6 +114,10 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     },
     player: _Config__player {
         cheating_start: false,
+    },
+    window: _Config__window {
+        height: 1600,
+        width: 1600,
     },
 };
 

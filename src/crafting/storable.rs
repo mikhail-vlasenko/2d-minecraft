@@ -8,6 +8,7 @@ use crate::crafting::material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use crate::crafting::interactable::Interactable;
 
 
 /// Represents anything that can be stored in the inventory.
@@ -18,6 +19,7 @@ pub enum Storable {
     I(Item),
     C(Consumable),
     RW(RangedWeapon),
+    IR(Interactable)
 }
 
 impl Storable {
@@ -27,6 +29,7 @@ impl Storable {
             I(item) => item.name(),
             C(cons) => cons.name(),
             RW(rw) => rw.name(),
+            IR(inter) => inter.name(),
         }
     }
 
@@ -36,6 +39,7 @@ impl Storable {
             I(item) => item.craft_requirements(),
             C(cons) => cons.craft_requirements(),
             RW(rw) => rw.craft_requirements(),
+            IR(inter) => inter.craft_requirements(),
         }
     }
 
@@ -45,6 +49,7 @@ impl Storable {
             I(item) => item.craft_yield(),
             C(cons) => cons.craft_yield(),
             RW(rw) => rw.craft_yield(),
+            IR(inter) => inter.craft_yield(),
         }
     }
     
@@ -54,6 +59,7 @@ impl Storable {
             I(item) => item.required_crafter(),
             C(cons) => cons.required_crafter(),
             RW(rw) => rw.required_crafter(),
+            IR(inter) => inter.required_crafter(),
         }
     }
 
@@ -92,6 +98,7 @@ pub enum CraftMenuSection {
     Ingredients,
     Tools,
     Weapons,
+    Interactables,
     Uncraftable,
 }
 

@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
 use std::mem::take;
+use crate::crafting::interactable::Interactable;
 use crate::map_generation::block::Block;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::*;
@@ -12,7 +13,8 @@ use crate::crafting::storable::Storable;
 #[derive(Clone)]
 pub struct Tile {
     pub blocks: Vec<Block>,
-    pub loot: Vec<Storable>
+    pub loot: Vec<Storable>,
+    pub interactable: Option<Interactable>,
 }
 
 impl Display for Tile {
@@ -22,6 +24,13 @@ impl Display for Tile {
 }
 
 impl Tile {
+    pub fn new() -> Self {
+        Tile {
+            blocks: vec![],
+            loot: vec![],
+            interactable: None,
+        }
+    }
     pub fn len(&self) -> usize {
         self.blocks.len()
     }
@@ -53,6 +62,7 @@ impl Tile {
                          Block { material: Stone },
                          Block { material: Dirt }],
             loot: Vec::new(),
+            interactable: None,
         };
     }
     pub fn add_tree(tile: &mut Tile) {
