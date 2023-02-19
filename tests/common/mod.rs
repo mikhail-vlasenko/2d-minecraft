@@ -36,29 +36,32 @@ impl Data {
         Self::create_with_chunk(test_chunk)
     }
 
-    pub fn act(&mut self, key: VirtualKeyCode) {
-        act(&Some(key), &mut self.player, &mut self.field, &RefCell::new(false));
+    pub fn act(&mut self, key: VirtualKeyCode) -> f32 {
+        act(&Some(key), &mut self.player, &mut self.field, &RefCell::new(false))
     }
     pub fn mine(&mut self) {
-        self.act(Q)
+        self.act(Q);
     }
     pub fn place(&mut self, m: Material) {
         self.player.placement_material = m;
-        self.act(E)
+        self.act(E);
     }
     pub fn craft(&mut self, s: Storable) {
         self.player.crafting_item = s;
-        self.act(C)
+        self.act(C);
     }
     pub fn consume(&mut self, consumable: Consumable) {
         self.player.consumable = consumable;
-        self.act(F)
+        self.act(F);
     }
     pub fn step_mobs(&mut self) {
         self.field.step_mobs(&mut self.player);
     }
     pub fn spawn_mobs(&mut self, amount: usize, hostile: bool) {
         spawn_mobs(&mut self.field, &mut self.player, amount, hostile)
+    }
+    pub fn step_time(&mut self) {
+        self.field.step_time(1., &mut self.player);
     }
 }
 
