@@ -8,6 +8,7 @@ use crate::crafting::material::Material;
 use crate::crafting::material::Material::Diamond;
 use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
 use crate::crafting::storable::CraftMenuSection::*;
+use crate::crafting::interactable::Interactable::*;
 
 
 /// Something that can't be placed, but can be in the inventory.
@@ -53,6 +54,6 @@ impl Display for Interactable {
 
 impl Into<Storable> for Interactable {
     fn into(self) -> Storable {
-        IR(self)
+        IN(self)
     }
 }

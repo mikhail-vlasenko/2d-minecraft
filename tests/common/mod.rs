@@ -42,8 +42,8 @@ impl Data {
     pub fn mine(&mut self) {
         self.act(Q);
     }
-    pub fn place(&mut self, m: Material) {
-        self.player.placement_material = m;
+    pub fn place(&mut self, m: Storable) {
+        self.player.placement_storable = m;
         self.act(E);
     }
     pub fn craft(&mut self, s: Storable) {

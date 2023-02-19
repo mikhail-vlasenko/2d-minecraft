@@ -14,6 +14,7 @@ use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 
 use crate::character::player::Player;
+use crate::crafting::interactable::Interactable;
 use crate::graphics::buffers::Buffers;
 use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::instance::*;
@@ -331,6 +332,15 @@ impl State {
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_depth(i), &[]);
             let depth = self.field.depth_indices(&self.player, i + 2);
             self.draw_at_indices(depth, &mut *render_pass, None);
+        }
+
+        // draw interactable objects
+        for interactable in Interactable::iter() {
+            render_pass.set_bind_group(0,
+                                       &self.bind_groups.get_bind_group_interactable(interactable),
+                                       &[]);
+            let interactables = self.field.interactable_indices(&self.player, interactable);
+            self.draw_at_indices(interactables, &mut *render_pass, None);
         }
 
         // draw loot where exists

@@ -121,9 +121,17 @@ impl EguiManager {
             for material in Material::iter() {
                 let count = player.inventory_count(&material.into());
                 if count > 0 {
-                    ui.radio_value(&mut player.placement_material,
-                                   material,
+                    ui.radio_value(&mut player.placement_storable,
+                                   material.into(),
                                    format!("{} ({})", material.to_string(), count));
+                }
+            }
+            for interactable in Interactable::iter() {
+                let count = player.inventory_count(&interactable.into());
+                if count > 0 {
+                    ui.radio_value(&mut player.placement_storable,
+                                   interactable.into(),
+                                   format!("{} ({})", interactable.to_string(), count));
                 }
             }
 

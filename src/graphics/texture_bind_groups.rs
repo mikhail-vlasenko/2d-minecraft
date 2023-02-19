@@ -192,7 +192,7 @@ impl TextureBindGroups {
         );
 
         let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/interactables/crossbow.png"), "texture.png",
+            &device, &queue, include_bytes!("../../res/interactables/fat_string_crossbow.png"), "texture.png",
         ).unwrap();
         let crossbow_turret = Self::make_bind_group(
             "a_bind_group", &texture, &device, &bind_group_layout,

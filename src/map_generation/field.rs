@@ -9,6 +9,7 @@ use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
 use crate::character::player::Player;
+use crate::crafting::interactable::Interactable;
 
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
@@ -410,6 +411,13 @@ impl Field {
         self.indices_around_player(player, cond)
     }
 
+    pub fn interactable_indices(&self, player: &Player, interactable: Interactable) -> Vec<(i32, i32)> {
+        let cond = |i, j| {
+            self.get_interactable_at((i, j)) == Some(interactable)
+        };
+        self.indices_around_player(player, cond)
+    }
+
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32, u32)> {
         let mut res: Vec<(i32, i32, u32)> = Vec::new();
@@ -449,6 +457,12 @@ impl Field {
     }
     pub fn gather_loot_at(&mut self, xy: (i32, i32)) -> Vec<Storable> {
         self.get_chunk(xy.0, xy.1).gather_loot_at(xy.0, xy.1)
+    }
+    pub fn get_interactable_at(&self, xy: (i32, i32)) -> Option<Interactable> {
+        self.get_chunk_immut(xy.0, xy.1).get_interactable_at(xy.0, xy.1)
+    }
+    pub fn add_interactable_at(&mut self, new: Interactable, xy: (i32, i32)) -> bool {
+        self.get_chunk(xy.0, xy.1).add_interactable_at(new, xy.0, xy.1)
     }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,

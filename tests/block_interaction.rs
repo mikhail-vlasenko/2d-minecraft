@@ -39,7 +39,7 @@ fn test_player_good_weather() {
     data.craft(Storable::M(Plank));
     data.craft(Storable::M(Plank));
     data.craft(Storable::M(CraftTable));
-    data.place(CraftTable);
+    data.place(CraftTable.into());
     data.craft(Storable::I(Stick));
 
     assert_eq!(data.player.get_mining_power(), 0);
@@ -111,7 +111,7 @@ fn test_player_no_craft_table() {
     assert_eq!(data.player.get_mining_power(), 0);
     assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
 
-    data.place(CraftTable);
+    data.place(CraftTable.into());
     data.act(S);
     data.act(S);
     data.act(D);

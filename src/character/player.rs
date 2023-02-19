@@ -3,6 +3,7 @@ use std::cmp::min;
 use std::f32::consts::PI;
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
+use crate::crafting::interactable::Interactable;
 use crate::map_generation::block::Block;
 use crate::map_generation::field::Field;
 use crate::crafting::inventory::Inventory;
@@ -28,7 +29,7 @@ pub struct Player {
 
     // Storables that will be used for the corresponding actions
     // Are set though UI
-    pub placement_material: Material,
+    pub placement_storable: Storable,
     pub crafting_item: Storable,
     pub consumable: Consumable,
     pub ranged_weapon: RangedWeapon,
@@ -46,7 +47,7 @@ impl Player {
             hp: MAX_HP,
             inventory: Inventory::new(),
             status_effects: Vec::new(),
-            placement_material: Plank,
+            placement_storable: Plank.into(),
             crafting_item: Storable::M(Plank),
             consumable: Consumable::Apple,
             ranged_weapon: RangedWeapon::Bow,
@@ -82,16 +83,16 @@ impl Player {
         self.inventory.mining_power()
     }
 
-    pub fn place(&mut self, field: &mut Field, delta_x: i32, delta_y: i32, material: Material) -> f32 {
-        if field.full_at((self.x + delta_x, self.y + delta_y)) {
+    pub fn place_material(&mut self, field: &mut Field, pos: (i32, i32), material: Material) -> f32 {
+        if field.full_at(pos) {
             self.add_message(&format!("Too high to build"));
             return 0.;
         }
 
         let placement_block = Block { material };
 
-        if self.inventory.drop(&Storable::M(material), 1) {
-            field.push_at(placement_block, (self.x + delta_x, self.y + delta_y));
+        if self.inventory.drop(&material.into(), 1) {
+            field.push_at(placement_block, pos);
             self.get_speed_multiplier()
         } else {
             self.add_message(&format!("You do not have a block of {}", material));
@@ -99,11 +100,31 @@ impl Player {
         }
     }
 
+    pub fn place_interactable(&mut self, field: &mut Field, pos: (i32, i32), interactable: Interactable) -> f32 {
+        if field.get_interactable_at(pos).is_some() {
+            self.add_message(&format!("Already has an interactable"));
+            return 0.;
+        }
+
+        if self.inventory.drop(&interactable.into(), 1) {
+            field.add_interactable_at(interactable, pos);
+            self.get_speed_multiplier()
+        } else {
+            self.add_message(&format!("You do not have {}", interactable));
+            0.
+        }
+    }
+
     /// Places a currently selected block in front of the player.
     /// Returns how much action was spent.
     pub fn place_current(&mut self, field: &mut Field) -> f32 {
-        let (x, y) = self.coords_from_rotation();
-        self.place(field, x, y, self.placement_material)
+        let (delta_x, delta_y) = self.coords_from_rotation();
+        let placement_pos = (self.x + delta_x,  self.y + delta_y);
+        match self.placement_storable {
+            Storable::M(material) => self.place_material(field, placement_pos, material),
+            Storable::IN(interactable) => self.place_interactable(field, placement_pos, interactable),
+            _ => panic!("Can't place {}", self.placement_storable),
+        }
     }
 
     pub fn walk(&mut self, direction: &str, field: &mut Field) -> f32 {

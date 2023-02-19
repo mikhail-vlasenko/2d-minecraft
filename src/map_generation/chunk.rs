@@ -1,5 +1,6 @@
 use std::cell::{RefCell, RefMut};
 use rand::random;
+use crate::crafting::interactable::Interactable;
 use crate::map_generation::block::Block;
 use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
@@ -131,6 +132,14 @@ impl Chunk {
     pub fn gather_loot_at(&mut self, x: i32, y: i32) -> Vec<Storable> {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].gather_loot()
+    }
+    pub fn get_interactable_at(&self, x: i32, y: i32) -> Option<Interactable> {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].get_interactable()
+    }
+    pub fn add_interactable_at(&mut self, interactable: Interactable, x: i32, y: i32) -> bool {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].add_interactable(interactable)
     }
     pub fn is_occupied(&self, x: i32, y: i32) -> bool {
         for m in &self.mobs {
