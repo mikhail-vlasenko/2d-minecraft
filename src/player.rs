@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{Ref, RefMut};
 use std::cmp::min;
 use std::f32::consts::PI;
@@ -11,6 +12,7 @@ use crate::crafting::material::Material::*;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
 use crate::crafting::storable::Storable::{I, RW};
+use crate::mechanics::delayed_action::DelayedAction;
 
 pub const MAX_HP: i32 = 100;
 
@@ -30,6 +32,10 @@ pub struct Player {
     pub consumable: Consumable,
     pub ranged_weapon: RangedWeapon,
 
+    /// Spent action is multiplied by this. Lower makes player faster.
+    speed_multiplier: f32,
+    delayed_actions: Vec<Box<DelayedAction<dyn Any>>>,
+
     pub message: String,
 }
 
@@ -46,6 +52,8 @@ impl Player {
             crafting_item: Storable::M(Plank),
             consumable: Consumable::Apple,
             ranged_weapon: RangedWeapon::Bow,
+            speed_multiplier: 1.,
+            delayed_actions: Vec::new(),
             message: String::new(),
         };
         player.land(field);
@@ -64,7 +72,7 @@ impl Player {
             self.add_message(&format!("Mined {}", mat));
             self.inventory.pickup(Storable::M(mat), 1);
             field.pop_at((self.x + delta_x, self.y + delta_y));
-            1.
+            self.speed_multiplier
         }
     }
 
@@ -88,7 +96,7 @@ impl Player {
 
         if self.inventory.drop(&Storable::M(material), 1) {
             field.push_at(placement_block, (self.x + delta_x, self.y + delta_y));
-            1.
+            self.speed_multiplier
         } else {
             self.add_message(&format!("You do not have a block of {}", material));
             0.
@@ -127,7 +135,7 @@ impl Player {
             // fighting
             if field.is_occupied(new_pos) {
                 field.damage_mob(new_pos, self.get_melee_damage());
-                return 1.
+                return self.speed_multiplier
             }
             // movement
             self.x += delta_x;
@@ -148,7 +156,7 @@ impl Player {
             if curr_chunk != field.get_central_chunk() {
                 field.load(curr_chunk.0, curr_chunk.1);
             }
-            1.
+            self.speed_multiplier
         } else {
             self.add_message(&"Too high to step on");
             0.
@@ -220,7 +228,7 @@ impl Player {
         let craft_yield = item.craft_yield();
         self.inventory.pickup(item, craft_yield);
         self.add_message(&format!("Crafted {} of {}", craft_yield, item));
-        1.
+        self.speed_multiplier
     }
 
     pub fn craft_current(&mut self, field: &Field) -> f32 {
@@ -231,28 +239,28 @@ impl Player {
         self.inventory.pickup(storable, amount)
     }
 
-    pub fn consume(&mut self, consumable: Consumable) -> f32 {
+    pub fn consume(&mut self, consumable: Consumable, field: &mut Field) -> f32 {
         if self.inventory.drop(&Storable::C(consumable), 1) {
-            consumable.apply_effect(self);
-            1.
+            consumable.apply_effect(self, field);
+            self.speed_multiplier
         } else {
             self.add_message(&format!("You dont have {}", consumable));
             0.
         }
     }
 
-    pub fn consume_current(&mut self) -> f32 {
-        self.consume(self.consumable)
+    pub fn consume_current(&mut self, field: &mut Field) -> f32 {
+        self.consume(self.consumable, field)
     }
 
     pub fn shoot(&mut self, field: &mut Field, weapon: RangedWeapon) -> f32 {
         if !self.has(&RW(weapon)) {
             self.add_message(&format!("You do not have {}", weapon));
-            return 0.0;
+            return 0.;
         }
         if !self.inventory.drop(&I(*weapon.ammo()), 1) {
             self.add_message(&format!("No ammo! ({})", weapon.ammo()));
-            return 0.0;
+            return 0.;
         }
         let direction = self.coords_from_rotation();
         let mut curr_tile = (self.x, self. y);
@@ -276,7 +284,7 @@ impl Player {
                 self.add_message(&"Arrow broke");
             }
         }
-        1.0
+        self.speed_multiplier
     }
 
     pub fn shoot_current(&mut self, field: &mut Field) -> f32 {
@@ -291,7 +299,7 @@ impl Player {
     /// returns: how much action was spent.
     pub fn turn(&mut self, side: i32) -> f32 {
         self.rotation += side as f32;
-        0.25
+        0.25 * self.speed_multiplier
     }
 
     /// Computes delta_x and delta_y that, added to the Player position, give a cell in front of him.
@@ -331,9 +339,32 @@ impl Player {
         }
         self.message.push_str(new);
     }
-     pub fn reset_message(&mut self) {
+    pub fn reset_message(&mut self) {
          self.message = String::new();
      }
+
+    pub fn get_speed_multiplier(&self) -> f32 {
+        self.speed_multiplier
+    }
+
+    pub fn set_speed_multiplier(&mut self, speed: &f32) {
+        self.speed_multiplier = *speed;
+    }
+
+    pub fn add_delayed_action<T>(&mut self, action: DelayedAction<T>) {
+        self.delayed_actions.push(Box::new(action));
+    }
+
+    pub fn check_delayed_actions(&mut self) {
+        let mut i = 0;
+        while i < self.delayed_actions.len() {
+            if self.delayed_actions[i].check() {
+                self.delayed_actions.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
 }
 
 /// HP and damage things

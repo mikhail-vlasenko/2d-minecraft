@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::mem::swap;
 use std::ops::DerefMut;
@@ -18,6 +19,7 @@ use crate::map_generation::mobs::a_star::AStar;
 use crate::map_generation::mobs::mob::{Mob, Position};
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::mobs::spawning::create_mob;
+use crate::mechanics::delayed_action::DelayedAction;
 use crate::SETTINGS;
 
 
@@ -38,6 +40,7 @@ pub struct Field {
     a_star: AStar,
     /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
     stray_mobs: Vec<Mob>,
+    delayed_actions: Vec<DelayedAction<dyn Any>>,
     /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
     time: f32,
     accumulated_time: f32,
@@ -57,6 +60,7 @@ impl Field {
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
+        let delayed_actions = Vec::new();
 
         let a_star = AStar::new(SETTINGS.pathing.a_star_radius);
 
@@ -73,6 +77,7 @@ impl Field {
             render_distance,
             a_star,
             stray_mobs,
+            delayed_actions,
             time,
             accumulated_time,
             rng
@@ -99,6 +104,8 @@ impl Field {
     pub fn step_time(&mut self, passed_time: f32, player: &mut Player) {
         self.accumulated_time += passed_time;
         while self.accumulated_time >= 1. {
+            self.check_delayed_actions();
+            player.check_delayed_actions();
             let rng: f32 = self.rng.gen();
             if self.is_night() {
                 if rng > 0.9 {
@@ -249,6 +256,22 @@ impl Field {
     /// How far from the player's chunk the chunks are loaded
     pub fn get_loading_distance(&self) -> usize {
         self.loading_distance
+    }
+
+    pub fn add_delayed_action(&mut self, action: DelayedAction<dyn Any>) {
+        self.delayed_actions.push(action);
+    }
+
+    /// Iterate over the delayed actions and remove the ones that are done.
+    fn check_delayed_actions(&mut self) {
+        let mut i = 0;
+        while i < self.delayed_actions.len() {
+            if self.delayed_actions[i].check() {
+                self.delayed_actions.remove(i);
+            } else {
+                i += 1;
+            }
+        }
     }
 }
 

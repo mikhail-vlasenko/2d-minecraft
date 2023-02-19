@@ -8,6 +8,7 @@ use crate::settings::Settings;
 pub mod player;
 pub mod map_generation;
 pub mod crafting;
+pub mod mechanics;
 mod graphics;
 pub mod input_decoding;
 mod settings;

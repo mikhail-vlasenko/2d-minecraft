@@ -6,6 +6,8 @@ use Storable::*;
 use crate::crafting::storable::{Craftable, Storable};
 use crate::crafting::consumable::Consumable::*;
 use crate::crafting::material::Material;
+use crate::map_generation::field::Field;
+use crate::mechanics::delayed_action::DelayedAction;
 use crate::player::Player;
 
 
@@ -13,13 +15,21 @@ use crate::player::Player;
 pub enum Consumable {
     Apple,
     RawMeat,
+    SpeedPotion,
 }
 
 impl Consumable {
-    pub fn apply_effect(&self, player: &mut Player) {
+    pub fn apply_effect(&self, player: &mut Player, field: &mut Field) {
         match self {
             Apple => player.heal(20),
             RawMeat => player.heal(20),
+            SpeedPotion => {
+                let reset_speed = DelayedAction::new(
+                    50,
+                    Player::set_speed_multiplier,
+                    Box::new(1.));
+                player.add_delayed_action(reset_speed);
+            },
         }
     }
 }
@@ -29,6 +39,7 @@ impl Craftable for Consumable {
         match self {
             Apple => "apple",
             RawMeat => "raw meat",
+            SpeedPotion => "speed potion",
         }
     }
 
