@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::ops::Not;
 use winit::event::VirtualKeyCode;
-use crate::player::Player;
+use crate::character::player::Player;
 use crate::map_generation::field::Field;
 
 /// Makes an action, corresponding to the key.

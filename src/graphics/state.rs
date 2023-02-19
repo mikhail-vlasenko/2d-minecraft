@@ -13,7 +13,7 @@ use winit::dpi::PhysicalSize;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 
-use crate::player::Player;
+use crate::character::player::Player;
 use crate::graphics::buffers::Buffers;
 use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::instance::*;

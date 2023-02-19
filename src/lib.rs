@@ -5,7 +5,6 @@ use lazy_static::lazy_static;
 use crate::graphics::event_loop::run;
 use crate::settings::Settings;
 
-pub mod player;
 pub mod map_generation;
 pub mod crafting;
 mod graphics;

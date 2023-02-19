@@ -2,7 +2,7 @@ use std::cmp::{max, min};
 use rand::Rng;
 use crate::graphics::state::RENDER_DISTANCE;
 use crate::map_generation::mobs::a_star::{AStar, can_step};
-use crate::player::Player;
+use crate::character::player::Player;
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind};

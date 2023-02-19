@@ -2,7 +2,7 @@ use crate::crafting::consumable::Consumable::{RawMeat, SpeedPotion};
 use crate::crafting::items::Item::{Arrow, DiamondSword, IronIngot, IronPickaxe, Stick};
 use crate::crafting::material::Material::{CraftTable, Plank};
 use crate::crafting::ranged_weapon::RangedWeapon::Bow;
-use crate::player::Player;
+use crate::character::player::Player;
 
 impl Player {
     pub fn receive_cheat_package(&mut self) {

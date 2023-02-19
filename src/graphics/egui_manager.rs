@@ -8,7 +8,7 @@ use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration
 use winit::dpi::PhysicalSize;
 use winit::event::Event;
 use winit::window::Window;
-use crate::player::Player;
+use crate::character::player::Player;
 use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;

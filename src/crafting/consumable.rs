@@ -7,7 +7,7 @@ use crate::character::status_effects::StatusEffect;
 use crate::crafting::storable::{Craftable, Storable};
 use crate::crafting::consumable::Consumable::*;
 use crate::crafting::material::Material;
-use crate::player::Player;
+use crate::character::player::Player;
 
 
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]

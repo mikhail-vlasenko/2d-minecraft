@@ -8,7 +8,7 @@ use rand::rngs::ThreadRng;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
-use crate::player::Player;
+use crate::character::player::Player;
 
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;

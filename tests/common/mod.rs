@@ -3,7 +3,7 @@ use minecraft::input_decoding::act;
 use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
-use minecraft::player::Player;
+use minecraft::character::player::Player;
 use winit::event::VirtualKeyCode;
 use winit::event::VirtualKeyCode::*;
 use minecraft::crafting::consumable::Consumable;
