@@ -1,6 +1,7 @@
 use std::cell::{RefCell, RefMut};
+use std::mem;
 use rand::random;
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
 use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
@@ -11,7 +12,12 @@ use crate::SETTINGS;
 
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
+    /// all mobs on this chunk are stored here
     mobs: Vec<Mob>,
+    /// all furnaces, chests, turrets, etc on this chunk are stored here
+    /// turrets are special because they have to be extracted from the chunk to act
+    interactables: Vec<Interactable>,
+    /// length of the side of the square chunk
     size: usize,
 }
 
@@ -24,12 +30,7 @@ impl Chunk {
                 tiles[i].push(Self::gen_tile());
             }
         }
-        let mobs = Vec::new();
-        Self {
-            tiles,
-            size,
-            mobs,
-        }
+        Self::from(tiles)
     }
 
     pub fn from(tiles: Vec<Vec<Tile>>) -> Self {
@@ -38,6 +39,7 @@ impl Chunk {
             tiles,
             size,
             mobs: Vec::new(),
+            interactables: Vec::new(),
         }
     }
 
@@ -86,11 +88,22 @@ impl Chunk {
     }
 
     pub fn transfer_mobs(&mut self) -> Vec<Mob> {
-        let mut mobs = Vec::new();
-        for _ in 0..self.mobs.len() {
-            mobs.push(self.mobs.pop().unwrap());
+        mem::take(&mut self.mobs)
+    }
+
+    /// Turrets need to be extracted from the chunk to act,
+    /// as they need information from other chunks (mobs)
+    pub fn transfer_turrets(&mut self) -> Vec<Interactable> {
+        let mut turrets = Vec::new();
+        let mut i = 0;
+        while i < self.interactables.len() {
+            if self.interactables[i].get_kind().is_turret() {
+                turrets.push(self.interactables.remove(i));
+            } else {
+                i += 1;
+            }
         }
-        mobs
+        turrets
     }
 }
 
@@ -133,13 +146,22 @@ impl Chunk {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].gather_loot()
     }
-    pub fn get_interactable_at(&self, x: i32, y: i32) -> Option<Interactable> {
-        let inner = self.indices_in_chunk(x, y);
-        self.tiles[inner.0][inner.1].get_interactable()
+    pub fn get_interactable_kind_at(&self, x: i32, y: i32) -> Option<InteractableKind> {
+        for inter in &self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                return Some(inter.get_kind());
+            }
+        }
+        None
     }
-    pub fn add_interactable_at(&mut self, interactable: Interactable, x: i32, y: i32) -> bool {
-        let inner = self.indices_in_chunk(x, y);
-        self.tiles[inner.0][inner.1].add_interactable(interactable)
+    pub fn add_interactable(&mut self, interactable: Interactable) -> bool {
+        if self.get_interactable_kind_at(
+            interactable.get_position().0, interactable.get_position().1).is_none() {
+            self.interactables.push(interactable);
+            true
+        } else {
+            false
+        }
     }
     pub fn is_occupied(&self, x: i32, y: i32) -> bool {
         for m in &self.mobs {

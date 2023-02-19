@@ -8,7 +8,7 @@ use crate::crafting::material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::InteractableKind;
 
 
 /// Represents anything that can be stored in the inventory.
@@ -19,7 +19,7 @@ pub enum Storable {
     I(Item),
     C(Consumable),
     RW(RangedWeapon),
-    IN(Interactable)
+    IN(InteractableKind)
 }
 
 impl Storable {

@@ -11,7 +11,7 @@ use winit::window::Window;
 use crate::character::player::Player;
 use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::InteractableKind;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
@@ -126,7 +126,7 @@ impl EguiManager {
                                    format!("{} ({})", material.to_string(), count));
                 }
             }
-            for interactable in Interactable::iter() {
+            for interactable in InteractableKind::iter() {
                 let count = player.inventory_count(&interactable.into());
                 if count > 0 {
                     ui.radio_value(&mut player.placement_storable,
@@ -179,7 +179,7 @@ impl EguiManager {
                         for rw in RangedWeapon::iter() {
                             Self::display_for_section(player, section, columns, rw, i);
                         }
-                        for it in Interactable::iter() {
+                        for it in InteractableKind::iter() {
                             Self::display_for_section(player, section, columns, it, i);
                         }
                     }

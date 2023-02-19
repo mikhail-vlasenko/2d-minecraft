@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
 use std::mem::take;
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::*;
@@ -14,8 +14,6 @@ use crate::crafting::storable::Storable;
 pub struct Tile {
     pub blocks: Vec<Block>,
     pub loot: Vec<Storable>,
-    /// A turret, a door, a chest, a furnace, etc. Can only be one per tile.
-    pub interactable: Option<Interactable>,
 }
 
 impl Display for Tile {
@@ -29,7 +27,6 @@ impl Tile {
         Tile {
             blocks: vec![],
             loot: vec![],
-            interactable: None,
         }
     }
     pub fn len(&self) -> usize {
@@ -57,25 +54,12 @@ impl Tile {
     pub fn gather_loot(&mut self) -> Vec<Storable> {
         take(&mut self.loot)
     }
-    pub fn get_interactable(&self) -> Option<Interactable> {
-        self.interactable
-    }
-    pub fn add_interactable(&mut self, interactable: Interactable) -> bool {
-        if self.interactable.is_none() {
-            self.interactable = Some(interactable);
-            true
-        } else {
-            println!("Tried to add an interactable to a tile that already has one");
-            false
-        }
-    }
     pub fn make_dirt() -> Tile {
         return Tile {
             blocks: vec![Block { material: Bedrock },
                          Block { material: Stone },
                          Block { material: Dirt }],
             loot: Vec::new(),
-            interactable: None,
         };
     }
     pub fn add_tree(tile: &mut Tile) {

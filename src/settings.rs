@@ -113,7 +113,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         },
     },
     player: _Config__player {
-        cheating_start: false,
+        cheating_start: true,
     },
     window: _Config__window {
         height: 1600,

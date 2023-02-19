@@ -3,7 +3,7 @@ use std::cmp::min;
 use std::f32::consts::PI;
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
 use crate::map_generation::field::Field;
 use crate::crafting::inventory::Inventory;
@@ -100,14 +100,14 @@ impl Player {
         }
     }
 
-    pub fn place_interactable(&mut self, field: &mut Field, pos: (i32, i32), interactable: Interactable) -> f32 {
-        if field.get_interactable_at(pos).is_some() {
+    pub fn place_interactable(&mut self, field: &mut Field, pos: (i32, i32), interactable: InteractableKind) -> f32 {
+        if field.get_interactable_kind_at(pos).is_some() {
             self.add_message(&format!("Already has an interactable"));
             return 0.;
         }
 
         if self.inventory.drop(&interactable.into(), 1) {
-            field.add_interactable_at(interactable, pos);
+            field.add_interactable(Interactable::new(interactable, pos));
             self.get_speed_multiplier()
         } else {
             self.add_message(&format!("You do not have {}", interactable));

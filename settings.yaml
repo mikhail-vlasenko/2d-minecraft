@@ -30,4 +30,4 @@ mobs:
       # rest is zombie
 
 player:
-  cheating_start: false
+  cheating_start: true

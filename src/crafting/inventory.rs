@@ -3,6 +3,7 @@ use crate::crafting::storable::Storable;
 use crate::crafting::storable::Storable::{I, M};
 
 
+#[derive(Clone)]
 pub struct Inventory {
     items: Vec<(Storable, u32)>
 }

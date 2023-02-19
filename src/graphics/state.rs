@@ -14,7 +14,7 @@ use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 
 use crate::character::player::Player;
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::InteractableKind;
 use crate::graphics::buffers::Buffers;
 use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::instance::*;
@@ -335,7 +335,7 @@ impl State {
         }
 
         // draw interactable objects
-        for interactable in Interactable::iter() {
+        for interactable in InteractableKind::iter() {
             render_pass.set_bind_group(0,
                                        &self.bind_groups.get_bind_group_interactable(interactable),
                                        &[]);

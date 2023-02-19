@@ -1,5 +1,5 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::InteractableKind;
 use crate::crafting::material::Material;
 use crate::graphics::texture::Texture;
 use crate::map_generation::mobs::mob_kind::MobKind;
@@ -286,7 +286,7 @@ impl TextureBindGroups {
         }
     }
 
-    pub fn get_bind_group_interactable(&self, interactable: Interactable) -> &BindGroup {
+    pub fn get_bind_group_interactable(&self, interactable: InteractableKind) -> &BindGroup {
         match interactable {
             CrossbowTurret => &self.crossbow_turret,
         }

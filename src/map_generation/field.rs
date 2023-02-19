@@ -9,7 +9,7 @@ use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
 use crate::character::player::Player;
-use crate::crafting::interactable::Interactable;
+use crate::crafting::interactable::{Interactable, InteractableKind};
 
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
@@ -101,6 +101,7 @@ impl Field {
         self.accumulated_time += passed_time;
         while self.accumulated_time >= 1. {
             player.step_status_effects();
+            self.step_interactables();
             let rng: f32 = self.rng.gen();
             if self.is_night() {
                 if rng > 0.9 {
@@ -155,6 +156,26 @@ impl Field {
                 self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
             }
         }
+    }
+
+    pub fn step_turrets(&mut self) {
+        let mut turrets = Vec::new();
+        for i in 0..self.loaded_chunks.len() {
+            for j in 0..self.loaded_chunks[i].len() {
+                turrets.extend(self.loaded_chunks[i][j].borrow_mut().transfer_turrets());
+            }
+        }
+        for _ in 0..turrets.len() {
+            let mut turret = turrets.pop().unwrap();
+            turret.step(self, self.min_loaded_idx(), self.max_loaded_idx());
+            let (x_chunk, y_chunk) =
+                self.chunk_idx_from_pos(turret.get_position().0, turret.get_position().1);
+            self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_interactable(turret);
+        }
+    }
+
+    pub fn step_interactables(&mut self) {
+        self.step_turrets();
     }
 
     /// Spawns mobs on the loaded chunks.
@@ -411,9 +432,9 @@ impl Field {
         self.indices_around_player(player, cond)
     }
 
-    pub fn interactable_indices(&self, player: &Player, interactable: Interactable) -> Vec<(i32, i32)> {
+    pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<(i32, i32)> {
         let cond = |i, j| {
-            self.get_interactable_at((i, j)) == Some(interactable)
+            self.get_interactable_kind_at((i, j)) == Some(interactable)
         };
         self.indices_around_player(player, cond)
     }
@@ -422,6 +443,7 @@ impl Field {
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32, u32)> {
         let mut res: Vec<(i32, i32, u32)> = Vec::new();
 
+        // todo: far away chunks can be ignored?
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
                 for m in self.loaded_chunks[i][j].borrow().get_mobs() {
@@ -458,11 +480,12 @@ impl Field {
     pub fn gather_loot_at(&mut self, xy: (i32, i32)) -> Vec<Storable> {
         self.get_chunk(xy.0, xy.1).gather_loot_at(xy.0, xy.1)
     }
-    pub fn get_interactable_at(&self, xy: (i32, i32)) -> Option<Interactable> {
-        self.get_chunk_immut(xy.0, xy.1).get_interactable_at(xy.0, xy.1)
+    pub fn get_interactable_kind_at(&self, xy: (i32, i32)) -> Option<InteractableKind> {
+        self.get_chunk_immut(xy.0, xy.1).get_interactable_kind_at(xy.0, xy.1)
     }
-    pub fn add_interactable_at(&mut self, new: Interactable, xy: (i32, i32)) -> bool {
-        self.get_chunk(xy.0, xy.1).add_interactable_at(new, xy.0, xy.1)
+    pub fn add_interactable(&mut self, inter: Interactable) -> bool {
+        self.get_chunk(inter.get_position().0, inter.get_position().1)
+            .add_interactable(inter)
     }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,
