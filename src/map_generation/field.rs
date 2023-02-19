@@ -99,6 +99,7 @@ impl Field {
     pub fn step_time(&mut self, passed_time: f32, player: &mut Player) {
         self.accumulated_time += passed_time;
         while self.accumulated_time >= 1. {
+            player.step_status_effects();
             let rng: f32 = self.rng.gen();
             if self.is_night() {
                 if rng > 0.9 {

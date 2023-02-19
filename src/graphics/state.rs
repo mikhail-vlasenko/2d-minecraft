@@ -25,6 +25,9 @@ use crate::map_generation::field::Field;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
+use crate::map_generation::chunk::Chunk;
+use crate::map_generation::read_chunk::read_file;
+use crate::SETTINGS;
 
 pub const TILES_PER_ROW: u32 = 17;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
@@ -144,14 +147,19 @@ impl State {
 
         let buffers = Buffers::new(&device);
 
-        let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0, };
+        let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0 };
 
-        // let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
-        let mut field = Field::new(RENDER_DISTANCE, None);
+        let mut field = if SETTINGS.field.from_test_chunk {
+            let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
+            Field::new(RENDER_DISTANCE, Some(test_chunk))
+        } else {
+            Field::new(RENDER_DISTANCE, None)
+        };
         let mut player = Player::new(&field);
         player.pickup(Storable::C(Consumable::Apple), 2);
-        // player.pickup(Storable::RW(RangedWeapon::Bow), 1);
-        // player.pickup(Storable::I(Item::Arrow), 10);
+        if SETTINGS.player.cheating_start {
+            player.receive_cheat_package();
+        }
 
         // spawn some initial mobs
         let amount = (0.2 * (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as usize;
@@ -199,7 +207,7 @@ impl State {
                 true
             }
             WindowEvent::KeyboardInput {
-                input: KeyboardInput{
+                input: KeyboardInput {
                     state: ElementState::Pressed,
                     virtual_keycode,
                     ..
@@ -220,7 +228,7 @@ impl State {
         }
     }
 
-    pub fn update(&mut self) { }
+    pub fn update(&mut self) {}
 
     pub fn render(&mut self, window: &Window) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
@@ -238,7 +246,7 @@ impl State {
 
         let texture_delta = self.egui_manager.render_ui(
             &self.config, &self.device, &self.queue, &mut encoder, &view, window,
-            &mut self.player, self.field.get_time()
+            &mut self.player, self.field.get_time(),
         );
 
         self.queue.submit(iter::once(encoder.finish()));
@@ -276,7 +284,7 @@ impl State {
         render_pass.set_vertex_buffer(1, self.buffers.player_instance_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_groups.player, &[]);
         let idx = self.player.get_rotation();
-        render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
+        render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
 
         // render night filter
         self.render_night(&mut render_pass)
@@ -301,7 +309,7 @@ impl State {
             // Also, second component should be greater when higher (so negate it)
             let pos = indices[i];
             let idx = State::convert_index(pos.1, -pos.0) + (rots[i] * TILES_PER_ROW.pow(2));
-            render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx+1);
+            render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
         }
     }
 
@@ -321,7 +329,7 @@ impl State {
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
             render_pass.set_bind_group(0, &self.bind_groups.depth_indicators[i], &[]);
-            let depth = self.field.depth_indices(&self.player, i+2);
+            let depth = self.field.depth_indices(&self.player, i + 2);
             self.draw_at_indices(depth, &mut *render_pass, None);
         }
 

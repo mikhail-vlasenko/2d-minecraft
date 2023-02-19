@@ -117,8 +117,11 @@ impl EguiManager {
         egui::Window::new("Menu").show(&self.platform.context(), |ui| {
             ui.label("Placing material");
             for material in Material::iter() {
-                if player.has(&Storable::M(material)) {
-                    ui.radio_value(&mut player.placement_material, material, material.to_string());
+                let count = player.inventory_count(&material.into());
+                if count > 0 {
+                    ui.radio_value(&mut player.placement_material,
+                                   material,
+                                   format!("{} ({})", material.to_string(), count));
                 }
             }
 
@@ -126,19 +129,20 @@ impl EguiManager {
 
             ui.label("Consumable");
             for cons in Consumable::iter() {
+                let count = player.inventory_count(&cons.into());
                 ui.radio_value(
                     &mut player.consumable,
                     cons,
-                    format!("{}", cons.to_string()),
-                );
+                    format!("{} ({})", cons.to_string(), count));
             }
 
             ui.label("Ranged weapon");
             for rw in RangedWeapon::iter() {
+                let count = player.inventory_count(&(*rw.ammo()).into());
                 ui.radio_value(
                     &mut player.ranged_weapon,
                     rw,
-                    format!("{}", rw.to_string()),
+                    format!("{} ({} ammo)", rw.to_string(), count),
                 );
             }
         });
@@ -186,10 +190,10 @@ impl EguiManager {
                 RichText::new(
                     Self::format_item_description(craftable, count)
                 ).color(if has_all || !craftable.is_craftable() {
-                            Color32::WHITE
-                        } else {
-                            Color32::LIGHT_RED
-                        }),
+                    Color32::WHITE
+                } else {
+                    Color32::LIGHT_RED
+                }),
             );
         }
     }
@@ -206,12 +210,12 @@ impl EguiManager {
     fn render_inventory(&self, player: &Player) {
         egui::Window::new("Inventory").anchor(Align2::LEFT_BOTTOM, [0., 0.])
             .show(&self.platform.context(), |ui| {
-            for item in player.get_inventory() {
-                if item.1 != 0 {
-                    ui.label(format!("{}: {}", item.0, item.1));
+                for item in player.get_inventory() {
+                    if item.1 != 0 {
+                        ui.label(format!("{}: {}", item.0, item.1));
+                    }
                 }
-            }
-        });
+            });
     }
 
     fn render_info(&self, player: &Player, time: f32) {
@@ -220,9 +224,16 @@ impl EguiManager {
                 ui.add(Label::new(
                     format!("Position: {}, {}, {}", player.x, player.y, player.z)
                 ).wrap(false));
-                ui.label(format!("HP: {}/100", player.get_hp()));
+                ui.add(Label::new({
+                    let mut text = RichText::new(format!("HP: {}/100", player.get_hp()));
+                    if player.get_hp() <= 25 {
+                        text = text.color(Color32::RED).strong()
+                    }
+                    text
+                }));
                 ui.label(format!("ATK: {}", player.get_melee_damage()));
                 ui.label(format!("Mining PWR: {}", player.get_mining_power()));
+                ui.label(format!("Effects: {:?}", player.get_status_effects()));
                 ui.label(format!("Time: {}", time));
                 ui.label(format!("{}", player.message));
             });

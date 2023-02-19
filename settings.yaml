@@ -6,6 +6,7 @@ field:
     tree_proba: 0.07
     iron_proba: 0.2
     diamond_proba: 0.05
+  from_test_chunk: false
 
 pathing:
   a_star_radius: 20
@@ -23,3 +24,6 @@ mobs:
       bane: 0.3
       ling: 0.2
       # rest is zombie
+
+player:
+  cheating_start: false

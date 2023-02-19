@@ -1,5 +1,5 @@
 use strum_macros::EnumIter;
-use crate::crafting::consumable::Consumable::RawMeat;
+use crate::crafting::consumable::Consumable::{RawMeat, SpeedPotion};
 use crate::crafting::storable::Storable;
 use crate::map_generation::mobs::mob_kind::MobKind::*;
 
@@ -48,13 +48,24 @@ impl MobKind {
     }
 
     pub fn loot(&self) -> Vec<Storable> {
-        let rng: f32 = rand::random();
         match self {
             Zombie => vec![],
-            Zergling => if rng > 0.5 { vec![Storable::C(RawMeat)] } else { vec![] },
+            Zergling => {
+                let mut loot = Vec::new();
+                add_loot_with_probability(&mut loot, RawMeat.into(), 0.5);
+                add_loot_with_probability(&mut loot, SpeedPotion.into(), 0.25);
+                loot
+            }
             Baneling => vec![],
             Cow => vec![Storable::C(RawMeat)],
         }
+    }
+}
+
+fn add_loot_with_probability(loot: &mut Vec<Storable>, item: Storable, probability: f32) {
+    let rng: f32 = rand::random();
+    if rng < probability {
+        loot.push(item);
     }
 }
 

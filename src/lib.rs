@@ -10,6 +10,7 @@ pub mod map_generation;
 pub mod crafting;
 mod graphics;
 pub mod input_decoding;
+pub mod character;
 mod settings;
 
 lazy_static! {

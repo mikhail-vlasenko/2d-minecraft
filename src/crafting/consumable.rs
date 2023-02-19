@@ -3,6 +3,7 @@ use std::fmt::Display;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use Storable::*;
+use crate::character::status_effects::StatusEffect;
 use crate::crafting::storable::{Craftable, Storable};
 use crate::crafting::consumable::Consumable::*;
 use crate::crafting::material::Material;
@@ -13,6 +14,7 @@ use crate::player::Player;
 pub enum Consumable {
     Apple,
     RawMeat,
+    SpeedPotion,
 }
 
 impl Consumable {
@@ -20,6 +22,7 @@ impl Consumable {
         match self {
             Apple => player.heal(20),
             RawMeat => player.heal(20),
+            SpeedPotion => player.add_status_effect(StatusEffect::Speedy, 25),
         }
     }
 }
@@ -29,6 +32,7 @@ impl Craftable for Consumable {
         match self {
             Apple => "apple",
             RawMeat => "raw meat",
+            SpeedPotion => "speed potion",
         }
     }
 
