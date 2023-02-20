@@ -13,6 +13,7 @@ use crate::crafting::material::Material::*;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
 use crate::crafting::storable::Storable::{I, RW};
+use crate::SETTINGS;
 
 pub const MAX_HP: i32 = 100;
 
@@ -323,7 +324,7 @@ impl Player {
         if weapon.ammo() == &Arrow {
             // arrows can be reused, but sometimes break
             let rng: f32 = rand::random();
-            if rng > 0.3 {
+            if rng > SETTINGS.player.arrow_break_chance {
                 field.add_loot_at(vec![I(Arrow)], curr_tile);
             } else {
                 self.add_message(&"Arrow broke");
@@ -334,6 +335,32 @@ impl Player {
 
     pub fn shoot_current(&mut self, field: &mut Field) -> f32 {
         self.shoot(field, self.ranged_weapon)
+    }
+
+    pub fn load_interactable(&mut self, field: &mut Field,
+                             item: &Storable, amount: u32) {
+        if self.interacting_with.is_none() {
+            self.add_message(&format!("No interactable active"));
+            return;
+        }
+        if self.inventory.drop(item, amount) {
+            field.load_interactable_at(self.interacting_with.unwrap(), *item, amount);
+        } else {
+            self.add_message(&format!("You do not have {} of {}", amount, item));
+        }
+    }
+
+    pub fn unload_interactable(&mut self, field: &mut Field,
+                               item: &Storable, amount: u32) {
+        if self.interacting_with.is_none() {
+            self.add_message(&format!("No interactable active"));
+            return;
+        }
+        if field.unload_interactable_at(self.interacting_with.unwrap(), item, amount) {
+            self.inventory.pickup(*item, amount);
+        } else {
+            self.add_message(&format!("Interactable does not have {} of {}", amount, item));
+        }
     }
 
     /// Rotates the Player 90 degrees (counter-)clockwise.

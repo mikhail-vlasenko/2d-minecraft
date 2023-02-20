@@ -147,31 +147,6 @@ impl Chunk {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].gather_loot()
     }
-    pub fn get_interactable_kind_at(&self, x: i32, y: i32) -> Option<InteractableKind> {
-        for inter in &self.interactables {
-            if inter.get_position().0 == x && inter.get_position().1 == y {
-                return Some(inter.get_kind());
-            }
-        }
-        None
-    }
-    pub fn get_interactable_inventory_at(&self, x: i32, y: i32) -> Option<&Vec<(Storable, u32)>> {
-        for inter in &self.interactables {
-            if inter.get_position().0 == x && inter.get_position().1 == y {
-                return Some(inter.get_inventory().get_all());
-            }
-        }
-        None
-    }
-    pub fn add_interactable(&mut self, interactable: Interactable) -> bool {
-        if self.get_interactable_kind_at(
-            interactable.get_position().0, interactable.get_position().1).is_none() {
-            self.interactables.push(interactable);
-            true
-        } else {
-            false
-        }
-    }
     pub fn is_occupied(&self, x: i32, y: i32) -> bool {
         for m in &self.mobs {
             if m.pos.x == x && m.pos.y == y {
@@ -195,5 +170,49 @@ impl Chunk {
             }
         }
         false
+    }
+}
+
+/// API for using the chunk's interactables
+impl Chunk {
+    pub fn get_interactable_kind_at(&self, x: i32, y: i32) -> Option<InteractableKind> {
+        for inter in &self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                return Some(inter.get_kind());
+            }
+        }
+        None
+    }
+    pub fn get_interactable_inventory_at(&self, x: i32, y: i32) -> Option<&Vec<(Storable, u32)>> {
+        for inter in &self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                return Some(inter.get_inventory().get_all());
+            }
+        }
+        None
+    }
+    pub fn load_interactable_at(&mut self, x: i32, y: i32, item: Storable, amount: u32) {
+        for inter in &mut self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                inter.load_item(item, amount);
+            }
+        }
+    }
+    pub fn unload_interactable_at(&mut self, x: i32, y: i32, item: &Storable, amount: u32) -> bool {
+        for inter in &mut self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                return inter.unload_item(item, amount);
+            }
+        }
+        false
+    }
+    pub fn add_interactable(&mut self, interactable: Interactable) -> bool {
+        if self.get_interactable_kind_at(
+            interactable.get_position().0, interactable.get_position().1).is_none() {
+            self.interactables.push(interactable);
+            true
+        } else {
+            false
+        }
     }
 }

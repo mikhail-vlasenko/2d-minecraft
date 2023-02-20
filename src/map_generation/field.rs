@@ -498,6 +498,12 @@ impl Field {
     pub fn get_interactable_inventory_at(&self, xy: (i32, i32)) -> Vec<(Storable, u32)> {
         self.get_chunk_immut(xy.0, xy.1).get_interactable_inventory_at(xy.0, xy.1).unwrap().clone()
     }
+    pub fn load_interactable_at(&mut self, xy: (i32, i32), item: Storable, amount: u32) {
+        self.get_chunk(xy.0, xy.1).load_interactable_at(xy.0, xy.1, item, amount)
+    }
+    pub fn unload_interactable_at(&mut self, xy: (i32, i32), item: &Storable, amount: u32) -> bool {
+        self.get_chunk(xy.0, xy.1).unload_interactable_at(xy.0, xy.1, item, amount)
+    }
     pub fn add_interactable(&mut self, inter: Interactable) -> bool {
         self.get_chunk(inter.get_position().0, inter.get_position().1)
             .add_interactable(inter)

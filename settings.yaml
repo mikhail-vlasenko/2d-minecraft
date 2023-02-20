@@ -34,3 +34,4 @@ mobs:
 
 player:
   cheating_start: true
+  arrow_break_chance: 0.3

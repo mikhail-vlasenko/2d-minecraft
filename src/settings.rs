@@ -72,6 +72,7 @@ pub struct _Config__pathing__towards_player_radius {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__player {
+    pub arrow_break_chance: f32,
     pub cheating_start: bool,
 }
 
@@ -116,6 +117,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         },
     },
     player: _Config__player {
+        arrow_break_chance: 0.3,
         cheating_start: true,
     },
     window: _Config__window {

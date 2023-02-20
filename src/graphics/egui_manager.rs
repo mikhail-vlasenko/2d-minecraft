@@ -216,7 +216,8 @@ impl EguiManager {
 
     fn render_interact_menu(&self, player: &mut Player, field: &mut Field) {
         let inter_pos = player.interacting_with.unwrap();
-        egui::Window::new(format!("{} menu", field.get_interactable_kind_at(inter_pos).unwrap()))
+        let kind = field.get_interactable_kind_at(inter_pos).unwrap();
+        egui::Window::new(format!("{} menu", kind))
             .anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
             .fixed_size([500., 400.])
@@ -228,6 +229,26 @@ impl EguiManager {
                             columns[0].label(format!("{}: {}", item.0, item.1));
                         }
                     }
+                    if columns[0].button("Take all")
+                        .on_hover_text("Take all items from the interactable's inventory.")
+                        .clicked() {
+                        for (storable, amount) in field.get_interactable_inventory_at(inter_pos) {
+                            player.unload_interactable(field, &storable, amount);
+                        }
+
+                    }
+                    if kind.is_turret() {
+                        if columns[0].button("Put ammo")
+                            .on_hover_text("Put ammo from your inventory into the interactable's inventory.")
+                            .clicked() {
+                            player.load_interactable(
+                                field,
+                                &kind.get_ammo().unwrap().into(),
+                                1
+                            );
+                        }
+                    }
+
                     columns[1].label(format!("Your inventory:"));
                     for item in player.get_inventory() {
                         if item.1 != 0 {

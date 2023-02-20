@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, mem};
 use std::fmt::Display;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -20,6 +20,7 @@ pub struct Interactable {
     kind: InteractableKind,
     inventory: Inventory,
     position: (i32, i32),
+    /// targeting data can be changed by the player, so it's not part of the kind
     targeting_data: Option<TargetingData>,
     logs: Vec<String>,
 }
@@ -43,6 +44,14 @@ impl Interactable {
     }
     pub fn load_item(&mut self, item: Storable, amount: u32) {
         self.inventory.pickup(item, amount);
+    }
+    pub fn unload_item(&mut self, item: &Storable, amount: u32) -> bool {
+        self.inventory.drop(item, amount)
+    }
+    pub fn take_all(&mut self) -> Vec<(Storable, u32)> {
+        let items = self.inventory.get_all().clone();
+        self.inventory = Inventory::new();
+        items
     }
     pub fn get_inventory(&self) -> &Inventory {
         &self.inventory

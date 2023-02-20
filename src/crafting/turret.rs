@@ -2,6 +2,9 @@ use std::cmp::{max, min};
 use crate::character::player::Player;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::interactable::InteractableKind::*;
+use crate::crafting::items::Item;
+use crate::crafting::items::Item::Arrow;
+use crate::crafting::storable::Storable;
 use crate::map_generation::field::Field;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::SETTINGS;
@@ -14,12 +17,19 @@ pub struct TargetingData {
     /// how far this turret shoots
     range: usize,
     damage: i32,
+    ammo: Item,
 }
 
 impl Interactable {
     pub fn act_turret(&mut self, field: &mut Field, player: &mut Player,
                       min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let targeting = self.get_targeting_data();
+
+        if !self.get_inventory().contains(&targeting.ammo.into()) {
+            // no ammo, do nothing
+            return;
+        }
+
         let middle_idx = (field.chunk_pos(self.get_position().0),
                                    field.chunk_pos(self.get_position().1));
         let size = SETTINGS.field.chunk_size;
@@ -43,8 +53,18 @@ impl Interactable {
                         break;
                     }
                 }
+                // found a valid target to shoot
                 if let Some(mob_pos) = mob_pos {
                     field.damage_mob(mob_pos, targeting.damage);
+                    // put the arrow on the field
+                    if targeting.ammo == Arrow {
+                        let rng: f32 = rand::random();
+                        if rng > SETTINGS.player.arrow_break_chance {
+                            field.add_loot_at(vec![Arrow.into()], mob_pos);
+                        }
+                    }
+                    // remove the arrow from the turret
+                    self.unload_item(&targeting.ammo.into(), 1);
                     player.add_message(&format!("Turret shot mob at ({}, {})", mob_pos.0, mob_pos.1));
                     return;
                 }
@@ -60,7 +80,15 @@ impl InteractableKind {
                 target_mobs: vec![MobKind::Zombie, MobKind::Zergling, MobKind::Baneling],
                 range: 5,
                 damage: 30,
+                ammo: Arrow,
             }),
+        }
+    }
+    pub fn get_ammo(&self) -> Option<Item> {
+        if self.is_turret() {
+            Some(self.get_targeting_data().unwrap().ammo)
+        } else {
+            None
         }
     }
 }
