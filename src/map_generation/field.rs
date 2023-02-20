@@ -495,6 +495,9 @@ impl Field {
     pub fn get_interactable_kind_at(&self, xy: (i32, i32)) -> Option<InteractableKind> {
         self.get_chunk_immut(xy.0, xy.1).get_interactable_kind_at(xy.0, xy.1)
     }
+    pub fn get_interactable_inventory_at(&self, xy: (i32, i32)) -> Vec<(Storable, u32)> {
+        self.get_chunk_immut(xy.0, xy.1).get_interactable_inventory_at(xy.0, xy.1).unwrap().clone()
+    }
     pub fn add_interactable(&mut self, inter: Interactable) -> bool {
         self.get_chunk(inter.get_position().0, inter.get_position().1)
             .add_interactable(inter)

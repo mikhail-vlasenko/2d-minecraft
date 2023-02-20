@@ -21,6 +21,7 @@ pub struct Interactable {
     inventory: Inventory,
     position: (i32, i32),
     targeting_data: Option<TargetingData>,
+    logs: Vec<String>,
 }
 
 impl Interactable {
@@ -30,6 +31,7 @@ impl Interactable {
             inventory: Inventory::new(),
             position,
             targeting_data: kind.get_targeting_data(),
+            logs: Vec::new(),
         }
     }
     pub fn step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
@@ -41,6 +43,9 @@ impl Interactable {
     }
     pub fn load_item(&mut self, item: Storable, amount: u32) {
         self.inventory.pickup(item, amount);
+    }
+    pub fn get_inventory(&self) -> &Inventory {
+        &self.inventory
     }
     pub fn get_kind(&self) -> InteractableKind {
         self.kind

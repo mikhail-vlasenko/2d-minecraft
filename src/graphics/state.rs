@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::iter;
 
 use cgmath::{InnerSpace, Rotation3, Zero};
+use lazy_static::lazy_static;
 use strum::IntoEnumIterator;
 use wgpu::{BindGroup, BindGroupLayout, CommandEncoder, include_wgsl, RenderPass, TextureView};
 use wgpu::util::DeviceExt;
@@ -29,8 +30,9 @@ use crate::crafting::storable::Storable;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::read_chunk::read_file;
 use crate::SETTINGS;
+use crate::settings::DEFAULT_SETTINGS;
 
-pub const TILES_PER_ROW: u32 = 17;
+pub const TILES_PER_ROW: u32 = DEFAULT_SETTINGS.window.tiles_per_row as u32;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
 pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     -1.0,
@@ -247,7 +249,7 @@ impl State {
 
         let texture_delta = self.egui_manager.render_ui(
             &self.config, &self.device, &self.queue, &mut encoder, &view, window,
-            &mut self.player, self.field.get_time(),
+            &mut self.player, &mut self.field,
         );
 
         self.queue.submit(iter::once(encoder.finish()));

@@ -33,6 +33,8 @@ pub struct Player {
     pub crafting_item: Storable,
     pub consumable: Consumable,
     pub ranged_weapon: RangedWeapon,
+    /// The absolute map location of the interactable the player is currently interacting with.
+    pub interacting_with: Option<(i32, i32)>,
 
     pub message: String,
 }
@@ -51,6 +53,7 @@ impl Player {
             crafting_item: Storable::M(Plank),
             consumable: Consumable::Apple,
             ranged_weapon: RangedWeapon::Bow,
+            interacting_with: None,
             message: String::new(),
         };
         player.land(field);
@@ -58,6 +61,9 @@ impl Player {
     }
     /// Returns how much action was spent.
     pub fn mine(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
+        if self.interacting_with.is_some() {
+            self.interacting_with = None;
+        }
         let xx = self.x + delta_x;
         let yy = self.y + delta_y;
 
@@ -83,7 +89,8 @@ impl Player {
         self.inventory.mining_power()
     }
 
-    pub fn place_material(&mut self, field: &mut Field, pos: (i32, i32), material: Material) -> f32 {
+    /// places a block of that material at position, deduces from inventory
+    fn place_material(&mut self, field: &mut Field, pos: (i32, i32), material: Material) -> f32 {
         if field.full_at(pos) {
             self.add_message(&format!("Too high to build"));
             return 0.;
@@ -100,7 +107,8 @@ impl Player {
         }
     }
 
-    pub fn place_interactable(&mut self, field: &mut Field, pos: (i32, i32), interactable: InteractableKind) -> f32 {
+    /// Places a new Interactable of InteractableKind at position, deduces from inventory
+    fn place_interactable(&mut self, field: &mut Field, pos: (i32, i32), interactable: InteractableKind) -> f32 {
         if field.get_interactable_kind_at(pos).is_some() {
             self.add_message(&format!("Already has an interactable"));
             return 0.;
@@ -115,15 +123,32 @@ impl Player {
         }
     }
 
+    fn interact(&mut self, field: &mut Field, pos: (i32, i32)) {
+        if self.interacting_with.is_some() {
+            self.interacting_with = None;
+            return;
+        }
+        println!("Interacting with {:?}", pos);
+        self.interacting_with = Some(pos);
+    }
+
     /// Places a currently selected block in front of the player.
+    /// If there is an interactable in front of the player, interact with it instead.
     /// Returns how much action was spent.
     pub fn place_current(&mut self, field: &mut Field) -> f32 {
         let (delta_x, delta_y) = self.coords_from_rotation();
         let placement_pos = (self.x + delta_x,  self.y + delta_y);
-        match self.placement_storable {
-            Storable::M(material) => self.place_material(field, placement_pos, material),
-            Storable::IN(interactable) => self.place_interactable(field, placement_pos, interactable),
-            _ => panic!("Can't place {}", self.placement_storable),
+        if field.get_interactable_kind_at(placement_pos).is_some() {
+            self.interact(field, placement_pos);
+            0.
+        } else {
+            match self.placement_storable {
+                Storable::M(material) => self.place_material(field, placement_pos, material),
+                Storable::IN(interactable) => {
+                    self.place_interactable(field, placement_pos, interactable)
+                },
+                _ => panic!("Can't place {}", self.placement_storable),
+            }
         }
     }
 
@@ -147,6 +172,9 @@ impl Player {
     ///
     /// returns: how much action was spent.
     fn step(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
+        if self.interacting_with.is_some() {
+            self.interacting_with = None;
+        }
         let new_pos = (self.x + delta_x, self.y + delta_y);
         if field.len_at(new_pos) <= self.z + 1 {
             // fighting
@@ -315,6 +343,9 @@ impl Player {
     /// * `side`: -1 or 1; 1 is counterclockwise.
     /// returns: how much action was spent.
     pub fn turn(&mut self, side: i32) -> f32 {
+        if self.interacting_with.is_some() {
+            self.interacting_with = None;
+        }
         self.rotation += side as f32;
         0.25 * self.get_speed_multiplier()
     }

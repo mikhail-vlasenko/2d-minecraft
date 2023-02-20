@@ -11,12 +11,13 @@ use winit::window::Window;
 use crate::character::player::Player;
 use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
-use crate::crafting::interactable::InteractableKind;
+use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::{CraftMenuSection, Storable};
 use crate::crafting::storable::Craftable;
+use crate::map_generation::field::Field;
 
 
 /// Renders UI
@@ -62,13 +63,16 @@ impl EguiManager {
                      view: &TextureView,
                      window: &Window,
                      player: &mut Player,
-                     time: f32,
+                     field: &mut Field,
     ) -> TexturesDelta {
         self.platform.begin_frame();
 
         self.render_place_craft_menu(player);
         self.render_inventory(player);
-        self.render_info(player, time);
+        self.render_info(player, field.get_time());
+        if player.interacting_with.is_some() {
+            self.render_interact_menu(player, field);
+        }
         if *self.craft_menu_open.borrow() {
             self.render_craft_menu(player, config.width as f32 / 2.1);
         }
@@ -210,6 +214,29 @@ impl EguiManager {
         }
     }
 
+    fn render_interact_menu(&self, player: &mut Player, field: &mut Field) {
+        let inter_pos = player.interacting_with.unwrap();
+        egui::Window::new(format!("{} menu", field.get_interactable_kind_at(inter_pos).unwrap()))
+            .anchor(Align2::CENTER_CENTER, [0., 0.])
+            .collapsible(false)
+            .fixed_size([500., 400.])
+            .show(&self.platform.context(), |ui| {
+                ui.columns(2, |columns| {
+                    columns[0].label(format!("Interactable's inventory:"));
+                    for item in field.get_interactable_inventory_at(inter_pos) {
+                        if item.1 != 0 {
+                            columns[0].label(format!("{}: {}", item.0, item.1));
+                        }
+                    }
+                    columns[1].label(format!("Your inventory:"));
+                    for item in player.get_inventory() {
+                        if item.1 != 0 {
+                            columns[1].label(format!("{}: {}", item.0, item.1));
+                        }
+                    }
+                });
+            });
+    }
 
     fn format_item_description(item: impl Craftable, current: u32) -> String {
         if item.is_craftable() {

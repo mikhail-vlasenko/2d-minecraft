@@ -2,6 +2,7 @@ use std::cell::{RefCell, RefMut};
 use std::mem;
 use rand::random;
 use crate::crafting::interactable::{Interactable, InteractableKind};
+use crate::crafting::inventory::Inventory;
 use crate::map_generation::block::Block;
 use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
@@ -150,6 +151,14 @@ impl Chunk {
         for inter in &self.interactables {
             if inter.get_position().0 == x && inter.get_position().1 == y {
                 return Some(inter.get_kind());
+            }
+        }
+        None
+    }
+    pub fn get_interactable_inventory_at(&self, x: i32, y: i32) -> Option<&Vec<(Storable, u32)>> {
+        for inter in &self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                return Some(inter.get_inventory().get_all());
             }
         }
         None
