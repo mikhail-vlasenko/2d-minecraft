@@ -27,13 +27,14 @@ pub struct Field {
     /// hashmap for all generated chunks. key: encoded xy position, value: the chunk
     chunk_loader: ChunkLoader,
     /// tiles from these chunks can be accessed
+    /// shape is ((loading_distance * 2 + 1), (loading_distance * 2 + 1))
     loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
     /// position of the center of the currently loaded chunks. (usually the player's chunk)
     central_chunk: (i32, i32),
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
-    /// what the player sees
+    /// what the player sees, in tiles
     render_distance: usize,
     /// struct for pathing
     a_star: AStar,
@@ -47,8 +48,10 @@ pub struct Field {
 
 impl Field {
     pub fn new(render_distance: usize, starting_chunk: Option<Chunk>) -> Self {
+        // in chunks
         let loading_distance = SETTINGS.field.loading_distance as usize;
-        let chunk_size = 16;
+        // in tiles
+        let chunk_size = SETTINGS.field.chunk_size as usize;
 
         let chunk_loader = if starting_chunk.is_some() {
             ChunkLoader::with_starting_chunk(loading_distance, starting_chunk.unwrap())
@@ -101,7 +104,7 @@ impl Field {
         self.accumulated_time += passed_time;
         while self.accumulated_time >= 1. {
             player.step_status_effects();
-            self.step_interactables();
+            self.step_interactables(player);
             let rng: f32 = self.rng.gen();
             if self.is_night() {
                 if rng > 0.9 {
@@ -158,7 +161,7 @@ impl Field {
         }
     }
 
-    pub fn step_turrets(&mut self) {
+    pub fn step_turrets(&mut self, player: &mut Player) {
         let mut turrets = Vec::new();
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
@@ -167,15 +170,15 @@ impl Field {
         }
         for _ in 0..turrets.len() {
             let mut turret = turrets.pop().unwrap();
-            turret.step(self, self.min_loaded_idx(), self.max_loaded_idx());
+            turret.step(self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) =
                 self.chunk_idx_from_pos(turret.get_position().0, turret.get_position().1);
             self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_interactable(turret);
         }
     }
 
-    pub fn step_interactables(&mut self) {
-        self.step_turrets();
+    pub fn step_interactables(&mut self, player: &mut Player) {
+        self.step_turrets(player);
     }
 
     /// Spawns mobs on the loaded chunks.
@@ -301,7 +304,7 @@ impl Field {
     ///
     /// * `x`: absolute x position on the map
     /// * `y`: absolute y position on the map
-    fn chunk_idx_from_pos(&self, x: i32, y: i32) -> (usize, usize) {
+    pub fn chunk_idx_from_pos(&self, x: i32, y: i32) -> (usize, usize) {
         (self.compute_coord(x, self.central_chunk.0),
          self.compute_coord(y, self.central_chunk.1))
     }
@@ -433,6 +436,7 @@ impl Field {
     }
 
     pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<(i32, i32)> {
+        // todo: can rewrite like mob_indices for speed
         let cond = |i, j| {
             self.get_interactable_kind_at((i, j)) == Some(interactable)
         };
@@ -442,10 +446,10 @@ impl Field {
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32, u32)> {
         let mut res: Vec<(i32, i32, u32)> = Vec::new();
+        let (min_idx, max_idx) = self.get_close_chunk_indices();
 
-        // todo: far away chunks can be ignored?
-        for i in 0..self.loaded_chunks.len() {
-            for j in 0..self.loaded_chunks[i].len() {
+        for i in min_idx..=max_idx {
+            for j in min_idx..=max_idx {
                 for m in self.loaded_chunks[i][j].borrow().get_mobs() {
                     if m.get_kind() == &kind {
                         res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_rotation()));
@@ -454,6 +458,14 @@ impl Field {
             }
         }
         res
+    }
+
+    fn get_close_chunk_indices(&self) -> (usize, usize) {
+        let middle_idx = self.loading_distance;
+        let chunk_distance = (self.render_distance as f32 / self.chunk_size as f32).ceil() as usize;
+        let min_idx = middle_idx - chunk_distance;
+        let max_idx = middle_idx + chunk_distance;
+        (min_idx, max_idx)
     }
 }
 

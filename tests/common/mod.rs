@@ -63,6 +63,9 @@ impl Data {
     pub fn step_time(&mut self) {
         self.field.step_time(1., &mut self.player);
     }
+    pub fn step_interactables(&mut self) {
+        self.field.step_interactables(&mut self.player);
+    }
 }
 
 fn spawn_mobs(field: &mut Field, player: &mut Player, amount: usize, hostile: bool) {

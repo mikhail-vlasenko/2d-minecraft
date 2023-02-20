@@ -16,6 +16,7 @@ pub struct Settings {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
 pub struct _Config__field {
+    pub chunk_size: i32,
     pub from_test_chunk: bool,
     pub generation: _Config__field__generation,
     pub loading_distance: i32,
@@ -83,6 +84,7 @@ pub struct _Config__window {
 
 pub const DEFAULT_SETTINGS: Settings = Settings {
     field: _Config__field {
+        chunk_size: 16,
         from_test_chunk: false,
         generation: _Config__field__generation {
             diamond_proba: 0.05,

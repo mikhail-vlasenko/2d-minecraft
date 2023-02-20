@@ -3,6 +3,7 @@ use crate::crafting::items::Item::{Arrow, DiamondSword, IronIngot, IronPickaxe, 
 use crate::crafting::material::Material::{CraftTable, Diamond, Plank};
 use crate::crafting::ranged_weapon::RangedWeapon::Bow;
 use crate::character::player::Player;
+use crate::crafting::interactable::InteractableKind::CrossbowTurret;
 
 impl Player {
     pub fn receive_cheat_package(&mut self) {
@@ -17,5 +18,6 @@ impl Player {
         self.pickup(IronPickaxe.into(), 1);
         self.pickup(RawMeat.into(), 10);
         self.pickup(SpeedPotion.into(), 10);
+        self.pickup(CrossbowTurret.into(), 10);
     }
 }

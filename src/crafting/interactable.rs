@@ -3,6 +3,7 @@ use std::fmt::Display;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use Storable::*;
+use crate::character::player::Player;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::Diamond;
@@ -10,6 +11,7 @@ use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
 use crate::crafting::storable::CraftMenuSection::*;
 use crate::crafting::interactable::InteractableKind::*;
 use crate::crafting::inventory::Inventory;
+use crate::crafting::turret::TargetingData;
 use crate::map_generation::field::Field;
 
 
@@ -18,6 +20,7 @@ pub struct Interactable {
     kind: InteractableKind,
     inventory: Inventory,
     position: (i32, i32),
+    targeting_data: Option<TargetingData>,
 }
 
 impl Interactable {
@@ -26,11 +29,14 @@ impl Interactable {
             kind,
             inventory: Inventory::new(),
             position,
+            targeting_data: kind.get_targeting_data(),
         }
     }
-    pub fn step(&mut self, field: &mut Field, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    pub fn step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         match self.kind {
-            CrossbowTurret => { println!("Turret is shooting!"); }
+            CrossbowTurret => {
+                self.act_turret(field, player, min_loaded, max_loaded);
+            }
         }
     }
     pub fn load_item(&mut self, item: Storable, amount: u32) {
@@ -41,6 +47,9 @@ impl Interactable {
     }
     pub fn get_position(&self) -> (i32, i32) {
         self.position
+    }
+    pub fn get_targeting_data(&self) -> &TargetingData {
+        self.targeting_data.as_ref().unwrap()
     }
 }
 

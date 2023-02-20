@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
 use std::time::Instant;
+use crate::SETTINGS;
 
 
 pub struct ChunkLoader {
@@ -13,7 +14,7 @@ pub struct ChunkLoader {
 
 impl ChunkLoader {
     pub fn new(loading_distance: usize) -> Self {
-        let chunk_size = 16;
+        let chunk_size = SETTINGS.field.chunk_size as usize;
         let chunks = HashMap::new();
 
         let mut loader = Self {
