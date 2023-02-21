@@ -215,4 +215,16 @@ impl Chunk {
             false
         }
     }
+    pub fn break_interactable_at(&mut self, x: i32, y: i32) -> InteractableKind {
+        for i in 0..self.interactables.len() {
+            if self.interactables[i].get_position().0 == x && self.interactables[i].get_position().1 == y {
+                let inter = self.interactables.remove(i);
+                for (item, amount) in inter.get_inventory().get_all() {
+                    self.add_loot_at(vec![item.clone(); *amount as usize], x, y);
+                }
+                return inter.get_kind();
+            }
+        }
+        panic!("Tried to break interactable at {}, {} but there was none", x, y)
+    }
 }

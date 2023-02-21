@@ -60,30 +60,37 @@ impl Player {
         player.land(field);
         player
     }
+    /// Breaks the top block or picks up the interactable at the given position.
     /// Returns how much action was spent.
-    pub fn mine(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
+    pub fn mine(&mut self, field: &mut Field, pos: (i32, i32)) -> f32 {
         if self.interacting_with.is_some() {
             self.interacting_with = None;
         }
-        let xx = self.x + delta_x;
-        let yy = self.y + delta_y;
 
-        let mat =  field.top_material_at((xx, yy));
+        if field.get_interactable_kind_at(pos).is_some() {
+            let kind = field.break_interactable_at(pos);
+            self.pickup(kind.into(), 1);
+            self.add_message(&format!("Picked up {}", kind));
+            return 0.;
+        }
+        let mat =  field.top_material_at(pos);
         if mat.required_mining_power() > self.get_mining_power() {
             self.add_message(&format!("Need {} mining PWR", mat.required_mining_power()));
             0.
         } else {
             self.add_message(&format!("Mined {}", mat));
-            self.inventory.pickup(Storable::M(mat), 1);
-            field.pop_at((self.x + delta_x, self.y + delta_y));
+            self.pickup(mat.into(), 1);
+            field.pop_at(pos);
             self.get_speed_multiplier()
         }
     }
 
     /// Mines a block in front of the player.
     pub fn mine_infront(&mut self, field: &mut Field) -> f32 {
-        let (x, y) = self.coords_from_rotation();
-        self.mine(field, x, y)
+        let (delta_x, delta_y) = self.coords_from_rotation();
+        let x = self.x + delta_x;
+        let y = self.y + delta_y;
+        self.mine(field, (x, y))
     }
 
     pub fn get_mining_power(&self) -> i32 {

@@ -508,6 +508,9 @@ impl Field {
         self.get_chunk(inter.get_position().0, inter.get_position().1)
             .add_interactable(inter)
     }
+    pub fn break_interactable_at(&mut self, xy: (i32, i32)) -> InteractableKind {
+        self.get_chunk(xy.0, xy.1).break_interactable_at(xy.0, xy.1)
+    }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,
     /// when (some) of the mobs are extracted from chunks
