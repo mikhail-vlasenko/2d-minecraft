@@ -122,7 +122,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     },
     window: _Config__window {
         height: 1600,
-        tiles_per_row: 17,
+        tiles_per_row: 21,
         width: 1600,
     },
 };

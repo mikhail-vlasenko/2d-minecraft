@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use ::egui::FontDefinitions;
+use egui::{Align, FontDefinitions, Slider};
 use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
@@ -25,6 +25,7 @@ pub struct EguiManager {
     platform: Platform,
     render_pass: egui_wgpu_backend::RenderPass,
     pub craft_menu_open: RefCell<bool>,
+    pub deposit_ammo_amount: u32,
 }
 
 impl EguiManager {
@@ -51,6 +52,7 @@ impl EguiManager {
             platform,
             render_pass,
             craft_menu_open: RefCell::new(false),
+            deposit_ammo_amount: 1,
         }
     }
 
@@ -121,45 +123,45 @@ impl EguiManager {
     fn render_place_craft_menu(&self, player: &mut Player) {
         egui::Window::new("Menu").auto_sized()
             .show(&self.platform.context(), |ui| {
-            ui.label("Placing material");
-            for material in Material::iter() {
-                let count = player.inventory_count(&material.into());
-                if count > 0 {
-                    ui.radio_value(&mut player.placement_storable,
-                                   material.into(),
-                                   format!("{} ({})", material.to_string(), count));
+                ui.label("Placing material");
+                for material in Material::iter() {
+                    let count = player.inventory_count(&material.into());
+                    if count > 0 {
+                        ui.radio_value(&mut player.placement_storable,
+                                       material.into(),
+                                       format!("{} ({})", material.to_string(), count));
+                    }
                 }
-            }
-            for interactable in InteractableKind::iter() {
-                let count = player.inventory_count(&interactable.into());
-                if count > 0 {
-                    ui.radio_value(&mut player.placement_storable,
-                                   interactable.into(),
-                                   format!("{} ({})", interactable.to_string(), count));
+                for interactable in InteractableKind::iter() {
+                    let count = player.inventory_count(&interactable.into());
+                    if count > 0 {
+                        ui.radio_value(&mut player.placement_storable,
+                                       interactable.into(),
+                                       format!("{} ({})", interactable.to_string(), count));
+                    }
                 }
-            }
 
-            ui.label(format!("Crafting item: \n{}", player.crafting_item));
+                ui.label(format!("Crafting item: \n{}", player.crafting_item));
 
-            ui.label("Consumable");
-            for cons in Consumable::iter() {
-                let count = player.inventory_count(&cons.into());
-                ui.radio_value(
-                    &mut player.consumable,
-                    cons,
-                    format!("{} ({})", cons.to_string(), count));
-            }
+                ui.label("Consumable");
+                for cons in Consumable::iter() {
+                    let count = player.inventory_count(&cons.into());
+                    ui.radio_value(
+                        &mut player.consumable,
+                        cons,
+                        format!("{} ({})", cons.to_string(), count));
+                }
 
-            ui.label("Ranged weapon");
-            for rw in RangedWeapon::iter() {
-                let count = player.inventory_count(&(*rw.ammo()).into());
-                ui.radio_value(
-                    &mut player.ranged_weapon,
-                    rw,
-                    format!("{} ({} ammo)", rw.to_string(), count),
-                );
-            }
-        });
+                ui.label("Ranged weapon");
+                for rw in RangedWeapon::iter() {
+                    let count = player.inventory_count(&(*rw.ammo()).into());
+                    ui.radio_value(
+                        &mut player.ranged_weapon,
+                        rw,
+                        format!("{} ({} ammo)", rw.to_string(), count),
+                    );
+                }
+            });
     }
 
     /// Render the menu with all the items for crafting.
@@ -214,13 +216,13 @@ impl EguiManager {
         }
     }
 
-    fn render_interact_menu(&self, player: &mut Player, field: &mut Field) {
+    fn render_interact_menu(&mut self, player: &mut Player, field: &mut Field) {
         let inter_pos = player.interacting_with.unwrap();
         let kind = field.get_interactable_kind_at(inter_pos).unwrap();
         egui::Window::new(format!("{} menu", kind))
             .anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
-            .fixed_size([500., 400.])
+            .default_height(200.)
             .show(&self.platform.context(), |ui| {
                 ui.columns(2, |columns| {
                     columns[0].label(format!("Interactable's inventory:"));
@@ -229,25 +231,37 @@ impl EguiManager {
                             columns[0].label(format!("{}: {}", item.0, item.1));
                         }
                     }
-                    if columns[0].button("Take all")
-                        .on_hover_text("Take all items from the interactable's inventory.")
-                        .clicked() {
-                        for (storable, amount) in field.get_interactable_inventory_at(inter_pos) {
-                            player.unload_interactable(field, &storable, amount);
-                        }
-
-                    }
-                    if kind.is_turret() {
-                        if columns[0].button("Put ammo")
-                            .on_hover_text("Put ammo from your inventory into the interactable's inventory.")
-                            .clicked() {
-                            player.load_interactable(
-                                field,
-                                &kind.get_ammo().unwrap().into(),
-                                1
-                            );
-                        }
-                    }
+                    columns[0].with_layout(
+                        egui::Layout::left_to_right().with_cross_align(Align::BOTTOM),
+                        |ui| {
+                            if ui.button("Take all")
+                                .on_hover_text("Take all items from the interactable's inventory.")
+                                .clicked() {
+                                for (storable, amount) in field.get_interactable_inventory_at(inter_pos) {
+                                    player.unload_interactable(field, &storable, amount);
+                                }
+                            }
+                            if kind.is_turret() {
+                                let ammo = &kind.get_ammo().unwrap().into();
+                                if ui.button(format!("Put {:0>3} ammo", self.deposit_ammo_amount))
+                                    .on_hover_text("Put ammo from your inventory into the interactable's inventory.")
+                                    .clicked() {
+                                    player.load_interactable(
+                                        field,
+                                        ammo,
+                                        self.deposit_ammo_amount,
+                                    );
+                                    if self.deposit_ammo_amount > player.inventory_count(ammo) {
+                                        self.deposit_ammo_amount = player.inventory_count(ammo);
+                                    }
+                                }
+                                ui.add(Slider::new(&mut self.deposit_ammo_amount,
+                                    0..=player.inventory_count(ammo))
+                                           .smart_aim(true)
+                                           .step_by(1.)
+                                           .text("amount"));
+                            }
+                        });
 
                     columns[1].label(format!("Your inventory:"));
                     for item in player.get_inventory() {
