@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use rand::Rng;
+use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::graphics::state::RENDER_DISTANCE;
 use crate::map_generation::mobs::a_star::{AStar, can_step};
 use crate::character::player::Player;
@@ -65,54 +66,6 @@ impl Mob {
 
     pub fn land(&mut self, field: &Field) {
         self.pos.z = field.len_at((self.pos.x, self.pos.y));
-    }
-
-    /// Calls Mob.act() 0 or more times, depending on the mob's speed.
-    pub fn act_with_speed(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        self.speed_buffer += self.kind.speed();
-        while self.speed_buffer >= 1.{
-            self.act(field, player, min_loaded, max_loaded);
-            self.speed_buffer -= 1.;
-        }
-    }
-
-    /// Performs a single turn on the mob.
-    /// The mob cant wander out of loaded chunks.
-    ///
-    /// # Arguments
-    /// * `field` - the field the mob is on
-    /// * `player` - the player
-    /// * `min_loaded` - the minimum loaded coordinate
-    /// * `max_loaded` - the maximum loaded coordinate
-    fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
-
-        if dist <= field.get_towards_player_radius() && self.kind == Baneling {
-            // a bane can explode if the path is blocked, so it has a special step function
-            self.baneling_step(field, player, min_loaded, max_loaded);
-        }
-
-        // hostile mobs within smaller range use optimal pathing. Banelings always go head on
-        if self.kind.hostile() && dist <= field.get_a_star_radius() {
-            // within a* range, so do full path search
-            let (direction, _) = field.full_pathing(
-                (self.pos.x, self.pos.y),
-                (player.x, player.y),
-                (player.x, player.y),
-                None
-            );
-            if direction != (0, 0) {
-                self.step(field, player, direction, min_loaded, max_loaded);
-            } else {
-                self.step_towards_player(field, player, min_loaded, max_loaded);
-            }
-        }
-        else if self.kind.hostile() && dist <= field.get_towards_player_radius() {
-            self.step_towards_player(field, player, min_loaded, max_loaded);
-        } else {
-            // not hostile, or too far away, so just wander
-            self.random_step(field, player, min_loaded, max_loaded);
-        }
     }
 
     /// Moves in a random direction, not walking out of loaded chunks
@@ -212,6 +165,60 @@ impl Mob {
         } else {
             (modulus + 4) as u32
         }
+    }
+}
+
+impl ActingWithSpeed for Mob {
+    /// Performs a single turn on the mob.
+    /// The mob cant wander out of loaded chunks.
+    ///
+    /// # Arguments
+    /// * `field` - the field the mob is on
+    /// * `player` - the player
+    /// * `min_loaded` - the minimum loaded coordinate
+    /// * `max_loaded` - the maximum loaded coordinate
+    fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+        let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+
+        if dist <= field.get_towards_player_radius() && self.kind == Baneling {
+            // a bane can explode if the path is blocked, so it has a special step function
+            self.baneling_step(field, player, min_loaded, max_loaded);
+        }
+
+        // hostile mobs within smaller range use optimal pathing. Banelings always go head on
+        if self.kind.hostile() && dist <= field.get_a_star_radius() {
+            // within a* range, so do full path search
+            let (direction, _) = field.full_pathing(
+                (self.pos.x, self.pos.y),
+                (player.x, player.y),
+                (player.x, player.y),
+                None
+            );
+            if direction != (0, 0) {
+                self.step(field, player, direction, min_loaded, max_loaded);
+            } else {
+                self.step_towards_player(field, player, min_loaded, max_loaded);
+            }
+        }
+        else if self.kind.hostile() && dist <= field.get_towards_player_radius() {
+            self.step_towards_player(field, player, min_loaded, max_loaded);
+        } else {
+            // not hostile, or too far away, so just wander
+            self.random_step(field, player, min_loaded, max_loaded);
+        }
+    }
+    
+    fn get_speed(&self) -> f32 {
+        self.kind.speed()
+    }
+    fn get_speed_buffer(&self) -> f32 {
+        self.speed_buffer
+    }
+    fn add_to_speed_buffer(&mut self, amount: f32) {
+        self.speed_buffer += amount;
+    }
+    fn decrement_speed_buffer(&mut self) {
+        self.speed_buffer -= 1.0;
     }
 }
 

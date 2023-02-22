@@ -5,6 +5,7 @@ use std::panic;
 use std::rc::Rc;
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
@@ -170,7 +171,7 @@ impl Field {
         }
         for _ in 0..turrets.len() {
             let mut turret = turrets.pop().unwrap();
-            turret.step(self, player, self.min_loaded_idx(), self.max_loaded_idx());
+            turret.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) =
                 self.chunk_idx_from_pos(turret.get_position().0, turret.get_position().1);
             self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_interactable(turret);

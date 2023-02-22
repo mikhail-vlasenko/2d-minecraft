@@ -74,6 +74,7 @@ pub struct _Config__pathing__towards_player_radius {
 pub struct _Config__player {
     pub arrow_break_chance: f32,
     pub cheating_start: bool,
+    pub max_hp: i32,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -119,6 +120,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     player: _Config__player {
         arrow_break_chance: 0.3,
         cheating_start: true,
+        max_hp: 100,
     },
     window: _Config__window {
         height: 1600,

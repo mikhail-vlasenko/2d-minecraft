@@ -35,9 +35,33 @@ fn test_placed_turret_kills() {
     assert!(data.field.is_occupied((8, 8)));
     data.player.pickup(CrossbowTurret.into(), 1);
     data.place(CrossbowTurret.into());
-    // load it (later)
+    data.field.load_interactable_at((9, 9), Arrow.into(), 10);
+    data.step_interactables();
+    // crossbow turret has speed < 1 so it does not kill immediately
+    assert!(data.field.is_occupied((8, 8)));
     data.step_interactables();
     assert!(!data.field.is_occupied((8, 8)));
+}
+
+#[test]
+fn test_loading_turret() {
+    let mut data = Data::new();
+    data.player.x = 10;
+    data.player.y = 9;
+    let pos = Position {
+        x: 8,
+        y: 8,
+        z: 2,
+    };
+    let mob = Mob::new(pos, Zergling);
+    data.field.get_chunk(0, 0).add_mob(mob);
+    assert!(data.field.is_occupied((8, 8)));
+    data.player.pickup(CrossbowTurret.into(), 1);
+    data.place(CrossbowTurret.into());
+    data.step_interactables();
+    data.step_interactables();
+    data.step_interactables();
+    assert!(data.field.is_occupied((8, 8)));
 }
 
 #[test]
@@ -54,7 +78,8 @@ fn test_turret_limited_range() {
     data.field.get_chunk(0, 0).add_mob(mob);
     data.player.pickup(CrossbowTurret.into(), 1);
     data.place(CrossbowTurret.into());
-    // load it (later)
+    data.field.load_interactable_at((14, 15), Arrow.into(), 10);
+    data.step_interactables();
     data.step_interactables();
     assert!(data.field.is_occupied((0, 0)));
 }

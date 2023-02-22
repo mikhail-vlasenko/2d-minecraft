@@ -195,8 +195,10 @@ impl Chunk {
         for inter in &mut self.interactables {
             if inter.get_position().0 == x && inter.get_position().1 == y {
                 inter.load_item(item, amount);
+                return;
             }
         }
+        panic!("Tried to load interactable at {}, {} but there was none", x, y)
     }
     pub fn unload_interactable_at(&mut self, x: i32, y: i32, item: &Storable, amount: u32) -> bool {
         for inter in &mut self.interactables {

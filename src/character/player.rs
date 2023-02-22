@@ -15,7 +15,6 @@ use crate::crafting::storable::Storable;
 use crate::crafting::storable::Storable::{I, RW};
 use crate::SETTINGS;
 
-pub const MAX_HP: i32 = 100;
 
 /// The player.
 pub struct Player {
@@ -47,7 +46,7 @@ impl Player {
             y: 0,
             z: 0,
             rotation: 0.,
-            hp: MAX_HP,
+            hp: SETTINGS.player.max_hp,
             inventory: Inventory::new(),
             status_effects: Vec::new(),
             placement_storable: Plank.into(),
@@ -462,7 +461,7 @@ impl Player {
     }
 
     pub fn heal(&mut self, hp: i32) {
-        self.hp = min(MAX_HP, self.hp + hp)
+        self.hp = min(SETTINGS.player.max_hp, self.hp + hp)
     }
 
     pub fn get_melee_damage(&self) -> i32 {
