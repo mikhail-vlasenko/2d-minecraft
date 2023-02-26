@@ -41,6 +41,10 @@ impl Texture {
                 dimension: wgpu::TextureDimension::D2,
                 format: wgpu::TextureFormat::Rgba8UnormSrgb,
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                // This is the same as with the SurfaceConfig. It
+                // specifies what texture formats can be used to
+                // create TextureViews for this texture.
+                view_formats: &[],
             }
         );
 

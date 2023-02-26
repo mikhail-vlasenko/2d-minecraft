@@ -37,7 +37,7 @@ impl EguiManager {
         adapter: &Adapter,
         device: &Device,
     ) -> Self {
-        let surface_format = surface.get_supported_formats(&adapter)[0];
+        let surface_format = surface.get_capabilities(&adapter).formats[0];
 
         let platform = Platform::new(PlatformDescriptor {
             physical_width: size.width as u32,
@@ -234,7 +234,7 @@ impl EguiManager {
                         }
                     }
                     columns[0].with_layout(
-                        egui::Layout::left_to_right().with_cross_align(Align::BOTTOM),
+                        egui::Layout::left_to_right(Align::BOTTOM),
                         |ui| {
                             if ui.button("Take all")
                                 .on_hover_text("Take all items from the interactable's inventory.")
