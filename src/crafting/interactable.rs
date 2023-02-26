@@ -22,7 +22,7 @@ pub struct Interactable {
     inventory: Inventory,
     position: (i32, i32),
     /// targeting data can be changed by the player, so it's not part of the kind
-    targeting_data: Option<TargetingData>,
+    pub(super) targeting_data: Option<TargetingData>,
     logs: Vec<String>,
     /// when this reaches 1, the interactable is eligible to step
     speed_buffer: f32,

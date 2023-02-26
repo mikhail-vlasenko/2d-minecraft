@@ -8,6 +8,7 @@ use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
+use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::read_chunk::read_file;
 use crate::SETTINGS;
 
@@ -228,5 +229,22 @@ impl Chunk {
             }
         }
         panic!("Tried to break interactable at {}, {} but there was none", x, y)
+    }
+    pub fn get_interactable_targets_at(&self, x: i32, y: i32) -> Vec<MobKind> {
+        for inter in &self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                return inter.get_targets();
+            }
+        }
+        panic!("Tried to get interactable targets at {}, {} but there was none", x, y)
+    }
+    pub fn set_interactable_targets_at(&mut self, x: i32, y: i32, targets: Vec<MobKind>) {
+        for inter in &mut self.interactables {
+            if inter.get_position().0 == x && inter.get_position().1 == y {
+                inter.set_targets(targets);
+                return;
+            }
+        }
+        panic!("Tried to set interactable targets at {}, {} but there was none", x, y)
     }
 }

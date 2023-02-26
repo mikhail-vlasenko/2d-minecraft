@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use egui::{Align, FontDefinitions, Slider};
+use egui::{Align, Checkbox, FontDefinitions, Slider};
 use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
 use egui_wgpu_backend;
 use egui_wgpu_backend::ScreenDescriptor;
@@ -18,6 +18,7 @@ use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::{CraftMenuSection, Storable};
 use crate::crafting::storable::Craftable;
 use crate::map_generation::field::Field;
+use crate::map_generation::mobs::mob_kind::MobKind;
 
 
 /// Renders UI
@@ -73,7 +74,7 @@ impl EguiManager {
         self.render_inventory(player);
         self.render_info(player, field.get_time());
         if player.interacting_with.is_some() {
-            self.render_interact_menu(player, field);
+            self.render_interact_menu(player, field, config.width as f32 / 2.1);
         }
         if *self.craft_menu_open.borrow() {
             self.render_craft_menu(player, config.width as f32 / 2.1);
@@ -216,15 +217,16 @@ impl EguiManager {
         }
     }
 
-    fn render_interact_menu(&mut self, player: &mut Player, field: &mut Field) {
+    fn render_interact_menu(&mut self, player: &mut Player, field: &mut Field, width: f32) {
         let inter_pos = player.interacting_with.unwrap();
         let kind = field.get_interactable_kind_at(inter_pos).unwrap();
         egui::Window::new(format!("{} menu", kind))
             .anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
-            .default_height(200.)
+            .fixed_size([width, 300.])
             .show(&self.platform.context(), |ui| {
-                ui.columns(2, |columns| {
+                let num_columns = 2 + kind.is_turret() as usize;
+                ui.columns(num_columns, |columns| {
                     columns[0].label(format!("Interactable's inventory:"));
                     for item in field.get_interactable_inventory_at(inter_pos) {
                         if item.1 != 0 {
@@ -268,6 +270,19 @@ impl EguiManager {
                         if item.1 != 0 {
                             columns[1].label(format!("{}: {}", item.0, item.1));
                         }
+                    }
+
+                    if kind.is_turret() {
+                        let targets = field.get_interactable_targets_at(inter_pos);
+                        let mut new_targets = Vec::new();
+                        for mob in MobKind::iter() {
+                            let mut mob_in = targets.contains(&mob);
+                            columns[2].checkbox(&mut mob_in, format!("{:?}", mob));
+                            if mob_in {
+                                new_targets.push(mob);
+                            }
+                        }
+                        field.set_interactable_targets_at(inter_pos, new_targets);
                     }
                 });
             });

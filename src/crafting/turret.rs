@@ -71,6 +71,14 @@ impl Interactable {
             }
         }
     }
+
+    pub fn get_targets(&self) -> Vec<MobKind> {
+        self.targeting_data.as_ref().unwrap().target_mobs.clone()
+    }
+
+    pub fn set_targets(&mut self, targets: Vec<MobKind>) {
+        self.targeting_data.as_mut().unwrap().set_targets(targets)
+    }
 }
 
 impl InteractableKind {
@@ -90,5 +98,11 @@ impl InteractableKind {
         } else {
             None
         }
+    }
+}
+
+impl TargetingData {
+    pub fn set_targets(&mut self, targets: Vec<MobKind>) {
+        self.target_mobs = targets;
     }
 }
