@@ -225,13 +225,27 @@ impl EguiManager {
             .collapsible(false)
             .fixed_size([width, 300.])
             .show(&self.platform.context(), |ui| {
-                let num_columns = 2 + kind.is_turret() as usize;
+                let num_columns = 2;
                 ui.columns(num_columns, |columns| {
                     columns[0].label(format!("Interactable's inventory:"));
                     for item in field.get_interactable_inventory_at(inter_pos) {
                         if item.1 != 0 {
                             columns[0].label(format!("{}: {}", item.0, item.1));
                         }
+                    }
+                    if kind.is_turret() {
+                        columns[0].add_space(30.);
+                        columns[0].label("Turret's targets:");
+                        let targets = field.get_interactable_targets_at(inter_pos);
+                        let mut new_targets = Vec::new();
+                        for mob in MobKind::iter() {
+                            let mut mob_in = targets.contains(&mob);
+                            columns[0].checkbox(&mut mob_in, format!("{:?}", mob));
+                            if mob_in {
+                                new_targets.push(mob);
+                            }
+                        }
+                        field.set_interactable_targets_at(inter_pos, new_targets);
                     }
                     columns[0].with_layout(
                         egui::Layout::left_to_right(Align::BOTTOM),
@@ -270,19 +284,6 @@ impl EguiManager {
                         if item.1 != 0 {
                             columns[1].label(format!("{}: {}", item.0, item.1));
                         }
-                    }
-
-                    if kind.is_turret() {
-                        let targets = field.get_interactable_targets_at(inter_pos);
-                        let mut new_targets = Vec::new();
-                        for mob in MobKind::iter() {
-                            let mut mob_in = targets.contains(&mob);
-                            columns[2].checkbox(&mut mob_in, format!("{:?}", mob));
-                            if mob_in {
-                                new_targets.push(mob);
-                            }
-                        }
-                        field.set_interactable_targets_at(inter_pos, new_targets);
                     }
                 });
             });

@@ -1,4 +1,5 @@
 use std::cmp::{max, min};
+use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::character::player::Player;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::interactable::InteractableKind::*;
@@ -70,6 +71,8 @@ impl Interactable {
                 }
             }
         }
+        // nothing was shot, so it should be able to make a turn on the next tick
+        self.add_to_speed_buffer(1. - self.get_speed());
     }
 
     pub fn get_targets(&self) -> Vec<MobKind> {
