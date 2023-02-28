@@ -4,6 +4,7 @@ use wgpu::util::DeviceExt;
 use crate::graphics::instance::Instance;
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
 use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
+use crate::SETTINGS;
 
 
 /// Creates and stores wgpu buffers
@@ -15,10 +16,11 @@ pub struct Buffers {
     pub player_instance_buffer: wgpu::Buffer,
     pub night_vertex_buffer: wgpu::Buffer,
     pub night_instance_buffer: wgpu::Buffer,
+    pub map_instance_buffer: wgpu::Buffer,
 }
 
 impl Buffers {
-    pub fn new(device: &Device) -> Self {
+    pub fn new(device: &Device, map_render_distance: i32) -> Self {
         let instances = (0..4).flat_map(|angle| {
             let x_rot_compensation = if angle == 1 || angle == 2 { 1 } else { 0 };
             let y_rot_compensation = if angle > 1 { 1 } else { 0 };
@@ -128,6 +130,36 @@ impl Buffers {
             }
         );
 
+        let map_side_length = 2 * map_render_distance + 1;
+        let map_scaling_coef =  2.0 / map_side_length as f32;
+        let map_instances =
+            (0..map_side_length).flat_map(move |y| {
+                (0..map_side_length).map(move |x| {
+                    let position =
+                        cgmath::Vector3 {
+                            x: x as f32 * map_scaling_coef,
+                            y: y as f32 * map_scaling_coef,
+                            z: 0.0
+                        } + INITIAL_POS;
+
+                    Instance {
+                        position,
+                        rotation: cgmath::Quaternion::from_axis_angle(
+                            cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+                        scaling: map_scaling_coef,
+                    }
+                })
+            }).collect::<Vec<_>>();
+
+        let map_instance_data = map_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let map_instance_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&map_instance_data),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+
         Self {
             vertex_buffer,
             player_vertex_buffer,
@@ -136,6 +168,7 @@ impl Buffers {
             player_instance_buffer,
             night_vertex_buffer,
             night_instance_buffer,
+            map_instance_buffer,
         }
     }
 }

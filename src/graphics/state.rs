@@ -1,11 +1,9 @@
-use std::cell::RefCell;
-use std::iter;
+use std::{iter};
 
 use cgmath::{InnerSpace, Rotation3, Zero};
 use lazy_static::lazy_static;
 use strum::IntoEnumIterator;
 use wgpu::{BindGroup, BindGroupLayout, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, TextureFormat, TextureView};
-use wgpu::util::DeviceExt;
 use winit::{
     event::*,
     window::Window,
@@ -150,8 +148,6 @@ impl State {
             multiview: None, // 5.
         });
 
-        let buffers = Buffers::new(&device);
-
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0 };
 
         let mut field = if SETTINGS.field.from_test_chunk {
@@ -160,6 +156,9 @@ impl State {
         } else {
             Field::new(RENDER_DISTANCE, None)
         };
+
+        let buffers = Buffers::new(&device, field.get_map_render_distance() as i32);
+
         let mut player = Player::new(&field);
         player.pickup(Storable::C(Consumable::Apple), 2);
         if SETTINGS.player.cheating_start {
@@ -247,22 +246,6 @@ impl State {
                 label: Some("Render Encoder"),
             });
 
-        self.render_game(&mut encoder, &view);
-
-        let texture_delta = self.egui_manager.render_ui(
-            &self.config, &self.device, &self.queue, &mut encoder, &view, window,
-            &mut self.player, &mut self.field,
-        );
-
-        self.queue.submit(iter::once(encoder.finish()));
-        output.present();
-
-        self.egui_manager.post_render_cleanup(texture_delta);
-
-        Ok(())
-    }
-
-    fn render_game(&self, encoder: &mut CommandEncoder, view: &TextureView) {
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Render Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -277,12 +260,34 @@ impl State {
         });
 
         render_pass.set_pipeline(&self.render_pipeline);
+
+        if !self.player.viewing_map {
+            self.render_game(&mut render_pass);
+        } else {
+            self.render_map(&mut render_pass);
+        }
+        drop(render_pass);
+
+        let texture_delta = self.egui_manager.render_ui(
+            &self.config, &self.device, &self.queue, &mut encoder, &view, window,
+            &mut self.player, &mut self.field,
+        );
+
+        self.queue.submit(iter::once(encoder.finish()));
+        output.present();
+
+        self.egui_manager.post_render_cleanup(texture_delta);
+
+        Ok(())
+    }
+
+    fn render_game<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        self.render_field(&mut render_pass);
-        self.render_mobs(&mut render_pass);
+        self.render_field(render_pass);
+        self.render_mobs(render_pass);
 
         // render player
         render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
@@ -292,7 +297,7 @@ impl State {
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
 
         // render night filter
-        self.render_night(&mut render_pass)
+        self.render_night(render_pass)
     }
 
     pub fn handle_ui_event<T>(&mut self, event: &Event<T>) {
@@ -319,6 +324,7 @@ impl State {
     }
 
     /// Draws textures of top materials on every tile, then draws depth indicators on top.
+    /// Also draws other key components (interactables, loot).
     ///
     /// # Arguments
     ///
@@ -327,7 +333,8 @@ impl State {
         // draw tiles of the same material together
         for material in Material::iter() {
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
-            let tiles = self.field.texture_indices(&self.player, material);
+            let tiles = self.field.texture_indices(&self.player, material,
+                                                   RENDER_DISTANCE as i32);
             self.draw_at_indices(tiles, &mut *render_pass, None);
         }
 
@@ -366,8 +373,8 @@ impl State {
             mobs = mobs.into_iter().filter(
                 |(x, y, _)| x.abs() <= max_drawable_index && y.abs() <= max_drawable_index
             ).collect();
-            let rotations: Vec<u32> = mobs.clone().into_iter().map(|(x, y, rot)| rot).collect();
-            let positions = mobs.into_iter().map(|(x, y, rot)| (x, y)).collect();
+            let rotations: Vec<u32> = mobs.clone().into_iter().map(|(_, _, rot)| rot).collect();
+            let positions = mobs.into_iter().map(|(x, y, _)| (x, y)).collect();
             self.draw_at_indices(positions, &mut *render_pass, Some(rotations));
         }
     }
@@ -382,6 +389,38 @@ impl State {
             render_pass.set_vertex_buffer(0, self.buffers.night_vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, self.buffers.night_instance_buffer.slice(..));
             render_pass.draw_indexed(0..6, 0, 0..1);
+        }
+    }
+
+    fn convert_map_view_index(&self, x: i32, y: i32) -> u32 {
+        (y + self.field.get_map_render_distance() as i32) as u32 *
+            ((self.field.get_map_render_distance() as u32 * 2) + 1) +
+            (x + self.field.get_map_render_distance() as i32) as u32
+    }
+
+    fn draw_at_map_view_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass) {
+        for i in 0..indices.len() {
+            // Here we want x to be horizontal, like mathematical coords
+            // Also, second component should be greater when higher (so negate it)
+            let pos = indices[i];
+            let idx = self.convert_map_view_index(pos.1, -pos.0);
+            render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+        }
+    }
+
+    /// Only renders the materials, but with a much larger render distance.
+    fn render_map<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.buffers.map_instance_buffer.slice(..));
+        render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+        for material in Material::iter() {
+            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
+            let tiles = self.field.texture_indices(
+                &self.player, material,
+                self.field.get_map_render_distance() as i32);
+
+            self.draw_at_map_view_indices(tiles, &mut *render_pass);
         }
     }
 }

@@ -35,6 +35,7 @@ pub struct Player {
     pub ranged_weapon: RangedWeapon,
     /// The absolute map location of the interactable the player is currently interacting with.
     pub interacting_with: Option<(i32, i32)>,
+    pub viewing_map: bool,
 
     pub message: String,
 }
@@ -54,6 +55,7 @@ impl Player {
             consumable: Consumable::Apple,
             ranged_weapon: RangedWeapon::Bow,
             interacting_with: None,
+            viewing_map: false,
             message: String::new(),
         };
         player.land(field);
@@ -438,8 +440,8 @@ impl Player {
         self.inventory.get_all()
     }
 
-    pub fn render_inventory(&self) {
-        self.inventory.render();
+    pub fn toggle_map(&mut self) {
+        self.viewing_map = !self.viewing_map;
     }
 
     pub fn add_message(&mut self, new: &str) {

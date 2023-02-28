@@ -1,4 +1,5 @@
 use std::cell::{Ref, RefCell, RefMut};
+use std::cmp::max;
 use std::mem::swap;
 use std::ops::DerefMut;
 use std::panic;
@@ -12,7 +13,6 @@ use crate::crafting::storable::Storable;
 use crate::character::player::Player;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 
-use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
@@ -37,6 +37,8 @@ pub struct Field {
     loading_distance: usize,
     /// what the player sees, in tiles
     render_distance: usize,
+    /// radius of the map view, in tiles
+    map_render_distance: usize,
     /// struct for pathing
     a_star: AStar,
     /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
@@ -53,6 +55,7 @@ impl Field {
         let loading_distance = SETTINGS.field.loading_distance as usize;
         // in tiles
         let chunk_size = SETTINGS.field.chunk_size as usize;
+        let map_render_distance = max(64, loading_distance * chunk_size);
 
         let chunk_loader = if starting_chunk.is_some() {
             ChunkLoader::with_starting_chunk(loading_distance, starting_chunk.unwrap())
@@ -76,6 +79,7 @@ impl Field {
             chunk_size,
             loading_distance,
             render_distance,
+            map_render_distance,
             a_star,
             stray_mobs,
             time,
@@ -277,6 +281,15 @@ impl Field {
     pub fn get_loading_distance(&self) -> usize {
         self.loading_distance
     }
+
+    /// How many tiles from player to a side appear on the screen
+    pub fn get_render_distance(&self) -> usize {
+        self.render_distance
+    }
+
+    pub fn get_map_render_distance(&self) -> usize {
+        self.map_render_distance
+    }
 }
 
 /// Chunk logic
@@ -385,19 +398,18 @@ impl Field {
     ///
     /// * `player`: the player
     /// * `material`: index only blocks of this material
-    /// * `RADIUS`: how far field from player is included
+    /// * `radius`: how far field from player is included
     ///
     /// returns: (2d Vector: the list of positions)
-    pub fn texture_indices(&self, player: &Player, material: Material) -> Vec<(i32, i32)> {
+    pub fn texture_indices(&self, player: &Player, material: Material, radius: i32) -> Vec<(i32, i32)> {
         let cond = |i, j| { self.top_material_at((i, j)) == material };
-        self.indices_around_player(player, cond)
+        self.indices_around_player(player, cond, radius)
     }
 
-    fn indices_around_player<F: Fn(i32, i32) -> bool>(&self, player: &Player, condition: F) -> Vec<(i32, i32)> {
-        let r = self.render_distance as i32;
+    fn indices_around_player<F: Fn(i32, i32) -> bool>(&self, player: &Player, condition: F, radius: i32) -> Vec<(i32, i32)> {
         let mut res: Vec<(i32, i32)> = Vec::new();
-        for i in (player.x - r)..=(player.x + r) {
-            for j in (player.y - r)..=(player.y + r) {
+        for i in (player.x - radius)..=(player.x + radius) {
+            for j in (player.y - radius)..=(player.y + radius) {
                 if condition(i, j) {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
@@ -409,7 +421,7 @@ impl Field {
     /// Makes a list of positions of blocks of given height around the player.
     pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<(i32, i32)> {
         let cond = |i, j| { self.len_at((i, j)) == height };
-        self.indices_around_player(player, cond)
+        self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
     /// Makes a list of positions of blocks that have loot on them.
@@ -425,7 +437,7 @@ impl Field {
             }
             false
         };
-        self.indices_around_player(player, cond)
+        self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
     /// Makes a list of positions of blocks that have loot on them
@@ -433,7 +445,7 @@ impl Field {
         let cond = |i, j| {
             self.get_chunk_immut(i, j).get_loot_at(i, j).contains(&Storable::I(Arrow))
         };
-        self.indices_around_player(player, cond)
+        self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
     pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<(i32, i32)> {
@@ -441,7 +453,7 @@ impl Field {
         let cond = |i, j| {
             self.get_interactable_kind_at((i, j)) == Some(interactable)
         };
-        self.indices_around_player(player, cond)
+        self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.

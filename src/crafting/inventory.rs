@@ -74,15 +74,6 @@ impl Inventory {
             }
         }
     }
-
-    pub fn render(&self) {
-        println!("You have: ");
-        for item in self.items.iter() {
-            if item.1 != 0 {
-                println!("{}: {}", item.0, item.1);
-            }
-        }
-    }
 }
 
 /// Player's stats, dependent on inventory content.

@@ -70,14 +70,16 @@ impl EguiManager {
     ) -> TexturesDelta {
         self.platform.begin_frame();
 
-        self.render_place_craft_menu(player);
-        self.render_inventory(player);
-        self.render_info(player, field.get_time());
-        if player.interacting_with.is_some() {
-            self.render_interact_menu(player, field, config.width as f32 / 2.1);
-        }
-        if *self.craft_menu_open.borrow() {
-            self.render_craft_menu(player, config.width as f32 / 2.1);
+        if !player.viewing_map {
+            self.render_place_craft_menu(player);
+            self.render_inventory(player);
+            self.render_info(player, field.get_time());
+            if player.interacting_with.is_some() {
+                self.render_interact_menu(player, field, config.width as f32 / 2.1);
+            }
+            if *self.craft_menu_open.borrow() {
+                self.render_craft_menu(player, config.width as f32 / 2.1);
+            }
         }
 
         if player.get_hp() <= 0 {
