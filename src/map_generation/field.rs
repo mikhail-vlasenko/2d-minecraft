@@ -55,7 +55,7 @@ impl Field {
         let loading_distance = SETTINGS.field.loading_distance as usize;
         // in tiles
         let chunk_size = SETTINGS.field.chunk_size as usize;
-        let map_render_distance = max(64, loading_distance * chunk_size);
+        let map_render_distance = max(SETTINGS.field.map_radius as usize, loading_distance * chunk_size);
 
         let chunk_loader = if starting_chunk.is_some() {
             ChunkLoader::with_starting_chunk(loading_distance, starting_chunk.unwrap())
@@ -492,6 +492,9 @@ impl Field {
     }
     pub fn top_material_at(&self, xy: (i32, i32)) -> Material {
         self.get_chunk_immut(xy.0, xy.1).top_material_at(xy.0, xy.1)
+    }
+    pub fn non_texture_material_at(&self, xy: (i32, i32)) -> Material {
+        self.get_chunk_immut(xy.0, xy.1).non_texture_material_at(xy.0, xy.1)
     }
     pub fn pop_at(&mut self, xy: (i32, i32)) -> Option<Block> {
         self.get_chunk(xy.0, xy.1).pop_at(xy.0, xy.1)

@@ -6,3 +6,4 @@ pub mod consumable;
 pub mod ranged_weapon;
 pub mod interactable;
 pub mod turret;
+pub mod texture_material;

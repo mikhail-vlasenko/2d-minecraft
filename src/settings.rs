@@ -20,6 +20,7 @@ pub struct _Config__field {
     pub from_test_chunk: bool,
     pub generation: _Config__field__generation,
     pub loading_distance: i32,
+    pub map_radius: i32,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -95,6 +96,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
             tree_proba: 0.07,
         },
         loading_distance: 5,
+        map_radius: 64,
     },
     mobs: _Config__mobs {
         spawning: _Config__mobs__spawning {

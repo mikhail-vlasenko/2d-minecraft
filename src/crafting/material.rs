@@ -6,6 +6,7 @@ use Material::*;
 use Storable::*;
 use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
 use crate::crafting::storable::CraftMenuSection::*;
+use crate::crafting::texture_material::TextureMaterial;
 
 
 /// What a block on the field can be made of.
@@ -19,6 +20,7 @@ pub enum Material {
     IronOre,
     CraftTable,
     Diamond,
+    Texture(TextureMaterial),  // unbreakable material used to display textures of spawnable structures
 }
 
 pub enum MaterialCategory {
@@ -40,12 +42,14 @@ impl Material {
             IronOre => String::from("i"),
             CraftTable => String::from("C"),
             Diamond => String::from("D"),
+            Texture(t) => t.glyph(),
         }
     }
 
     pub fn required_mining_power(&self) -> i32 {
         match self {
             Bedrock => 999,
+            Texture(_) => 999,
             Stone => 1,
             IronOre => 1,
             Diamond => 2,
@@ -64,7 +68,8 @@ impl Craftable for Material {
             Plank => "plank",
             IronOre => "iron ore",
             CraftTable => "crafting table",
-            Diamond => "diamond"
+            Diamond => "diamond",
+            Texture(_) => "some texture",
         }
     }
 

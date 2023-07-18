@@ -1,6 +1,6 @@
 use std::cell::{RefCell, RefMut};
 use std::mem;
-use rand::random;
+use rand::{random, Rng};
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::inventory::Inventory;
 use crate::map_generation::block::Block;
@@ -8,6 +8,7 @@ use crate::map_generation::mobs::mob::Mob;
 use crate::map_generation::tile::{randomly_augment, Tile};
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
+use crate::crafting::texture_material::TextureMaterial;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::read_chunk::read_file;
 use crate::SETTINGS;
@@ -32,7 +33,9 @@ impl Chunk {
                 tiles[i].push(Self::gen_tile());
             }
         }
-        Self::from(tiles)
+        let mut chunk = Self::from(tiles);
+        chunk.add_structures();
+        chunk
     }
 
     pub fn from(tiles: Vec<Vec<Tile>>) -> Self {
@@ -61,6 +64,39 @@ impl Chunk {
             inner_y += self.size as i32;
         }
         (inner_x as usize, inner_y as usize)
+    }
+
+    pub fn add_structures(&mut self) {
+        use Material::*;
+        use TextureMaterial::*;
+        let mut structure = vec![];
+        structure.push(vec![Tile::from_material(Texture(RobotTL)), Tile::from_material(Texture(RobotTR))]);
+        structure.push(vec![Tile::from_material(Texture(RobotBL)), Tile::from_material(Texture(RobotBR))]);
+        let mut rng = rand::thread_rng();
+        for _ in 0..1 {
+            // todo: rotation and flip
+            let mut structure_width = structure[0].len();
+            let mut structure_height = structure.len();
+            let mut structure_x = rng.gen_range(0..self.size - structure_height);
+            let mut structure_y = rng.gen_range(0..self.size - structure_width);
+            let mut structure_valid = true;
+            for i in 0..structure_width {
+                for j in 0..structure_height {
+                    if self.len_at((structure_x + i) as i32, (structure_y + j) as i32) != 3 {
+                        structure_valid = false;
+                    }
+                }
+            }
+            if structure_valid {
+                println!("Adding structure at {}, {}", structure_x, structure_y);
+                for i in 0..structure_width {
+                    for j in 0..structure_height {
+                        self.push_all_at(structure[i][j].blocks.clone(), (structure_x + i) as i32, (structure_y + j) as i32);
+                        self.add_loot_at(structure[i][j].loot.clone(), (structure_x + i) as i32, (structure_y + j) as i32);
+                    }
+                }
+            }
+        }
     }
 
     /// Randomly generate a Tile (a cell on the field)
@@ -124,9 +160,21 @@ impl Chunk {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].top_material()
     }
+    pub fn non_texture_material_at(&self, x: i32, y: i32) -> Material {
+        let inner = self.indices_in_chunk(x, y);
+        let i = self.tiles[inner.0][inner.1].len() - 2;
+        match self.tiles[inner.0][inner.1].top_material() {
+            Material::Texture(_) => self.tiles[inner.0][inner.1].blocks[i].material,
+            m => m,
+        }
+    }
     pub fn push_at(&mut self, block: Block, x: i32, y: i32) {
         let inner = self.indices_in_chunk(x, y);
         self.tiles[inner.0][inner.1].push(block)
+    }
+    pub fn push_all_at(&mut self, blocks: Vec<Block>, x: i32, y: i32) {
+        let inner = self.indices_in_chunk(x, y);
+        self.tiles[inner.0][inner.1].push_all(blocks)
     }
     pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
         let inner = self.indices_in_chunk(x, y);

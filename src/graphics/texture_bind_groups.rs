@@ -1,6 +1,7 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
 use crate::crafting::interactable::InteractableKind;
 use crate::crafting::material::Material;
+use crate::crafting::texture_material::TextureMaterial;
 use crate::graphics::texture::Texture;
 use crate::map_generation::mobs::mob_kind::MobKind;
 
@@ -26,6 +27,7 @@ pub struct TextureBindGroups {
     loot_sack: BindGroup,
     arrow: BindGroup,
     crossbow_turret: BindGroup,
+    texture_materials: TextureMaterials,
     pub bind_group_layout: BindGroupLayout,
 }
 
@@ -207,6 +209,8 @@ impl TextureBindGroups {
 
         let depth_indicators = Self::init_depth_groups(device, queue, &bind_group_layout);
 
+        let texture_materials = TextureMaterials::new(device, queue, &bind_group_layout);
+
         TextureBindGroups {
             grass,
             stone,
@@ -227,6 +231,7 @@ impl TextureBindGroups {
             loot_sack,
             arrow,
             crossbow_turret,
+            texture_materials,
             bind_group_layout,
         }
     }
@@ -273,6 +278,7 @@ impl TextureBindGroups {
             IronOre => &self.iron_ore,
             CraftTable => &self.crafting_table,
             Diamond => &self.diamond,
+            Texture(t) => self.texture_materials.get_bind_group(t),
         }
     }
 
@@ -287,6 +293,7 @@ impl TextureBindGroups {
     }
 
     pub fn get_bind_group_interactable(&self, interactable: InteractableKind) -> &BindGroup {
+        use InteractableKind::*;
         match interactable {
             CrossbowTurret => &self.crossbow_turret,
         }
@@ -320,5 +327,71 @@ impl TextureBindGroups {
 
     pub fn get_bind_group_arrow(&self) -> &BindGroup {
         &self.arrow
+    }
+}
+
+struct TextureMaterials {
+    unknown: BindGroup,
+    robot_tr: BindGroup,
+    robot_tl: BindGroup,
+    robot_br: BindGroup,
+    robot_bl: BindGroup,
+}
+
+impl TextureMaterials {
+    pub fn new(device: &Device, queue: &wgpu::Queue, bind_group_layout: &BindGroupLayout) -> Self {
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/tiles/texture_materials/unknown.png"), "texture.png",
+        ).unwrap();
+        let unknown = TextureBindGroups::make_bind_group(
+            "a_bind_group", &texture, &device, bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/tiles/texture_materials/right_top_war_robot.png"), "texture.png",
+        ).unwrap();
+        let robot_tr = TextureBindGroups::make_bind_group(
+            "a_bind_group", &texture, &device, bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/tiles/texture_materials/left_top_war_robot.png"), "texture.png",
+        ).unwrap();
+        let robot_tl = TextureBindGroups::make_bind_group(
+            "a_bind_group", &texture, &device, bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/tiles/texture_materials/right_bot_war_robot.png"), "texture.png",
+        ).unwrap();
+        let robot_br = TextureBindGroups::make_bind_group(
+            "a_bind_group", &texture, &device, bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/tiles/texture_materials/left_bot_war_robot.png"), "texture.png",
+        ).unwrap();
+        let robot_bl = TextureBindGroups::make_bind_group(
+            "a_bind_group", &texture, &device, bind_group_layout,
+        );
+
+        TextureMaterials {
+            unknown,
+            robot_tr,
+            robot_tl,
+            robot_br,
+            robot_bl,
+        }
+    }
+
+    pub fn get_bind_group(&self, texture_material: TextureMaterial) -> &BindGroup {
+        use TextureMaterial::*;
+        match texture_material {
+            Unknown => &self.unknown,
+            RobotTR => &self.robot_tr,
+            RobotTL => &self.robot_tl,
+            RobotBR => &self.robot_br,
+            RobotBL => &self.robot_bl,
+        }
     }
 }

@@ -304,8 +304,19 @@ impl State {
         self.egui_manager.handle_event(&event);
     }
 
-    fn convert_index(x: i32, y: i32) -> u32 {
-        (y + RENDER_DISTANCE as i32) as u32 * TILES_PER_ROW + (x + RENDER_DISTANCE as i32) as u32
+    /// Converts coordinates and rotation to an index in the buffer
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - x coordinate (as usual, the vertical one)
+    /// * `y` - y coordinate (as usual, the horizontal one)
+    /// * `rotation` - rotation of the texture (number from 0 to 3)
+    fn convert_index(x: i32, y: i32, rotation: u32) -> u32 {
+        // Here we want x to be horizontal, like mathematical coords
+        // Also, second component should be greater when higher (so negate it)
+        (-x + RENDER_DISTANCE as i32) as u32 * TILES_PER_ROW
+            + (y + RENDER_DISTANCE as i32) as u32
+            + rotation * TILES_PER_ROW.pow(2)
     }
 
     fn draw_at_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
@@ -315,10 +326,8 @@ impl State {
             vec![0; indices.len()]
         };
         for i in 0..indices.len() {
-            // Here we want x to be horizontal, like mathematical coords
-            // Also, second component should be greater when higher (so negate it)
             let pos = indices[i];
-            let idx = State::convert_index(pos.1, -pos.0) + (rots[i] * TILES_PER_ROW.pow(2));
+            let idx = State::convert_index(pos.0, pos.1, rots[i]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
         }
     }
@@ -330,12 +339,27 @@ impl State {
     ///
     /// * `render_pass`: the primary render pass
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
-        // draw tiles of the same material together
-        for material in Material::iter() {
-            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
-            let tiles = self.field.texture_indices(&self.player, material,
-                                                   RENDER_DISTANCE as i32);
-            self.draw_at_indices(tiles, &mut *render_pass, None);
+        // use std::time::Instant;
+        // let now = Instant::now();
+        let no_rotation = 0;
+        // draw materials of top block in tiles
+        for i in (self.player.x - RENDER_DISTANCE as i32)..=(self.player.x + RENDER_DISTANCE as i32) {
+            for j in (self.player.y - RENDER_DISTANCE as i32)..=(self.player.y + RENDER_DISTANCE as i32) {
+                let material = self.field.top_material_at((i, j));
+                let idx = State::convert_index(i - self.player.x, j - self.player.y, no_rotation);
+                match material {
+                    Material::Texture(_) => {
+                        let non_texture = self.field.non_texture_material_at((i, j));
+                        render_pass.set_bind_group(
+                            0, self.bind_groups.get_bind_group_material(non_texture), &[]);
+                        render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+                    }
+                    _ => {}
+                }
+                render_pass.set_bind_group(
+                    0, self.bind_groups.get_bind_group_material(material), &[]);
+                render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+            }
         }
 
         // draw depth indicators on top of the tiles
@@ -363,6 +387,8 @@ impl State {
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_arrow(), &[]);
         let loot = self.field.arrow_indices(&self.player);
         self.draw_at_indices(loot, &mut *render_pass, None);
+        // let elapsed = now.elapsed();
+        // println!("Elapsed: {:.2?}", elapsed);
     }
 
     fn render_mobs<'a>(&'a self, render_pass: &mut RenderPass<'a>) {

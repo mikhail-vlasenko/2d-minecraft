@@ -29,6 +29,18 @@ impl Tile {
             loot: vec![],
         }
     }
+    pub fn with_blocks(blocks: Vec<Block>) -> Self {
+        Tile {
+            blocks,
+            loot: vec![],
+        }
+    }
+    pub fn from_material(material: Material) -> Self {
+        Tile {
+            blocks: vec![Block { material }],
+            loot: vec![],
+        }
+    }
     pub fn len(&self) -> usize {
         self.blocks.len()
     }
@@ -37,6 +49,12 @@ impl Tile {
     }
     pub fn push(&mut self, block: Block) {
         self.blocks.push(block)
+    }
+    pub fn push_all(&mut self, blocks: Vec<Block>) {
+        if self.blocks.len() + blocks.len() > 5 {
+            panic!("Tried to push too many blocks to a tile")
+        }
+        self.blocks.extend(blocks)
     }
     pub fn pop(&mut self) -> Option<Block> {
         self.blocks.pop()
