@@ -327,6 +327,7 @@ impl EguiManager {
                 ui.label(format!("Mining PWR: {}", player.get_mining_power()));
                 ui.label(format!("Effects: {:?}", player.get_status_effects()));
                 ui.label(format!("Time: {}", time));
+                ui.label(time_to_weekday(time));
                 ui.label(format!("{}", player.message));
             });
     }
@@ -346,3 +347,34 @@ impl EguiManager {
         self.platform.handle_event(event);
     }
 }
+
+
+fn time_to_weekday(time: f32) -> String {
+    let time = time as u32;
+    let units_in_day = 100;
+    let days_in_week = 7;
+
+    let units_in_week = units_in_day * days_in_week;
+
+    let week = time / units_in_week + 1; // week starts from 1
+    let unit_in_week = time % units_in_week;
+
+    let day = unit_in_week / units_in_day;
+    let unit_in_day = unit_in_week % units_in_day;
+
+    let day_night = if unit_in_day < units_in_day / 2 { "Day" } else { "Night" };
+
+    let weekday = match day {
+        0 => "Mon",
+        1 => "Tue",
+        2 => "Wed",
+        3 => "Thu",
+        4 => "Fri",
+        5 => "Sat",
+        6 => "Sun",
+        _ => unreachable!(),
+    };
+
+    format!("Week {}, {}", week, weekday)
+}
+

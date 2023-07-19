@@ -429,16 +429,6 @@ impl State {
             (y + self.field.get_map_render_distance() as i32) as u32
     }
 
-    fn draw_at_map_view_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass) {
-        for i in 0..indices.len() {
-            // Here we want x to be horizontal, like mathematical coords
-            // Also, second component should be greater when higher (so negate it)
-            let pos = indices[i];
-            let idx = self.convert_map_view_index(pos.1, -pos.0);
-            render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
-        }
-    }
-
     /// Only renders the materials, but with a much larger render distance.
     fn render_map<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
