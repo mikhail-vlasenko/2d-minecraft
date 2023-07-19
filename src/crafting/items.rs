@@ -20,6 +20,7 @@ pub enum Item {
     IronSword,
     DiamondSword,
     Arrow,
+    TargetingModule,
 }
 
 impl Item {}
@@ -33,7 +34,8 @@ impl Craftable for Item {
             IronIngot => "iron ingot",
             IronSword => "iron sword",
             DiamondSword => "diamond sword",
-            Arrow => "arrow"
+            Arrow => "arrow",
+            TargetingModule => "targeting module",
         }
     }
 
@@ -46,6 +48,7 @@ impl Craftable for Item {
             IronSword => &[(&I(IronIngot), 2), (&I(Stick), 1)],
             DiamondSword => &[(&M(Diamond), 2), (&I(Stick), 1)],
             Arrow => &[(&I(IronIngot), 1), (&I(Stick), 2)],
+            TargetingModule => &[],
         }
     }
 
@@ -53,6 +56,7 @@ impl Craftable for Item {
         match self {
             Stick => 2,
             Arrow => 2,
+            TargetingModule => 0,
             _ => 1,
         }
     }
@@ -76,6 +80,7 @@ impl Craftable for Item {
             IronSword => Weapons,
             DiamondSword => Weapons,
             Arrow => Weapons,
+            TargetingModule => Uncraftable,
         }
     }
 }

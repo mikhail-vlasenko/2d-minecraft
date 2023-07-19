@@ -114,7 +114,7 @@ impl Craftable for InteractableKind {
     }
     fn craft_requirements(&self) -> &[(&Storable, u32)] {
         match self {
-            CrossbowTurret => &[(&I(Stick), 6), (&I(IronIngot), 1), (&M(Diamond), 1)],
+            CrossbowTurret => &[(&I(Stick), 6), (&M(Diamond), 1), (&I(TargetingModule), 1)]
         }
     }
     fn craft_yield(&self) -> u32 {

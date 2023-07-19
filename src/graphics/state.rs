@@ -1,4 +1,5 @@
 use std::{iter};
+use std::time::Instant;
 
 use cgmath::{InnerSpace, Rotation3, Zero};
 use lazy_static::lazy_static;
@@ -332,6 +333,25 @@ impl State {
         }
     }
 
+    /// Draws top material or texture. in case of texture also draws material underneath
+    fn draw_material<'a>(&'a self, i: i32, j: i32, render_pass: &mut RenderPass<'a>, map: bool) {
+        let material = self.field.top_material_at((i, j));
+        let idx = if map {
+            self.convert_map_view_index(i - self.player.x, j - self.player.y)
+        } else {
+            State::convert_index(i - self.player.x, j - self.player.y, 0)
+        };
+        if let Material::Texture(_) = material {
+            let non_texture = self.field.non_texture_material_at((i, j));
+            render_pass.set_bind_group(
+                0, self.bind_groups.get_bind_group_material(non_texture), &[]);
+            render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+        }
+        render_pass.set_bind_group(
+            0, self.bind_groups.get_bind_group_material(material), &[]);
+        render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+    }
+
     /// Draws textures of top materials on every tile, then draws depth indicators on top.
     /// Also draws other key components (interactables, loot).
     ///
@@ -339,26 +359,11 @@ impl State {
     ///
     /// * `render_pass`: the primary render pass
     fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
-        // use std::time::Instant;
         // let now = Instant::now();
-        let no_rotation = 0;
         // draw materials of top block in tiles
         for i in (self.player.x - RENDER_DISTANCE as i32)..=(self.player.x + RENDER_DISTANCE as i32) {
             for j in (self.player.y - RENDER_DISTANCE as i32)..=(self.player.y + RENDER_DISTANCE as i32) {
-                let material = self.field.top_material_at((i, j));
-                let idx = State::convert_index(i - self.player.x, j - self.player.y, no_rotation);
-                match material {
-                    Material::Texture(_) => {
-                        let non_texture = self.field.non_texture_material_at((i, j));
-                        render_pass.set_bind_group(
-                            0, self.bind_groups.get_bind_group_material(non_texture), &[]);
-                        render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
-                    }
-                    _ => {}
-                }
-                render_pass.set_bind_group(
-                    0, self.bind_groups.get_bind_group_material(material), &[]);
-                render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+                self.draw_material(i, j, render_pass, false);
             }
         }
 
@@ -419,9 +424,9 @@ impl State {
     }
 
     fn convert_map_view_index(&self, x: i32, y: i32) -> u32 {
-        (y + self.field.get_map_render_distance() as i32) as u32 *
+        (-x + self.field.get_map_render_distance() as i32) as u32 *
             ((self.field.get_map_render_distance() as u32 * 2) + 1) +
-            (x + self.field.get_map_render_distance() as i32) as u32
+            (y + self.field.get_map_render_distance() as i32) as u32
     }
 
     fn draw_at_map_view_indices(&self, indices: Vec<(i32, i32)>, render_pass: &mut RenderPass) {
@@ -440,13 +445,11 @@ impl State {
         render_pass.set_vertex_buffer(1, self.buffers.map_instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        for material in Material::iter() {
-            render_pass.set_bind_group(0, self.bind_groups.get_bind_group_material(material), &[]);
-            let tiles = self.field.texture_indices(
-                &self.player, material,
-                self.field.get_map_render_distance() as i32);
-
-            self.draw_at_map_view_indices(tiles, &mut *render_pass);
+        let radius = self.field.get_map_render_distance() as i32;
+        for i in (self.player.x - radius)..=(self.player.x + radius) {
+            for j in (self.player.y - radius)..=(self.player.y + radius) {
+                self.draw_material(i, j, render_pass, true);
+            }
         }
     }
 }

@@ -36,9 +36,9 @@ fn pick_hostile_kind(dist: i32, game_time: f32) -> MobKind {
     } else { 0. };
     let ling_prob = SETTINGS.mobs.spawning.probabilities.ling;
     let rng: f32 = random();
-    if rng > 1. - bane_prob {
+    if rng < bane_prob {
         MobKind::Baneling
-    } else if rng > 1. - bane_prob - ling_prob {
+    } else if rng < bane_prob + ling_prob {
         MobKind::Zergling
     } else {
         MobKind::Zombie

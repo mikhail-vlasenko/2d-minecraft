@@ -49,11 +49,18 @@ impl Material {
     pub fn required_mining_power(&self) -> i32 {
         match self {
             Bedrock => 999,
-            Texture(_) => 999,
+            Texture(t) => t.required_mining_power(),
             Stone => 1,
             IronOre => 1,
             Diamond => 2,
             _ => 0
+        }
+    }
+
+    pub fn drop_item(&self) -> Option<Storable> {
+        match self {
+            Texture(t) => t.drop_item(),
+            _ => None
         }
     }
 }

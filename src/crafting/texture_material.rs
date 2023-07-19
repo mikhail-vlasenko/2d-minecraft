@@ -17,9 +17,11 @@ pub enum TextureMaterial {
     RobotBR,
 }
 
+use TextureMaterial::*;
+use crate::crafting::items::Item;
+
 impl TextureMaterial {
     pub fn glyph(&self) -> String {
-        use TextureMaterial::*;
         match self {
             Unknown => String::from("?"),
             RobotTL => String::from("╔"),
@@ -28,10 +30,27 @@ impl TextureMaterial {
             RobotBR => String::from("╝"),
         }
     }
+
+    pub fn required_mining_power(&self) -> i32 {
+        match self {
+            Unknown => 999,
+            _ => 2,
+        }
+    }
+
+    pub fn drop_item(&self) -> Option<Storable> {
+        match self {
+            RobotTL => Some(Item::IronIngot.into()),
+            RobotTR => Some(Item::IronIngot.into()),
+            RobotBL => Some(Item::IronIngot.into()),
+            RobotBR => Some(Item::IronIngot.into()),
+            _ => None,
+        }
+    }
 }
 
 impl Default for TextureMaterial {
     fn default() -> Self {
-        TextureMaterial::Unknown
+        Unknown
     }
 }

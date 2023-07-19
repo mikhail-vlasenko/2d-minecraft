@@ -29,7 +29,14 @@ pub struct _Config__field__generation {
     pub diamond_proba: f32,
     pub iron_proba: f32,
     pub rock_proba: f32,
+    pub structures: _Config__field__generation__structures,
     pub tree_proba: f32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__field__generation__structures {
+    pub robot_proba: f32,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -93,6 +100,9 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
             diamond_proba: 0.05,
             iron_proba: 0.2,
             rock_proba: 0.05,
+            structures: _Config__field__generation__structures {
+                robot_proba: 0.1,
+            },
             tree_proba: 0.07,
         },
         loading_distance: 5,

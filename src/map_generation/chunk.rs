@@ -66,39 +66,6 @@ impl Chunk {
         (inner_x as usize, inner_y as usize)
     }
 
-    pub fn add_structures(&mut self) {
-        use Material::*;
-        use TextureMaterial::*;
-        let mut structure = vec![];
-        structure.push(vec![Tile::from_material(Texture(RobotTL)), Tile::from_material(Texture(RobotTR))]);
-        structure.push(vec![Tile::from_material(Texture(RobotBL)), Tile::from_material(Texture(RobotBR))]);
-        let mut rng = rand::thread_rng();
-        for _ in 0..1 {
-            // todo: rotation and flip
-            let mut structure_width = structure[0].len();
-            let mut structure_height = structure.len();
-            let mut structure_x = rng.gen_range(0..self.size - structure_height);
-            let mut structure_y = rng.gen_range(0..self.size - structure_width);
-            let mut structure_valid = true;
-            for i in 0..structure_width {
-                for j in 0..structure_height {
-                    if self.len_at((structure_x + i) as i32, (structure_y + j) as i32) != 3 {
-                        structure_valid = false;
-                    }
-                }
-            }
-            if structure_valid {
-                println!("Adding structure at {}, {}", structure_x, structure_y);
-                for i in 0..structure_width {
-                    for j in 0..structure_height {
-                        self.push_all_at(structure[i][j].blocks.clone(), (structure_x + i) as i32, (structure_y + j) as i32);
-                        self.add_loot_at(structure[i][j].loot.clone(), (structure_x + i) as i32, (structure_y + j) as i32);
-                    }
-                }
-            }
-        }
-    }
-
     /// Randomly generate a Tile (a cell on the field)
     pub fn gen_tile() -> Tile {
         let mut tile = Tile::make_dirt();

@@ -80,7 +80,11 @@ impl Player {
             0.
         } else {
             self.add_message(&format!("Mined {}", mat));
-            self.pickup(mat.into(), 1);
+            if mat.drop_item().is_some() {
+                self.pickup(mat.drop_item().unwrap(), 1);
+            } else {
+                self.pickup(mat.into(), 1);
+            }
             field.pop_at(pos);
             self.get_speed_multiplier()
         }
