@@ -5,6 +5,7 @@ use cgmath::{InnerSpace, Rotation3, Zero};
 use lazy_static::lazy_static;
 use strum::IntoEnumIterator;
 use wgpu::{BindGroup, BindGroupLayout, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, TextureFormat, TextureView};
+use wgpu::util::DeviceExt;
 use winit::{
     event::*,
     window::Window,
@@ -19,7 +20,7 @@ use crate::graphics::buffers::Buffers;
 use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
-use crate::graphics::vertex::{INDICES, PLAYER_VERTICES, Vertex, VERTICES};
+use crate::graphics::vertex::{COLOR_VERTICES, ColorVertex, INDICES, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::field::Field;
@@ -39,6 +40,7 @@ pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     0.0,
 );
 pub const RENDER_DISTANCE: usize = ((TILES_PER_ROW - 1) / 2) as usize;
+const ROTATION_SPEED: f32 = 2.0 * std::f32::consts::PI / 60.0;
 
 /// The main class of the application.
 /// Initializes graphics.
@@ -233,7 +235,23 @@ impl State {
         }
     }
 
-    pub fn update(&mut self) {}
+    pub fn update(&mut self) {
+        for instance in &mut self.buffers.player_instances {
+            let amount = cgmath::Quaternion::from_angle_y(cgmath::Rad(ROTATION_SPEED));
+            let current = instance.rotation;
+            instance.rotation = amount * current;
+        }
+        let instance_data = self
+            .buffers.player_instances
+            .iter()
+            .map(Instance::to_raw)
+            .collect::<Vec<_>>();
+        self.queue.write_buffer(
+            &self.buffers.player_instance_buffer,
+            0,
+            bytemuck::cast_slice(&instance_data),
+        );
+    }
 
     pub fn render(&mut self, window: &Window) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
@@ -296,6 +314,23 @@ impl State {
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_player(), &[]);
         let idx = self.player.get_rotation();
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+
+
+        // let vertices = &[
+        //     Vertex::new(0.0, 0.0, 0.0, 0.0, 1.0),
+        //     Vertex::new(1.0, 0.0, 0.0, 1.0, 1.0),
+        //     Vertex::new(1.0, 1.0, 0.0, 1.0, 0.0),
+        //     Vertex::new(0.0, 1.0, 0.0, 0.0, 0.0),
+        // ];
+        // let hp_bar_buffer = self.device.create_buffer_init(
+        //     &wgpu::util::BufferInitDescriptor {
+        //         label: Some("hp bar buffer"),
+        //         contents: bytemuck::cast_slice(COLOR_VERTICES),
+        //         usage: wgpu::BufferUsages::VERTEX,
+        //     }
+        // );
+        // render_pass.set_vertex_buffer(2, self.buffers.color_vertex_buffer.slice(..));
+        // render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
 
         // render night filter
         self.render_night(render_pass)
