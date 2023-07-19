@@ -105,3 +105,59 @@ fn test_shooting() {
     data.act(X);
     assert!(data.field.is_occupied((2, 0)));
 }
+
+#[test]
+fn test_one_ling_doesnt_engage() {
+    let mut data = Data::new();
+    let pos = Position {
+        x: 3,
+        y: 2,
+        z: data.field.len_at((3, 2)),
+    };
+    let kind = Zergling;
+    let mob = Mob::new(pos, kind);
+    data.field.get_chunk(3, 2).add_mob(mob);
+
+    let init_hp = data.player.get_hp();
+    for _ in 0..10 {
+        data.step_mobs();
+    }
+
+    assert_eq!(data.player.get_hp(), init_hp);
+}
+
+#[test]
+fn test_three_lings_engage() {
+    let mut data = Data::new();
+    let pos = Position {
+        x: 3,
+        y: 2,
+        z: data.field.len_at((3, 2)),
+    };
+    let kind = Zergling;
+    let mob = Mob::new(pos, kind);
+    data.field.get_chunk(3, 2).add_mob(mob);
+
+    let pos = Position {
+        x: -3,
+        y: 0,
+        z: data.field.len_at((-3, 0)),
+    };
+    let mob = Mob::new(pos, kind);
+    data.field.get_chunk(-3, 0).add_mob(mob);
+
+    let pos = Position {
+        x: -1,
+        y: -4,
+        z: data.field.len_at((-1, -4)),
+    };
+    let mob = Mob::new(pos, kind);
+    data.field.get_chunk(-1, -4).add_mob(mob);
+
+    let init_hp = data.player.get_hp();
+    for _ in 0..10 {
+        data.step_mobs();
+    }
+
+    assert!(data.player.get_hp() < init_hp);
+}

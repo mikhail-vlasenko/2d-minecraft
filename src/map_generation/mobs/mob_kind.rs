@@ -69,5 +69,19 @@ fn add_loot_with_probability(loot: &mut Vec<Storable>, item: Storable, probabili
     }
 }
 
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum MobState {
+    Searching,
+    Attacking,
+}
+
+impl Default for MobState {
+    fn default() -> Self {
+        MobState::Searching
+    }
+}
+
 pub const BANELING_EXPLOSION_RAD: i32 = 1;
 pub const BANELING_EXPLOSION_PWR: i32 = 2;
+
+pub const ZERGLING_ATTACK_RANGE: i32 = 8;

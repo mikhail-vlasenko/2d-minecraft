@@ -457,6 +457,7 @@ impl Field {
     }
 
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
+    /// Positions are centered on the player.
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32, u32)> {
         let mut res: Vec<(i32, i32, u32)> = Vec::new();
         let (min_idx, max_idx) = self.get_close_chunk_indices();
@@ -473,6 +474,7 @@ impl Field {
         res
     }
 
+    /// Index boundaries of chunks that are close to the player.
     fn get_close_chunk_indices(&self) -> (usize, usize) {
         let middle_idx = self.loading_distance;
         let chunk_distance = (self.render_distance as f32 / self.chunk_size as f32).ceil() as usize;

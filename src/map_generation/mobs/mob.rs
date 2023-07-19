@@ -6,7 +6,7 @@ use crate::map_generation::mobs::a_star::{AStar, can_step};
 use crate::character::player::Player;
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
-use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind};
+use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind, MobState, ZERGLING_ATTACK_RANGE};
 use crate::map_generation::mobs::mob_kind::MobKind::Baneling;
 
 
@@ -24,6 +24,7 @@ pub struct Mob {
     hp: i32,
     /// when this reaches 1, the mob is eligible to act
     speed_buffer: f32,
+    state: MobState,
 }
 
 impl Mob {
@@ -34,6 +35,7 @@ impl Mob {
             kind,
             hp: kind.get_max_hp(),
             speed_buffer: 0.,
+            state: MobState::default(),
         }
     }
 
@@ -131,6 +133,42 @@ impl Mob {
         }
     }
 
+    pub fn update_state(&mut self, field: &Field, player: &mut Player) {
+        if self.kind == MobKind::Zergling && self.state == MobState::Searching {
+            let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+            if dist < ZERGLING_ATTACK_RANGE {
+                // check if there are 2 other zerglings near the player
+                let indices = field.mob_indices(player, MobKind::Zergling);
+                let mut close_count = 0;
+                for ind in indices {
+                    // positions are centered on the player
+                    let dist = ind.0.abs() + ind.1.abs();
+                    if dist < ZERGLING_ATTACK_RANGE {
+                        close_count += 1;
+                    }
+                }
+                if close_count >= 2 {
+                    self.state = MobState::Attacking;
+                }
+            }
+        }
+    }
+
+    pub fn get_destination(&mut self, field: &Field, (player_x, player_y): (i32, i32)) -> (i32, i32) {
+        if self.kind != MobKind::Zergling || self.state == MobState::Attacking {
+            // non-zerglings or attacking zerglings just go to the player
+            return (player_x, player_y);
+        }
+        // remain near the player, but not too close
+        let dist = (player_x - self.pos.x).abs() + (player_y - self.pos.y).abs();
+        if dist + 1 >= ZERGLING_ATTACK_RANGE {
+            (player_x, player_y)
+        } else {
+            // destination is on the opposite side of the player
+            (self.pos.x - (player_x - self.pos.x), self.pos.y - (player_y - self.pos.y))
+        }
+    }
+
     pub fn receive_damage(&mut self, damage: i32) -> bool {
         self.hp -= damage;
         if self.hp <= 0{
@@ -178,6 +216,8 @@ impl ActingWithSpeed for Mob {
     /// * `min_loaded` - the minimum loaded coordinate
     /// * `max_loaded` - the maximum loaded coordinate
     fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+        self.update_state(field, player);
+
         let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
 
         if dist <= field.get_towards_player_radius() && self.kind == Baneling {
@@ -187,10 +227,11 @@ impl ActingWithSpeed for Mob {
 
         // hostile mobs within smaller range use optimal pathing. Banelings always go head on
         if self.kind.hostile() && dist <= field.get_a_star_radius() {
+            let destination = self.get_destination(field, (player.x, player.y));
             // within a* range, so do full path search
             let (direction, _) = field.full_pathing(
                 (self.pos.x, self.pos.y),
-                (player.x, player.y),
+                destination,
                 (player.x, player.y),
                 None
             );
