@@ -1,5 +1,3 @@
-use crate::graphics::state::DISP_COEF;
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
@@ -55,7 +53,8 @@ pub const NIGHT_FILTER_VERTICES: &[Vertex] = &[
     Vertex { position: [-1.0, 1.0, 0.0], tex_coords: [0.0, 0.0], },
 ];
 
-pub const HP_VERTICES_SCALING_COEF: f32 = 1.0 / 8.0;
+pub const HP_VERTICES_SCALING_COEF: f32 = 1.0 / 12.0;
+pub const HP_BAR_SCALING_COEF: f32 = 1.0 / 8.0;
 
 pub fn make_hp_vertices(hp_share: f32) -> [Vertex; 4] {
     let hp_share = hp_share.max(0.0).min(1.0);

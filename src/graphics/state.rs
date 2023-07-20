@@ -5,7 +5,7 @@ use cgmath::{InnerSpace, Rotation3, Zero};
 use lazy_static::lazy_static;
 use rand::random;
 use strum::IntoEnumIterator;
-use wgpu::{BindGroup, BindGroupLayout, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, TextureFormat, TextureView};
+use wgpu::{BindGroup, BindGroupLayout, Buffer, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, TextureFormat, TextureView};
 use wgpu::util::DeviceExt;
 use winit::{
     event::*,
@@ -21,7 +21,7 @@ use crate::graphics::buffers::Buffers;
 use crate::graphics::egui_manager::EguiManager;
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
-use crate::graphics::vertex::{INDICES, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
+use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::field::Field;
@@ -237,26 +237,17 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        // todo: make a vec of vertex buffers and an instance buffer for all hp bars with queue.write_buffer
+        let mob_positions = self.field.all_mob_positions_and_hp(&self.player);
+
         self.buffers.hp_bar_vertex_buffer = vec![];
-        for i in 1..6 {
-            self.buffers.hp_bar_vertex_buffer.push(
-                self.device.create_buffer_init(
-                    &wgpu::util::BufferInitDescriptor {
-                        label: Some("Vertex Buffer"),
-                        contents: bytemuck::cast_slice(&make_hp_vertices(1./i as f32)),
-                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                    }
-                )
-            );
+        for m in &mob_positions {
+            self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(1.));
+            self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(m.2));
         }
         self.buffers.hp_bar_instances = vec![];
-        for i in 1..6 {
-            self.buffers.hp_bar_instances.push(Instance {
-                position: cgmath::Vector3 { x: 1./i as f32, y: 1./i as f32, z: 0.0 },
-                rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
-                scaling: 0.3,
-            });
+        for m in &mob_positions {
+            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(m.0, m.1));
+            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(m.0, m.1));
         }
         let hp_bar_instance_data = self.buffers.hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         self.buffers.hp_bar_instance_buffer = self.device.create_buffer_init(
@@ -355,6 +346,28 @@ impl State {
             + rotation * TILES_PER_ROW.pow(2)
     }
 
+    fn hp_bar_position_instance(&self, mob_x: i32, mob_y: i32) -> Instance {
+        Instance {
+            position: cgmath::Vector3 {
+                x: (mob_y as f32 - 0.5) * DISP_COEF,
+                y: (-mob_x as f32 + 0.3) * DISP_COEF,
+                z: 0.0
+            },
+            rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+            scaling: HP_BAR_SCALING_COEF,
+        }
+    }
+
+    fn hp_bar_vertices(&self, hp_share: f32) -> Buffer {
+        self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("HP Bar Vertex Buffer"),
+                contents: bytemuck::cast_slice(&make_hp_vertices(hp_share)),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        )
+    }
+
     fn draw_at_indices(&self, indices: &Vec<(i32, i32)>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
         let rots = if rotations.is_some() {
             rotations.unwrap()
@@ -445,43 +458,6 @@ impl State {
             let rotations: Vec<u32> = mobs.clone().into_iter().map(|(_, _, rot)| rot).collect();
             let positions = mobs.into_iter().map(|(x, y, _)| (x, y)).collect();
             self.draw_at_indices(&positions, &mut *render_pass, Some(rotations));
-
-            // for (x, y) in positions {
-            //     let mut hp_bar_instances = self.buffers.hp_bar_instances.clone();
-            //     hp_bar_instances.get_mut(0).unwrap().position.x = 2. * y as f32 / TILES_PER_ROW as f32;
-            //     hp_bar_instances.get_mut(0).unwrap().position.y = -2. * x as f32 / TILES_PER_ROW as f32;
-            //
-            //     let instance_data =
-            //         hp_bar_instances
-            //         .iter()
-            //         .map(Instance::to_raw)
-            //         .collect::<Vec<_>>();
-            //     self.queue.write_buffer(
-            //         &self.buffers.hp_bar_instance_buffer,
-            //         0,
-            //         bytemuck::cast_slice(&instance_data),
-            //     );
-            //
-            //     render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer.slice(..));
-            //     render_pass.set_vertex_buffer(1, self.buffers.hp_bar_instance_buffer.slice(..));
-            //     render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(true), &[]);
-            //     render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
-            //
-            //     self.queue.write_buffer(
-            //         &self.buffers.hp_bar_vertex_buffer,
-            //         0,
-            //         bytemuck::cast_slice(&make_hp_vertices(0.5)),
-            //     );
-            //     // self.hp_bar_vertex_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            //     //     label: Some("HP Bar Vertex Buffer"),
-            //     //     contents: bytemuck::cast_slice(&make_hp_vertices(0.5)),
-            //     //     usage: wgpu::BufferUsages::VERTEX,
-            //     // });
-            //
-            //     render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer.slice(..));
-            //     render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(false), &[]);
-            //     render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
-            // }
         }
     }
 
@@ -489,8 +465,9 @@ impl State {
         render_pass.set_vertex_buffer(1, self.buffers.hp_bar_instance_buffer.slice(..));
 
         for i in 0..self.buffers.hp_bar_vertex_buffer.len() {
+            let red = i % 2 == 0;
             render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer[i].slice(..));
-            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(false), &[]);
+            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(red), &[]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, i as u32..(i+1) as u32);
         }
     }

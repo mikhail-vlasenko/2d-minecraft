@@ -129,7 +129,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     },
     player: _Config__player {
         arrow_break_chance: 0.3,
-        cheating_start: true,
+        cheating_start: false,
         max_hp: 100,
     },
     window: _Config__window {

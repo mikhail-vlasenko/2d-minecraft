@@ -3,7 +3,7 @@ use wgpu::Device;
 use wgpu::util::DeviceExt;
 use crate::graphics::instance::Instance;
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
-use crate::graphics::vertex::{INDICES, make_hp_vertices, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
+use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_hp_vertices, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
 use crate::SETTINGS;
 
 
@@ -173,7 +173,7 @@ impl Buffers {
         let hp_bar_instances = vec![Instance {
             position: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
-            scaling: 0.3,
+            scaling: HP_BAR_SCALING_COEF,
         }];
         let hp_bar_instance_data = hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         let hp_bar_instance_buffer = device.create_buffer_init(

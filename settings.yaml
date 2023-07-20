@@ -36,5 +36,5 @@ mobs:
 
 player:
   max_hp: 100
-  cheating_start: true
+  cheating_start: false
   arrow_break_chance: 0.3

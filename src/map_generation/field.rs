@@ -473,6 +473,20 @@ impl Field {
         }
         res
     }
+    
+    pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(i32, i32, f32)> {
+        let mut res: Vec<(i32, i32, f32)> = Vec::new();
+        let (min_idx, max_idx) = self.get_close_chunk_indices();
+
+        for i in min_idx..=max_idx {
+            for j in min_idx..=max_idx {
+                for m in self.loaded_chunks[i][j].borrow().get_mobs() {
+                    res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_hp_share()));
+                }
+            }
+        }
+        res
+    }
 
     /// Index boundaries of chunks that are close to the player.
     fn get_close_chunk_indices(&self) -> (usize, usize) {
