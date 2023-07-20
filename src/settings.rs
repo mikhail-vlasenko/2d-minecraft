@@ -50,6 +50,8 @@ pub struct _Config__mobs {
 pub struct _Config__mobs__spawning {
     pub base_day_amount: i32,
     pub base_night_amount: i32,
+    pub increase_amount_every: i32,
+    pub initial_hostile_per_chunk: f32,
     pub probabilities: _Config__mobs__spawning__probabilities,
 }
 
@@ -112,6 +114,8 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         spawning: _Config__mobs__spawning {
             base_day_amount: 2,
             base_night_amount: 5,
+            increase_amount_every: 3,
+            initial_hostile_per_chunk: 0.2,
             probabilities: _Config__mobs__spawning__probabilities {
                 bane: 0.3,
                 ling: 0.2,

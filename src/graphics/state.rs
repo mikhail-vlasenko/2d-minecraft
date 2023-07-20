@@ -170,7 +170,8 @@ impl State {
         }
 
         // spawn some initial mobs
-        let amount = (0.2 * (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as usize;
+        let amount = (SETTINGS.mobs.spawning.initial_hostile_per_chunk *
+            (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as i32;
         field.spawn_mobs(&player, amount, true);
         field.spawn_mobs(&player, amount * 2, false);
 

@@ -57,7 +57,7 @@ impl Data {
     pub fn step_mobs(&mut self) {
         self.field.step_mobs(&mut self.player);
     }
-    pub fn spawn_mobs(&mut self, amount: usize, hostile: bool) {
+    pub fn spawn_mobs(&mut self, amount: i32, hostile: bool) {
         spawn_mobs(&mut self.field, &mut self.player, amount, hostile)
     }
     pub fn step_time(&mut self) {
@@ -70,6 +70,6 @@ impl Data {
     }
 }
 
-fn spawn_mobs(field: &mut Field, player: &mut Player, amount: usize, hostile: bool) {
+fn spawn_mobs(field: &mut Field, player: &mut Player, amount: i32, hostile: bool) {
     field.spawn_mobs(player, amount, hostile)
 }

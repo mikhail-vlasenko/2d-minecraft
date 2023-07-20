@@ -27,8 +27,10 @@ pathing:
 
 mobs:
   spawning:
+    initial_hostile_per_chunk: 0.2
     base_day_amount: 2
     base_night_amount: 5
+    increase_amount_every: 3  # in days
     probabilities:
       bane: 0.3
       ling: 0.2

@@ -111,19 +111,10 @@ impl Field {
             player.step_status_effects();
             self.step_interactables(player);
             let rng: f32 = self.rng.gen();
-            if self.is_night() {
-                if rng > 0.9 {
-                    let spawn_amount =
-                        SETTINGS.mobs.spawning.base_night_amount as usize
-                            + 2 * (self.is_red_moon() as usize) + (self.time as usize / 200);
-                    self.spawn_mobs(player, spawn_amount, true)
-                }
-            } else {
-                if rng > 0.9 {
-                    self.spawn_mobs(player,
-                                    SETTINGS.mobs.spawning.base_day_amount as usize,
-                                    false)
-                }
+            if rng > 0.9 {
+                self.spawn_mobs(player,
+                                self.get_mob_spawn_amount(),
+                                self.is_night())
             }
             self.step_mobs(player);
             self.accumulated_time -= 1.;
@@ -194,7 +185,7 @@ impl Field {
     ///
     /// * `player`: the player (for its position)
     /// * `amount`: how many mobs should be spawn (at most)
-    pub fn spawn_mobs(&mut self, player: &Player, amount: usize, hostile: bool) {
+    pub fn spawn_mobs(&mut self, player: &Player, amount: i32, hostile: bool) {
         let game_time = self.time;
         for _ in 0..amount {
             let tile = self.pick_tile();
@@ -206,10 +197,23 @@ impl Field {
                 let chunk_pos = (self.chunk_pos(tile.0), self.chunk_pos(tile.1));
                 let mut chunk = self.get_chunk(tile.0, tile.1);
                 // limit so it is not too crowded, but allow more mobs during red moon
-                if chunk.get_mobs().len() < 3 || is_red_moon {
+                if chunk.get_mobs().len() < (3 + game_time as usize / 700) || is_red_moon {
                     create_mob(chunk.deref_mut(), chunk_pos, tile, game_time, hostile);
                 }
             }
+        }
+    }
+
+    pub fn get_mob_spawn_amount(&self) -> i32 {
+        if !self.is_night() {
+            SETTINGS.mobs.spawning.base_day_amount
+        } else {
+            let mut amount = SETTINGS.mobs.spawning.base_night_amount;
+            if self.is_red_moon() {
+                amount += SETTINGS.mobs.spawning.base_night_amount / 2;
+            }
+            amount += self.time as i32 / 100 * SETTINGS.mobs.spawning.increase_amount_every;
+            amount
         }
     }
 
