@@ -7,7 +7,7 @@ use crate::character::player::Player;
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind, MobState, ZERGLING_ATTACK_RANGE};
-use crate::map_generation::mobs::mob_kind::MobKind::Baneling;
+use crate::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
 
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -77,8 +77,14 @@ impl Mob {
         self.step(field, player, DIRECTIONS[direction_idx], min_loaded, max_loaded);
     }
 
-    fn step_towards_player(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        let directions = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
+    fn step_relative_to_player(&mut self, field: &mut Field, player: &mut Player,
+                               min_loaded: (i32, i32), max_loaded: (i32, i32), towards: bool) {
+        let directions = if towards {
+            ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum())
+        } else {
+            // otherwise, move away from player
+            ((self.pos.x - player.x).signum(), (self.pos.y - player.y).signum())
+        };
 
         let mut possible = Vec::new();
         let mut good = Vec::new();
@@ -134,16 +140,17 @@ impl Mob {
     }
 
     pub fn update_state(&mut self, field: &Field, player: &mut Player) {
-        if self.kind == MobKind::Zergling && self.state == MobState::Searching {
+        if self.kind == Zergling && self.state == MobState::Searching {
             let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
-            if dist < ZERGLING_ATTACK_RANGE {
-                // check if there are 2 other zerglings near the player
-                let indices = field.mob_indices(player, MobKind::Zergling);
+            if dist <= ZERGLING_ATTACK_RANGE {
+                // check if there are at least 2 other zerglings near the player
+                let indices = field.mob_indices(player, Zergling);
+                // indices will never have the current mob because it is neither in stray nor in chunk
                 let mut close_count = 0;
                 for ind in indices {
                     // positions are centered on the player
                     let dist = ind.0.abs() + ind.1.abs();
-                    if dist < ZERGLING_ATTACK_RANGE {
+                    if dist <= ZERGLING_ATTACK_RANGE {
                         close_count += 1;
                     }
                 }
@@ -151,21 +158,6 @@ impl Mob {
                     self.state = MobState::Attacking;
                 }
             }
-        }
-    }
-
-    pub fn get_destination(&mut self, field: &Field, (player_x, player_y): (i32, i32)) -> (i32, i32) {
-        if self.kind != MobKind::Zergling || self.state == MobState::Attacking {
-            // non-zerglings or attacking zerglings just go to the player
-            return (player_x, player_y);
-        }
-        // remain near the player, but not too close
-        let dist = (player_x - self.pos.x).abs() + (player_y - self.pos.y).abs();
-        if dist + 1 >= ZERGLING_ATTACK_RANGE {
-            (player_x, player_y)
-        } else {
-            // destination is on the opposite side of the player
-            (self.pos.x - (player_x - self.pos.x), self.pos.y - (player_y - self.pos.y))
         }
     }
 
@@ -231,26 +223,30 @@ impl ActingWithSpeed for Mob {
 
         // hostile mobs within smaller range use optimal pathing. Banelings always go head on
         if self.kind.hostile() && dist <= field.get_a_star_radius() {
-            let destination = self.get_destination(field, (player.x, player.y));
+            if self.kind == Zergling && self.state != MobState::Attacking && dist + 2 < ZERGLING_ATTACK_RANGE {
+                // zerglings that are not attacking will not go close to player
+                self.step_relative_to_player(field, player, min_loaded, max_loaded, false);
+                return;
+            }
+
             // within a* range, so do full path search
             let (direction, _) = field.full_pathing(
                 (self.pos.x, self.pos.y),
-                destination,
+                (player.x, player.y),
                 (player.x, player.y),
                 None
             );
             if direction != (0, 0) {
                 self.step(field, player, direction, min_loaded, max_loaded);
-            } else {
-                self.step_towards_player(field, player, min_loaded, max_loaded);
+                return;
             }
         }
-        else if self.kind.hostile() && dist <= field.get_towards_player_radius() {
-            self.step_towards_player(field, player, min_loaded, max_loaded);
-        } else {
-            // not hostile, or too far away, so just wander
-            self.random_step(field, player, min_loaded, max_loaded);
+        if self.kind.hostile() && dist <= field.get_towards_player_radius() {
+            self.step_relative_to_player(field, player, min_loaded, max_loaded, true);
+            return;
         }
+        // not hostile, or too far away, so just wander
+        self.random_step(field, player, min_loaded, max_loaded);
     }
     
     fn get_speed(&self) -> f32 {

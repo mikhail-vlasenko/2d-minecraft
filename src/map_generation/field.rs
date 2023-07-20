@@ -471,10 +471,18 @@ impl Field {
                 }
             }
         }
+        for m in &self.stray_mobs {
+            if m.get_kind() == &kind &&
+                (m.pos.x - player.x).abs() <= self.render_distance as i32 &&
+                (m.pos.y - player.y).abs() <= self.render_distance as i32 {
+                res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_rotation()));
+            }
+        }
         res
     }
     
     pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(i32, i32, f32)> {
+        // doesnt account for stray mobs
         let mut res: Vec<(i32, i32, f32)> = Vec::new();
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
