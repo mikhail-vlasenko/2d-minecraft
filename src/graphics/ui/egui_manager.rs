@@ -18,6 +18,7 @@ use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::{CraftMenuSection, Storable};
 use crate::crafting::storable::Craftable;
 use crate::graphics::ui::interactables_menu::InteractablesMenu;
+use crate::graphics::ui::main_menu::MainMenu;
 use crate::map_generation::field::Field;
 use crate::map_generation::mobs::mob_kind::MobKind;
 
@@ -28,6 +29,8 @@ pub struct EguiManager {
     render_pass: egui_wgpu_backend::RenderPass,
     pub craft_menu_open: RefCell<bool>,
     pub interactables_menu: InteractablesMenu,
+    pub main_menu: MainMenu,
+    pub main_menu_open: RefCell<bool>,
 }
 
 impl EguiManager {
@@ -48,15 +51,15 @@ impl EguiManager {
             style: Default::default(),
         });
 
-        let interactables_menu = InteractablesMenu::new();
-
         let render_pass = egui_wgpu_backend::RenderPass::new(&device, surface_format, 1);
 
         Self {
             platform,
             render_pass,
             craft_menu_open: RefCell::new(false),
-            interactables_menu,
+            interactables_menu: InteractablesMenu::new(),
+            main_menu: MainMenu::new(),
+            main_menu_open: RefCell::new(true),
         }
     }
 
@@ -73,7 +76,9 @@ impl EguiManager {
     ) -> TexturesDelta {
         self.platform.begin_frame();
 
-        if !player.viewing_map {
+        if *self.main_menu_open.borrow() {
+            self.main_menu.render_main_menu(&self.platform, player, config.width as f32 / 2.1);
+        } else if !player.viewing_map {
             self.render_place_craft_menu(player);
             self.render_inventory(player);
             self.render_info(player, field.get_time());
