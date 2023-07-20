@@ -236,7 +236,37 @@ impl State {
         }
     }
 
-    pub fn update(&mut self) { }
+    pub fn update(&mut self) {
+        // todo: make a vec of vertex buffers and an instance buffer for all hp bars with queue.write_buffer
+        self.buffers.hp_bar_vertex_buffer = vec![];
+        for i in 1..6 {
+            self.buffers.hp_bar_vertex_buffer.push(
+                self.device.create_buffer_init(
+                    &wgpu::util::BufferInitDescriptor {
+                        label: Some("Vertex Buffer"),
+                        contents: bytemuck::cast_slice(&make_hp_vertices(1./i as f32)),
+                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    }
+                )
+            );
+        }
+        self.buffers.hp_bar_instances = vec![];
+        for i in 1..6 {
+            self.buffers.hp_bar_instances.push(Instance {
+                position: cgmath::Vector3 { x: 1./i as f32, y: 1./i as f32, z: 0.0 },
+                rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+                scaling: 0.3,
+            });
+        }
+        let hp_bar_instance_data = self.buffers.hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        self.buffers.hp_bar_instance_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&hp_bar_instance_data),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+    }
 
     pub fn render(&mut self, window: &Window) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
@@ -300,8 +330,10 @@ impl State {
         let idx = self.player.get_rotation();
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
 
+        self.render_hp_bars(render_pass);
+
         // render night filter
-        self.render_night(render_pass)
+        self.render_night(render_pass);
     }
 
     pub fn handle_ui_event<T>(&mut self, event: &Event<T>) {
@@ -414,42 +446,52 @@ impl State {
             let positions = mobs.into_iter().map(|(x, y, _)| (x, y)).collect();
             self.draw_at_indices(&positions, &mut *render_pass, Some(rotations));
 
-            for (x, y) in positions {
-                let mut hp_bar_instances = self.buffers.hp_bar_instances.clone();
-                hp_bar_instances.get_mut(0).unwrap().position.x = 2. * y as f32 / TILES_PER_ROW as f32;
-                hp_bar_instances.get_mut(0).unwrap().position.y = -2. * x as f32 / TILES_PER_ROW as f32;
+            // for (x, y) in positions {
+            //     let mut hp_bar_instances = self.buffers.hp_bar_instances.clone();
+            //     hp_bar_instances.get_mut(0).unwrap().position.x = 2. * y as f32 / TILES_PER_ROW as f32;
+            //     hp_bar_instances.get_mut(0).unwrap().position.y = -2. * x as f32 / TILES_PER_ROW as f32;
+            //
+            //     let instance_data =
+            //         hp_bar_instances
+            //         .iter()
+            //         .map(Instance::to_raw)
+            //         .collect::<Vec<_>>();
+            //     self.queue.write_buffer(
+            //         &self.buffers.hp_bar_instance_buffer,
+            //         0,
+            //         bytemuck::cast_slice(&instance_data),
+            //     );
+            //
+            //     render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer.slice(..));
+            //     render_pass.set_vertex_buffer(1, self.buffers.hp_bar_instance_buffer.slice(..));
+            //     render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(true), &[]);
+            //     render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
+            //
+            //     self.queue.write_buffer(
+            //         &self.buffers.hp_bar_vertex_buffer,
+            //         0,
+            //         bytemuck::cast_slice(&make_hp_vertices(0.5)),
+            //     );
+            //     // self.hp_bar_vertex_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            //     //     label: Some("HP Bar Vertex Buffer"),
+            //     //     contents: bytemuck::cast_slice(&make_hp_vertices(0.5)),
+            //     //     usage: wgpu::BufferUsages::VERTEX,
+            //     // });
+            //
+            //     render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer.slice(..));
+            //     render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(false), &[]);
+            //     render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
+            // }
+        }
+    }
 
-                let instance_data =
-                    hp_bar_instances
-                    .iter()
-                    .map(Instance::to_raw)
-                    .collect::<Vec<_>>();
-                self.queue.write_buffer(
-                    &self.buffers.hp_bar_instance_buffer,
-                    0,
-                    bytemuck::cast_slice(&instance_data),
-                );
+    fn render_hp_bars<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+        render_pass.set_vertex_buffer(1, self.buffers.hp_bar_instance_buffer.slice(..));
 
-                render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer.slice(..));
-                render_pass.set_vertex_buffer(1, self.buffers.hp_bar_instance_buffer.slice(..));
-                render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(true), &[]);
-                render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
-
-                self.queue.write_buffer(
-                    &self.buffers.hp_bar_vertex_buffer,
-                    0,
-                    bytemuck::cast_slice(&make_hp_vertices(0.5)),
-                );
-                // self.hp_bar_vertex_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                //     label: Some("HP Bar Vertex Buffer"),
-                //     contents: bytemuck::cast_slice(&make_hp_vertices(0.5)),
-                //     usage: wgpu::BufferUsages::VERTEX,
-                // });
-
-                render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer.slice(..));
-                render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(false), &[]);
-                render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
-            }
+        for i in 0..self.buffers.hp_bar_vertex_buffer.len() {
+            render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer[i].slice(..));
+            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(false), &[]);
+            render_pass.draw_indexed(0..INDICES.len() as u32, 0, i as u32..(i+1) as u32);
         }
     }
 

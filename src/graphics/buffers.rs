@@ -17,7 +17,7 @@ pub struct Buffers {
     pub night_vertex_buffer: wgpu::Buffer,
     pub night_instance_buffer: wgpu::Buffer,
     pub map_instance_buffer: wgpu::Buffer,
-    pub hp_bar_vertex_buffer: wgpu::Buffer,
+    pub hp_bar_vertex_buffer: Vec<wgpu::Buffer>,
     pub hp_bar_instances: Vec<Instance>,
     pub hp_bar_instance_buffer: wgpu::Buffer,
 }
@@ -163,13 +163,13 @@ impl Buffers {
             }
         );
 
-        let hp_bar_vertex_buffer = device.create_buffer_init(
+        let hp_bar_vertex_buffer = vec![device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Vertex Buffer"),
                 contents: bytemuck::cast_slice(&make_hp_vertices(1.)),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
-        );
+        )];
         let hp_bar_instances = vec![Instance {
             position: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
             rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
