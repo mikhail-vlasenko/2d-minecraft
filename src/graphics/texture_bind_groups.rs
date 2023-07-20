@@ -83,145 +83,33 @@ impl TextureBindGroups {
     pub fn new(device: &Device, queue: &wgpu::Queue) -> Self {
         let bind_group_layout = Self::make_layout(device);
 
-        let grass_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_grass.png"), "mc_grass.png",
-        ).unwrap();
-        let grass = Self::make_bind_group(
-            "grass_bind_group", &grass_texture, &device, &bind_group_layout,
-        );
+        macro_rules! make_bind_group_from_texture {
+            ($path:expr) => {{
+                let texture = Texture::from_bytes(&device, &queue, include_bytes!($path), "texture.png").unwrap();
+                Self::make_bind_group("a_bind_group", &texture, &device, &bind_group_layout)
+            }};
+        }
 
-        let stone_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_stone.png"), "mc_stone.png",
-        ).unwrap();
-        let stone = Self::make_bind_group(
-            "stone_bind_group", &stone_texture, &device, &bind_group_layout,
-        );
-
-        let tree_log_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_tree_log.png"), "mc_tree_log.png",
-        ).unwrap();
-        let tree_log = Self::make_bind_group(
-            "tree_log_bind_group", &tree_log_texture, &device, &bind_group_layout,
-        );
-
-        let bedrock_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_bedrock.png"), "bedrock.png",
-        ).unwrap();
-        let bedrock = Self::make_bind_group(
-            "bedrock_bind_group", &bedrock_texture, &device, &bind_group_layout,
-        );
-
-        let planks_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_planks.png"), "planks.png",
-        ).unwrap();
-        let planks = Self::make_bind_group(
-            "planks_bind_group", &planks_texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_iron_ore.png"), "texture.png",
-        ).unwrap();
-        let iron_ore = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_crafting_table.png"), "texture.png",
-        ).unwrap();
-        let crafting_table = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/mc_diamond.png"), "texture.png",
-        ).unwrap();
-        let diamond = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mobs/zombie.png"), "texture.png",
-        ).unwrap();
-        let zombie = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mobs/zergling.png"), "texture.png",
-        ).unwrap();
-        let zergling = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mobs/baneling.png"), "texture.png",
-        ).unwrap();
-        let baneling = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/mobs/mc_cow.png"), "texture.png",
-        ).unwrap();
-        let cow = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/transparent gradient.png"), "texture.png",
-        ).unwrap();
-        let night = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/red_moon_grad.png"), "texture.png",
-        ).unwrap();
-        let red_moon = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/loot sack.png"), "texture.png",
-        ).unwrap();
-        let loot_sack = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/fat_arrow.png"), "texture.png",
-        ).unwrap();
-        let arrow = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/interactables/fat_string_crossbow.png"), "texture.png",
-        ).unwrap();
-        let crossbow_turret = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/red_hp_bar.png"), "texture.png",
-        ).unwrap();
-        let red_hp_bar = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/green_hp_bar.png"), "texture.png",
-        ).unwrap();
-        let green_hp_bar = Self::make_bind_group(
-            "a_bind_group", &texture, &device, &bind_group_layout,
-        );
-
-        let player_texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/player_top_view.png"), "player.png",
-        ).unwrap();
-        let player = Self::make_bind_group(
-            "player_bind_group", &player_texture, &device, &bind_group_layout,
-        );
+        let grass = make_bind_group_from_texture!("../../res/tiles/mc_grass.png");
+        let stone = make_bind_group_from_texture!("../../res/tiles/mc_stone.png");
+        let tree_log = make_bind_group_from_texture!("../../res/tiles/mc_tree_log.png");
+        let bedrock = make_bind_group_from_texture!("../../res/tiles/mc_bedrock.png");
+        let planks = make_bind_group_from_texture!("../../res/tiles/mc_planks.png");
+        let iron_ore = make_bind_group_from_texture!("../../res/tiles/mc_iron_ore.png");
+        let crafting_table = make_bind_group_from_texture!("../../res/tiles/mc_crafting_table.png");
+        let diamond = make_bind_group_from_texture!("../../res/tiles/mc_diamond.png");
+        let zombie = make_bind_group_from_texture!("../../res/mobs/zombie.png");
+        let zergling = make_bind_group_from_texture!("../../res/mobs/zergling.png");
+        let baneling = make_bind_group_from_texture!("../../res/mobs/baneling.png");
+        let cow = make_bind_group_from_texture!("../../res/mobs/mc_cow.png");
+        let night = make_bind_group_from_texture!("../../res/transparent gradient.png");
+        let red_moon = make_bind_group_from_texture!("../../res/red_moon_grad.png");
+        let loot_sack = make_bind_group_from_texture!("../../res/loot sack.png");
+        let arrow = make_bind_group_from_texture!("../../res/fat_arrow.png");
+        let crossbow_turret = make_bind_group_from_texture!("../../res/interactables/fat_string_crossbow.png");
+        let red_hp_bar = make_bind_group_from_texture!("../../res/red_hp_bar.png");
+        let green_hp_bar = make_bind_group_from_texture!("../../res/green_hp_bar.png");
+        let player = make_bind_group_from_texture!("../../res/tiles/player_top_view.png");
 
         let depth_indicators = Self::init_depth_groups(device, queue, &bind_group_layout);
 
@@ -257,30 +145,17 @@ impl TextureBindGroups {
     fn init_depth_groups(
         device: &Device, queue: &wgpu::Queue, texture_bind_group_layout: &BindGroupLayout,
     ) -> [BindGroup; 4] {
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth1.png"), "depth.png",
-        ).unwrap();
-        let depth1 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
-        );
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth2.png"), "depth.png",
-        ).unwrap();
-        let depth2 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
-        );
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth3.png"), "depth.png",
-        ).unwrap();
-        let depth3 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
-        );
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/depth_indicators/depth4.png"), "depth.png",
-        ).unwrap();
-        let depth4 = Self::make_bind_group(
-            "depth_bind_group", &texture, &device, &texture_bind_group_layout,
-        );
+        macro_rules! make_bind_group_from_texture {
+            ($path:expr, $layout:expr) => {{
+                let texture = Texture::from_bytes(&device, &queue, include_bytes!($path), "depth.png").unwrap();
+                Self::make_bind_group("depth_bind_group", &texture, &device, $layout)
+            }};
+        }
+
+        let depth1 = make_bind_group_from_texture!("../../res/depth_indicators/depth1.png", &texture_bind_group_layout);
+        let depth2 = make_bind_group_from_texture!("../../res/depth_indicators/depth2.png", &texture_bind_group_layout);
+        let depth3 = make_bind_group_from_texture!("../../res/depth_indicators/depth3.png", &texture_bind_group_layout);
+        let depth4 = make_bind_group_from_texture!("../../res/depth_indicators/depth4.png", &texture_bind_group_layout);
 
         [depth1, depth2, depth3, depth4]
     }
@@ -366,40 +241,18 @@ struct TextureMaterials {
 
 impl TextureMaterials {
     pub fn new(device: &Device, queue: &wgpu::Queue, bind_group_layout: &BindGroupLayout) -> Self {
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/texture_materials/unknown.png"), "texture.png",
-        ).unwrap();
-        let unknown = TextureBindGroups::make_bind_group(
-            "a_bind_group", &texture, &device, bind_group_layout,
-        );
+        macro_rules! make_bind_group_from_texture {
+            ($path:expr) => {{
+                let texture = Texture::from_bytes(&device, &queue, include_bytes!($path), "texture.png").unwrap();
+                TextureBindGroups::make_bind_group("texture_material_bind_group", &texture, &device, &bind_group_layout)
+            }};
+        }
 
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/texture_materials/right_top_war_robot.png"), "texture.png",
-        ).unwrap();
-        let robot_tr = TextureBindGroups::make_bind_group(
-            "a_bind_group", &texture, &device, bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/texture_materials/left_top_war_robot.png"), "texture.png",
-        ).unwrap();
-        let robot_tl = TextureBindGroups::make_bind_group(
-            "a_bind_group", &texture, &device, bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/texture_materials/right_bot_war_robot.png"), "texture.png",
-        ).unwrap();
-        let robot_br = TextureBindGroups::make_bind_group(
-            "a_bind_group", &texture, &device, bind_group_layout,
-        );
-
-        let texture = Texture::from_bytes(
-            &device, &queue, include_bytes!("../../res/tiles/texture_materials/left_bot_war_robot.png"), "texture.png",
-        ).unwrap();
-        let robot_bl = TextureBindGroups::make_bind_group(
-            "a_bind_group", &texture, &device, bind_group_layout,
-        );
+        let unknown = make_bind_group_from_texture!("../../res/tiles/texture_materials/unknown.png");
+        let robot_tr = make_bind_group_from_texture!("../../res/tiles/texture_materials/right_top_war_robot.png");
+        let robot_tl = make_bind_group_from_texture!("../../res/tiles/texture_materials/left_top_war_robot.png");
+        let robot_br = make_bind_group_from_texture!("../../res/tiles/texture_materials/right_bot_war_robot.png");
+        let robot_bl = make_bind_group_from_texture!("../../res/tiles/texture_materials/left_bot_war_robot.png");
 
         TextureMaterials {
             unknown,
