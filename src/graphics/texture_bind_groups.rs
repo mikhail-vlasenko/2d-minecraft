@@ -27,6 +27,8 @@ pub struct TextureBindGroups {
     loot_sack: BindGroup,
     arrow: BindGroup,
     crossbow_turret: BindGroup,
+    red_hp_bar: BindGroup,
+    green_hp_bar: BindGroup,
     texture_materials: TextureMaterials,
     pub bind_group_layout: BindGroupLayout,
 }
@@ -200,6 +202,20 @@ impl TextureBindGroups {
             "a_bind_group", &texture, &device, &bind_group_layout,
         );
 
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/red_hp_bar.png"), "texture.png",
+        ).unwrap();
+        let red_hp_bar = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
+        let texture = Texture::from_bytes(
+            &device, &queue, include_bytes!("../../res/green_hp_bar.png"), "texture.png",
+        ).unwrap();
+        let green_hp_bar = Self::make_bind_group(
+            "a_bind_group", &texture, &device, &bind_group_layout,
+        );
+
         let player_texture = Texture::from_bytes(
             &device, &queue, include_bytes!("../../res/tiles/player_top_view.png"), "player.png",
         ).unwrap();
@@ -231,6 +247,8 @@ impl TextureBindGroups {
             loot_sack,
             arrow,
             crossbow_turret,
+            red_hp_bar,
+            green_hp_bar,
             texture_materials,
             bind_group_layout,
         }
@@ -327,6 +345,14 @@ impl TextureBindGroups {
 
     pub fn get_bind_group_arrow(&self) -> &BindGroup {
         &self.arrow
+    }
+
+    pub fn get_bind_group_hp_bar(&self, red: bool) -> &BindGroup {
+        if red {
+            &self.red_hp_bar
+        } else {
+            &self.green_hp_bar
+        }
     }
 }
 

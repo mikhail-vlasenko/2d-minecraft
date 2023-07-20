@@ -3,22 +3,23 @@ use wgpu::Device;
 use wgpu::util::DeviceExt;
 use crate::graphics::instance::Instance;
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
-use crate::graphics::vertex::{COLOR_VERTICES, INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
+use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_hp_vertices, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
 use crate::SETTINGS;
 
 
 /// Creates and stores wgpu buffers
 pub struct Buffers {
     pub vertex_buffer: wgpu::Buffer,
-    pub color_vertex_buffer: wgpu::Buffer,
     pub player_vertex_buffer: wgpu::Buffer,
     pub index_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
-    pub player_instances: Vec<Instance>,
     pub player_instance_buffer: wgpu::Buffer,
     pub night_vertex_buffer: wgpu::Buffer,
     pub night_instance_buffer: wgpu::Buffer,
     pub map_instance_buffer: wgpu::Buffer,
+    pub hp_bar_vertex_buffer: Vec<wgpu::Buffer>,
+    pub hp_bar_instances: Vec<Instance>,
+    pub hp_bar_instance_buffer: wgpu::Buffer,
 }
 
 impl Buffers {
@@ -65,14 +66,6 @@ impl Buffers {
             }
         );
 
-        let color_vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("hp bar buffer"),
-                contents: bytemuck::cast_slice(COLOR_VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-
         let player_instances = (0..4).map(move |angle| {
             let x_rot_compensation = if angle == 1 || angle == 2 { 1 } else { 0 };
             let y_rot_compensation = if angle > 1 { 1 } else { 0 };
@@ -99,7 +92,7 @@ impl Buffers {
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
                 contents: bytemuck::cast_slice(&player_instance_data),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                usage: wgpu::BufferUsages::VERTEX,
             }
         );
 
@@ -170,17 +163,39 @@ impl Buffers {
             }
         );
 
+        let hp_bar_vertex_buffer = vec![device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(&make_hp_vertices(1.)),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        )];
+        let hp_bar_instances = vec![Instance {
+            position: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
+            rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
+            scaling: HP_BAR_SCALING_COEF,
+        }];
+        let hp_bar_instance_data = hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let hp_bar_instance_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&hp_bar_instance_data),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
         Self {
             vertex_buffer,
-            color_vertex_buffer,
             player_vertex_buffer,
             index_buffer,
             instance_buffer,
-            player_instances,
             player_instance_buffer,
             night_vertex_buffer,
             night_instance_buffer,
             map_instance_buffer,
+            hp_bar_vertex_buffer,
+            hp_bar_instances,
+            hp_bar_instance_buffer,
         }
     }
 }

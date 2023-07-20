@@ -204,6 +204,10 @@ impl Mob {
             (modulus + 4) as u32
         }
     }
+    
+    pub fn get_hp_share(&self) -> f32 {
+        self.hp as f32 / self.kind.get_max_hp() as f32
+    }
 }
 
 impl ActingWithSpeed for Mob {
