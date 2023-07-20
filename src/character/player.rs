@@ -154,6 +154,9 @@ impl Player {
         if field.get_interactable_kind_at(placement_pos).is_some() {
             self.interact(field, placement_pos);
             0.
+        } else if field.is_occupied(placement_pos) {
+            self.add_message(&format!("Can't place on a mob"));
+            0.
         } else {
             match self.placement_storable {
                 Storable::M(material) => self.place_material(field, placement_pos, material),

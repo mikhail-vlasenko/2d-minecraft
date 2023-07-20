@@ -145,7 +145,16 @@ impl Chunk {
     }
     pub fn pop_at(&mut self, x: i32, y: i32) -> Option<Block> {
         let inner = self.indices_in_chunk(x, y);
-        self.tiles[inner.0][inner.1].pop()
+        let block = self.tiles[inner.0][inner.1].pop();
+        // land mob on this tile
+        if self.is_occupied(x, y) {
+            for mob in &mut self.mobs {
+                if mob.pos.x == x && mob.pos.y == y {
+                    mob.pos.z = self.tiles[inner.0][inner.1].len();
+                }
+            }
+        }
+        block
     }
     pub fn full_at(&self, x: i32, y: i32) -> bool {
         let inner = self.indices_in_chunk(x, y);
