@@ -63,8 +63,10 @@ impl Data {
     pub fn step_time(&mut self) {
         self.field.step_time(1., &mut self.player);
     }
-    pub fn step_interactables(&mut self) {
-        self.field.step_interactables(&mut self.player);
+    pub fn step_interactables(&mut self, turns: i32) {
+        for _ in 0..turns {
+            self.field.step_interactables(&mut self.player);
+        }
     }
 }
 

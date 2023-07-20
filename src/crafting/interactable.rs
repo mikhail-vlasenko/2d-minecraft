@@ -101,7 +101,7 @@ impl InteractableKind {
     // how often the step() function should be called
     pub fn speed(&self) -> f32 {
         match self {
-            CrossbowTurret => 0.5,
+            CrossbowTurret => 0.2,
         }
     }
 }
