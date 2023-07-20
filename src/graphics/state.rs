@@ -18,7 +18,7 @@ use crate::crafting::items::Item;
 use crate::character::player::Player;
 use crate::crafting::interactable::InteractableKind;
 use crate::graphics::buffers::Buffers;
-use crate::graphics::egui_manager::EguiManager;
+use crate::graphics::ui::egui_manager::EguiManager;
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
@@ -41,7 +41,6 @@ pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
     0.0,
 );
 pub const RENDER_DISTANCE: usize = ((TILES_PER_ROW - 1) / 2) as usize;
-const ROTATION_SPEED: f32 = 2.0 * std::f32::consts::PI / 60.0;
 
 /// The main class of the application.
 /// Initializes graphics.

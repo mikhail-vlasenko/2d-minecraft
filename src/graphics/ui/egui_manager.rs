@@ -17,6 +17,7 @@ use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::{CraftMenuSection, Storable};
 use crate::crafting::storable::Craftable;
+use crate::graphics::ui::interactables_menu::InteractablesMenu;
 use crate::map_generation::field::Field;
 use crate::map_generation::mobs::mob_kind::MobKind;
 
@@ -26,7 +27,7 @@ pub struct EguiManager {
     platform: Platform,
     render_pass: egui_wgpu_backend::RenderPass,
     pub craft_menu_open: RefCell<bool>,
-    pub deposit_ammo_amount: u32,
+    pub interactables_menu: InteractablesMenu,
 }
 
 impl EguiManager {
@@ -47,13 +48,15 @@ impl EguiManager {
             style: Default::default(),
         });
 
+        let interactables_menu = InteractablesMenu::new();
+
         let render_pass = egui_wgpu_backend::RenderPass::new(&device, surface_format, 1);
 
         Self {
             platform,
             render_pass,
             craft_menu_open: RefCell::new(false),
-            deposit_ammo_amount: 1,
+            interactables_menu,
         }
     }
 
@@ -75,7 +78,7 @@ impl EguiManager {
             self.render_inventory(player);
             self.render_info(player, field.get_time());
             if player.interacting_with.is_some() {
-                self.render_interact_menu(player, field, config.width as f32 / 2.1);
+                self.interactables_menu.render_interact_menu(&self.platform, player, field, config.width as f32 / 2.1);
             }
             if *self.craft_menu_open.borrow() {
                 self.render_craft_menu(player, config.width as f32 / 2.1);
@@ -219,78 +222,6 @@ impl EguiManager {
         }
     }
 
-    fn render_interact_menu(&mut self, player: &mut Player, field: &mut Field, width: f32) {
-        let inter_pos = player.interacting_with.unwrap();
-        let kind = field.get_interactable_kind_at(inter_pos).unwrap();
-        egui::Window::new(format!("{} menu", kind))
-            .anchor(Align2::CENTER_CENTER, [0., 0.])
-            .collapsible(false)
-            .fixed_size([width, 300.])
-            .show(&self.platform.context(), |ui| {
-                let num_columns = 2;
-                ui.columns(num_columns, |columns| {
-                    columns[0].label(format!("Interactable's inventory:"));
-                    for item in field.get_interactable_inventory_at(inter_pos) {
-                        if item.1 != 0 {
-                            columns[0].label(format!("{}: {}", item.0, item.1));
-                        }
-                    }
-                    if kind.is_turret() {
-                        columns[0].add_space(30.);
-                        columns[0].label("Turret's targets:");
-                        let targets = field.get_interactable_targets_at(inter_pos);
-                        let mut new_targets = Vec::new();
-                        for mob in MobKind::iter() {
-                            let mut mob_in = targets.contains(&mob);
-                            columns[0].checkbox(&mut mob_in, format!("{:?}", mob));
-                            if mob_in {
-                                new_targets.push(mob);
-                            }
-                        }
-                        field.set_interactable_targets_at(inter_pos, new_targets);
-                    }
-                    columns[0].with_layout(
-                        egui::Layout::left_to_right(Align::BOTTOM),
-                        |ui| {
-                            if ui.button("Take all")
-                                .on_hover_text("Take all items from the interactable's inventory.")
-                                .clicked() {
-                                for (storable, amount) in field.get_interactable_inventory_at(inter_pos) {
-                                    player.unload_interactable(field, &storable, amount);
-                                }
-                            }
-                            if kind.is_turret() {
-                                let ammo = &kind.get_ammo().unwrap().into();
-                                if ui.button(format!("Put {:0>3} ammo", self.deposit_ammo_amount))
-                                    .on_hover_text("Put ammo from your inventory into the interactable's inventory.")
-                                    .clicked() {
-                                    player.load_interactable(
-                                        field,
-                                        ammo,
-                                        self.deposit_ammo_amount,
-                                    );
-                                    if self.deposit_ammo_amount > player.inventory_count(ammo) {
-                                        self.deposit_ammo_amount = player.inventory_count(ammo);
-                                    }
-                                }
-                                ui.add(Slider::new(&mut self.deposit_ammo_amount,
-                                    0..=player.inventory_count(ammo))
-                                           .smart_aim(true)
-                                           .step_by(1.)
-                                           .text("amount"));
-                            }
-                        });
-
-                    columns[1].label(format!("Your inventory:"));
-                    for item in player.get_inventory() {
-                        if item.1 != 0 {
-                            columns[1].label(format!("{}: {}", item.0, item.1));
-                        }
-                    }
-                });
-            });
-    }
-
     fn format_item_description(item: impl Craftable, current: u32) -> String {
         if item.is_craftable() {
             format!("{} x{} ({})", item.to_string(), item.craft_yield(), current)
@@ -360,9 +291,6 @@ fn time_to_weekday(time: f32) -> String {
     let unit_in_week = time % units_in_week;
 
     let day = unit_in_week / units_in_day;
-    let unit_in_day = unit_in_week % units_in_day;
-
-    let day_night = if unit_in_day < units_in_day / 2 { "Day" } else { "Night" };
 
     let weekday = match day {
         0 => "Mon",
