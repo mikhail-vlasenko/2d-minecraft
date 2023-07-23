@@ -132,7 +132,7 @@ impl EguiManager {
     }
 
     fn render_place_craft_menu(&self, player: &mut Player) {
-        egui::Window::new("Menu").auto_sized()
+        egui::Window::new("Menu").anchor(Align2::LEFT_TOP, [0., 0.]).auto_sized()
             .show(&self.platform.context(), |ui| {
                 ui.label("Placing material");
                 for material in Material::iter() {

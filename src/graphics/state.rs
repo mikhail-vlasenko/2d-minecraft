@@ -153,26 +153,9 @@ impl State {
 
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0 };
 
-        let mut field = if SETTINGS.field.from_test_chunk {
-            let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
-            Field::new(RENDER_DISTANCE, Some(test_chunk))
-        } else {
-            Field::new(RENDER_DISTANCE, None)
-        };
+        let (field, player) = Self::init_field_player();
 
         let buffers = Buffers::new(&device, field.get_map_render_distance() as i32);
-
-        let mut player = Player::new(&field);
-        player.pickup(Storable::C(Consumable::Apple), 2);
-        if SETTINGS.player.cheating_start {
-            player.receive_cheat_package();
-        }
-
-        // spawn some initial mobs
-        let amount = (SETTINGS.mobs.spawning.initial_hostile_per_chunk *
-            (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as i32;
-        field.spawn_mobs(&player, amount, true);
-        field.spawn_mobs(&player, amount * 2, false);
 
         Self {
             surface,
@@ -188,6 +171,34 @@ impl State {
             field,
             player,
         }
+    }
+
+    pub fn init_field_player() -> (Field, Player) {
+        let mut field = if SETTINGS.field.from_test_chunk {
+            let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
+            Field::new(RENDER_DISTANCE, Some(test_chunk))
+        } else {
+            Field::new(RENDER_DISTANCE, None)
+        };
+        let mut player = Player::new(&field);
+        player.pickup(Storable::C(Consumable::Apple), 2);
+        if SETTINGS.player.cheating_start {
+            player.receive_cheat_package();
+        }
+
+        // spawn some initial mobs
+        let amount = (SETTINGS.mobs.spawning.initial_hostile_per_chunk *
+            (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as i32;
+        field.spawn_mobs(&player, amount, true);
+        field.spawn_mobs(&player, amount * 2, false);
+
+        (field, player)
+    }
+
+    pub fn new_game(&mut self) {
+        let (field, player) = Self::init_field_player();
+        self.field = field;
+        self.player = player;
     }
 
     pub fn get_size(&self) -> PhysicalSize<u32> {
@@ -222,12 +233,16 @@ impl State {
                 },
                 ..
             } => {
-                if self.player.get_hp() > 0 {
+                // escape always works, other actions only if player is alive and the menu is closed
+                if virtual_keycode == &Some(VirtualKeyCode::Escape) ||
+                    (self.player.get_hp() > 0 && !*self.egui_manager.main_menu_open.borrow()) {
                     self.player.message = String::new();
                     // different actions take different time, so sometimes mobs are not allowed to step
                     let passed_time = act(virtual_keycode,
                                           &mut self.player, &mut self.field,
-                                          &self.egui_manager.craft_menu_open);
+                                          &self.egui_manager.craft_menu_open,
+                                          &self.egui_manager.main_menu_open
+                    );
                     self.field.step_time(passed_time, &mut self.player);
                 }
                 true
@@ -237,6 +252,12 @@ impl State {
     }
 
     pub fn update(&mut self) {
+        if self.egui_manager.main_menu.selected_option == 1 {
+            self.new_game();
+            self.egui_manager.main_menu_open.replace(false);
+            self.egui_manager.main_menu.selected_option = 0;
+        }
+
         let mob_positions = self.field.all_mob_positions_and_hp(&self.player);
 
         self.buffers.hp_bar_vertex_buffer = vec![];

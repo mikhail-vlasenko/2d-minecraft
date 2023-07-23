@@ -6,7 +6,7 @@ use crate::map_generation::field::Field;
 
 /// Makes an action, corresponding to the key.
 /// Returns how much turn was used.
-pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field, craft_menu_open: &RefCell<bool>) -> f32 {
+pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field, craft_menu_open: &RefCell<bool>, main_menu_open: &RefCell<bool>) -> f32 {
     match key {
         None => { println!("Unrecognized virtual key"); 0. },
         Some(VirtualKeyCode::W) => player.walk("w", field),
@@ -21,6 +21,7 @@ pub fn act(key: &Option<VirtualKeyCode>, player: &mut Player, field: &mut Field,
         Some(VirtualKeyCode::F) => player.consume_current(),
         Some(VirtualKeyCode::X) => player.shoot_current(field),
         Some(VirtualKeyCode::Space) => { craft_menu_open.replace(!craft_menu_open.take()); 0. },
+        Some(VirtualKeyCode::Escape) => { main_menu_open.replace(!main_menu_open.take()); 0. },
         Some(VirtualKeyCode::M) => { player.toggle_map(); 0. },
         _ => { println!("Unknown action"); 0. }
     }

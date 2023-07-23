@@ -41,21 +41,18 @@ impl MainMenu {
                             .strong()
                         ).clicked() {
                             self.selected_option = 1;
-                            // Start new game action
                         }
                         if ui.button(RichText::new("Load Game")
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
                             self.selected_option = 2;
-                            // Load game action
                         }
                         if ui.button(RichText::new("Settings")
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
                             self.selected_option = 3;
-                            // Open settings action
                         }
                         if ui.button(RichText::new("Exit Game")
                             .font(FontId::proportional(30.0))
