@@ -223,7 +223,7 @@ impl EguiManager {
                 } else {
                     Color32::LIGHT_RED
                 }),
-            );
+            ).on_hover_text(Self::format_recipe(craftable));
         }
     }
 
@@ -233,6 +233,14 @@ impl EguiManager {
         } else {
             format!("{} ({})", item.to_string(), current)
         }
+    }
+
+    fn format_recipe(item: impl Craftable) -> String {
+        let mut recipe = String::from("Recipe:");
+        for (ingredient, count) in item.craft_requirements() {
+            recipe.push_str(&format!("\n{} x{}", ingredient.to_string(), count));
+        }
+        recipe
     }
 
     fn render_inventory(&self, player: &Player) {
