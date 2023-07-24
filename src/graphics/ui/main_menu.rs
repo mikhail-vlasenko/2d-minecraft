@@ -15,6 +15,7 @@ use crate::settings::Settings;
 pub struct MainMenu {
     pub selected_option: u32,
     pub settings_menu_open: bool,
+    pub controls_menu_open: bool,
 }
 
 impl MainMenu {
@@ -22,6 +23,7 @@ impl MainMenu {
         MainMenu {
             selected_option: 0,
             settings_menu_open: false,
+            controls_menu_open: false,
         }
     }
 
@@ -41,7 +43,7 @@ impl MainMenu {
                     columns[0].add_space(50.0); // Add space below buttons
 
                     columns[0].vertical_centered(|ui| {
-                        if ui.button(RichText::new("Start New Game")
+                        if ui.button(RichText::new("New Game")
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
@@ -58,7 +60,16 @@ impl MainMenu {
                             .strong()
                         ).clicked() {
                             self.selected_option = 3;
+                            self.controls_menu_open = false;
                             self.settings_menu_open = true;
+                        }
+                        if ui.button(RichText::new("Controls")
+                            .font(FontId::proportional(30.0))
+                            .strong()
+                        ).clicked() {
+                            self.selected_option = 4;
+                            self.settings_menu_open = false;
+                            self.controls_menu_open = true;
                         }
                         if ui.button(RichText::new("Exit Game")
                             .font(FontId::proportional(30.0))
@@ -76,43 +87,8 @@ impl MainMenu {
                         );
 
                         Self::render_difficulty_buttons(&mut columns[1], &mut settings);
-
                         columns[1].add_space(10.0);
-
-                        columns[1].label("Mobs Spawning:");
-                        columns[1].add(Slider::new(&mut settings.mobs.spawning.initial_hostile_per_chunk, 0.0..=1.0)
-                            .text("Initial Hostile per Chunk"));
-                        columns[1].add(Slider::new(&mut settings.mobs.spawning.base_day_amount, 0..=10)
-                            .text("Base Day Amount"));
-                        columns[1].add(Slider::new(&mut settings.mobs.spawning.base_night_amount, 0..=10)
-                            .text("Base Night Amount"));
-                        columns[1].add(Slider::new(&mut settings.mobs.spawning.increase_amount_every, 1..=10)
-                            .text("Increase Amount Every (days)"));
-                        columns[1].add(Slider::new(&mut settings.mobs.spawning.max_mobs_on_chunk, 0..=10)
-                            .text("Max Mobs on Chunk"));
-                        columns[1].label("Hostile Mob Kind Probabilities (otherwise zombie):");
-                        columns[1].add(Slider::new(&mut settings.mobs.spawning.probabilities.bane, 0.0..=1.0)
-                            .text("Baneling"));
-                        columns[1].add(Slider::new(&mut settings.mobs.spawning.probabilities.ling, 0.0..=1.0)
-                            .text("Zerging"));
-
-                        columns[1].label("Field Generation:");
-                        columns[1].add(Slider::new(&mut settings.field.generation.rock_proba, 0.0..=1.0)
-                            .text("Rock Probability"));
-                        columns[1].add(Slider::new(&mut settings.field.generation.tree_proba, 0.0..=1.0)
-                            .text("Tree Probability"));
-                        columns[1].add(Slider::new(&mut settings.field.generation.iron_proba, 0.0..=1.0)
-                            .text("Iron Probability"));
-                        columns[1].add(Slider::new(&mut settings.field.generation.diamond_proba, 0.0..=1.0)
-                            .text("Diamond Probability"));
-                        columns[1].add(Slider::new(&mut settings.field.generation.structures.robot_proba, 0.0..=1.0)
-                            .text("Robot Probability"));
-                        columns[1].checkbox(&mut settings.field.from_test_chunk, "Start with Test Chunk");
-
-                        columns[1].label("Player:");
-                        columns[1].checkbox(&mut settings.player.cheating_start, "Cheating Start");
-                        columns[1].add(Slider::new(&mut settings.player.arrow_break_chance, 0.0..=1.0)
-                            .text("Arrow Break Chance"));
+                        Self::render_settings_sliders(&mut columns[1], &mut settings);
 
                         // Add a "Back" button at the end of the settings menu
                         columns[1].horizontal(|ui| {
@@ -121,9 +97,19 @@ impl MainMenu {
                                 self.settings_menu_open = false;
                             }
                         });
+                    } else if self.controls_menu_open {
+                        columns[1].label(RichText::new("Controls")
+                            .font(FontId::proportional(20.0))
+                        );
+                        Self::render_controls(&mut columns[1]);
+                        columns[1].horizontal(|ui| {
+                            if ui.button("Back").clicked() {
+                                self.controls_menu_open = false;
+                            }
+                        });
                     } else {
                         columns[1].label("A short introduction to the game:");
-                        columns[1].label("This is a survival game, that take inspiration from Minecraft and Rogue.");
+                        columns[1].label("This is a survival game that takes inspiration from Minecraft and Rogue.");
                         columns[1].label("You will have to craft items, fight enemies and explore the world.");
                         columns[1].label("You will be able to build your own base and defend it from enemies.");
                         columns[1].label("Your attack damage depends on the items in your inventory.");
@@ -135,7 +121,7 @@ impl MainMenu {
     }
 
     fn render_difficulty_buttons(ui: &mut egui::Ui, settings: &mut Settings) {
-        ui.label("Difficulty:");
+        ui.label("Difficulty Preset:");
         ui.horizontal(|ui| {
             if ui.button(RichText::new("Easy").color(Color32::GREEN)).clicked() {
                 settings.player.cheating_start = true;
@@ -160,5 +146,61 @@ impl MainMenu {
             }
         });
     }
+    
+    fn render_settings_sliders(ui: &mut egui::Ui, settings: &mut Settings) {
+        ui.label("Mobs Spawning:");
+        ui.add(Slider::new(&mut settings.mobs.spawning.initial_hostile_per_chunk, 0.0..=1.0)
+            .text("Initial Hostile per Chunk"));
+        ui.add(Slider::new(&mut settings.mobs.spawning.base_day_amount, 0..=10)
+            .text("Base Day Amount"));
+        ui.add(Slider::new(&mut settings.mobs.spawning.base_night_amount, 0..=10)
+            .text("Base Night Amount"));
+        ui.add(Slider::new(&mut settings.mobs.spawning.increase_amount_every, 1..=10)
+            .text("Increase Amount Every (days)"));
+        ui.add(Slider::new(&mut settings.mobs.spawning.max_mobs_on_chunk, 0..=10)
+            .text("Max Mobs on Chunk"));
+        ui.label("Hostile Mob Kind Probabilities (otherwise zombie):");
+        ui.add(Slider::new(&mut settings.mobs.spawning.probabilities.bane, 0.0..=1.0)
+            .text("Baneling"));
+        ui.add(Slider::new(&mut settings.mobs.spawning.probabilities.ling, 0.0..=1.0)
+            .text("Zerging"));
 
+        ui.label("Field Generation:");
+        ui.add(Slider::new(&mut settings.field.generation.rock_proba, 0.0..=1.0)
+            .text("Rock Probability"));
+        ui.add(Slider::new(&mut settings.field.generation.tree_proba, 0.0..=1.0)
+            .text("Tree Probability"));
+        ui.add(Slider::new(&mut settings.field.generation.iron_proba, 0.0..=1.0)
+            .text("Iron Probability"));
+        ui.add(Slider::new(&mut settings.field.generation.diamond_proba, 0.0..=1.0)
+            .text("Diamond Probability"));
+        ui.add(Slider::new(&mut settings.field.generation.structures.robot_proba, 0.0..=1.0)
+            .text("Robot Probability"));
+        ui.checkbox(&mut settings.field.from_test_chunk, "Start with Test Chunk");
+
+        ui.label("Player:");
+        ui.checkbox(&mut settings.player.cheating_start, "Cheating Start");
+        ui.add(Slider::new(&mut settings.player.arrow_break_chance, 0.0..=1.0)
+            .text("Arrow Break Chance"));
+    }
+
+    fn render_controls(ui: &mut egui::Ui) {
+        let controls = [
+            ("WASD", "Move"),
+            ("Left Arrow", "Rotate left"),
+            ("Right Arrow", "Rotate right"),
+            ("Q", "Mine in front"),
+            ("E", "Place current item in front"),
+            ("C", "Craft current craftable"),
+            ("F", "Consume current consumable"),
+            ("X", "Shoot current ranged weapon"),
+            ("M", "Toggle map view"),
+            ("Space", "Toggle craft menu"),
+            ("Escape", "Toggle main menu"),
+        ];
+
+        for (key, action) in &controls {
+            ui.label(format!("{}: {}", key, action));
+        }
+    }
 }
