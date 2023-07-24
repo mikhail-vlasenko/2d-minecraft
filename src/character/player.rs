@@ -47,7 +47,7 @@ impl Player {
             y: 0,
             z: 0,
             rotation: 0.,
-            hp: SETTINGS.player.max_hp,
+            hp: SETTINGS.read().unwrap().player.max_hp,
             inventory: Inventory::new(),
             status_effects: Vec::new(),
             placement_storable: Plank.into(),
@@ -339,7 +339,7 @@ impl Player {
         if weapon.ammo() == &Arrow {
             // arrows can be reused, but sometimes break
             let rng: f32 = rand::random();
-            if rng > SETTINGS.player.arrow_break_chance {
+            if rng > SETTINGS.read().unwrap().player.arrow_break_chance {
                 field.add_loot_at(vec![I(Arrow)], curr_tile);
             } else {
                 self.add_message(&"Arrow broke");
@@ -470,7 +470,7 @@ impl Player {
     }
 
     pub fn heal(&mut self, hp: i32) {
-        self.hp = min(SETTINGS.player.max_hp, self.hp + hp)
+        self.hp = min(SETTINGS.read().unwrap().player.max_hp, self.hp + hp)
     }
 
     pub fn get_melee_damage(&self) -> i32 {

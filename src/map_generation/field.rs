@@ -52,10 +52,10 @@ pub struct Field {
 impl Field {
     pub fn new(render_distance: usize, starting_chunk: Option<Chunk>) -> Self {
         // in chunks
-        let loading_distance = SETTINGS.field.loading_distance as usize;
+        let loading_distance = SETTINGS.read().unwrap().field.loading_distance as usize;
         // in tiles
-        let chunk_size = SETTINGS.field.chunk_size as usize;
-        let map_render_distance = max(SETTINGS.field.map_radius as usize, loading_distance * chunk_size);
+        let chunk_size = SETTINGS.read().unwrap().field.chunk_size as usize;
+        let map_render_distance = max(SETTINGS.read().unwrap().field.map_radius as usize, loading_distance * chunk_size);
 
         let chunk_loader = if starting_chunk.is_some() {
             ChunkLoader::with_starting_chunk(loading_distance, starting_chunk.unwrap())
@@ -66,7 +66,7 @@ impl Field {
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
 
-        let a_star = AStar::new(SETTINGS.pathing.a_star_radius);
+        let a_star = AStar::new(SETTINGS.read().unwrap().pathing.a_star_radius);
 
         let time = 0.;
         let accumulated_time = 0.;
@@ -197,7 +197,9 @@ impl Field {
                 let chunk_pos = (self.chunk_pos(tile.0), self.chunk_pos(tile.1));
                 let mut chunk = self.get_chunk(tile.0, tile.1);
                 // limit so it is not too crowded, but allow more mobs during red moon
-                if chunk.get_mobs().len() < (3 + game_time as usize / 700) || is_red_moon {
+                if chunk.get_mobs().len() <
+                    (SETTINGS.read().unwrap().mobs.spawning.max_mobs_on_chunk as usize + game_time as usize / 700)
+                    || is_red_moon {
                     create_mob(chunk.deref_mut(), chunk_pos, tile, game_time, hostile);
                 }
             }
@@ -205,14 +207,15 @@ impl Field {
     }
 
     pub fn get_mob_spawn_amount(&self) -> i32 {
+        let settings = SETTINGS.read().unwrap();
         if !self.is_night() {
-            SETTINGS.mobs.spawning.base_day_amount
+            settings.mobs.spawning.base_day_amount
         } else {
-            let mut amount = SETTINGS.mobs.spawning.base_night_amount;
+            let mut amount = settings.mobs.spawning.base_night_amount;
             if self.is_red_moon() {
-                amount += SETTINGS.mobs.spawning.base_night_amount / 2;
+                amount += settings.mobs.spawning.base_night_amount / 2;
             }
-            amount += self.time as i32 / 100 * SETTINGS.mobs.spawning.increase_amount_every;
+            amount += self.time as i32 / 100 * settings.mobs.spawning.increase_amount_every;
             amount
         }
     }
@@ -252,7 +255,7 @@ impl Field {
                         player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
         let detour =
             if max_detour.is_none() {
-                SETTINGS.pathing.default_detour
+                SETTINGS.read().unwrap().pathing.default_detour
             } else {
                 max_detour.unwrap()
             };
@@ -273,11 +276,11 @@ impl Field {
     /// From how many tiles away do mobs start to move towards the player ('sense' him).
     pub fn get_towards_player_radius(&self) -> i32 {
         if self.get_time() < 200. {
-            SETTINGS.pathing.towards_player_radius.early
+            SETTINGS.read().unwrap().pathing.towards_player_radius.early
         } else if self.is_red_moon() {
-            SETTINGS.pathing.towards_player_radius.red_moon
+            SETTINGS.read().unwrap().pathing.towards_player_radius.red_moon
         } else {
-            SETTINGS.pathing.towards_player_radius.usual
+            SETTINGS.read().unwrap().pathing.towards_player_radius.usual
         }
     }
 

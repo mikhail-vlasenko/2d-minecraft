@@ -1,4 +1,5 @@
 use std::{iter};
+use std::borrow::BorrowMut;
 use std::time::Instant;
 
 use cgmath::{InnerSpace, Rotation3, Zero};
@@ -31,7 +32,7 @@ use crate::crafting::storable::Storable;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::read_chunk::read_file;
 use crate::SETTINGS;
-use crate::settings::DEFAULT_SETTINGS;
+use crate::settings::{DEFAULT_SETTINGS, Settings};
 
 pub const TILES_PER_ROW: u32 = DEFAULT_SETTINGS.window.tiles_per_row as u32;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
@@ -65,6 +66,7 @@ pub struct State {
 impl State {
     // Creating some of the wgpu types requires async code
     pub async fn new(window: &Window) -> Self {
+        // SETTINGS.borrow_mut();
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -174,7 +176,7 @@ impl State {
     }
 
     pub fn init_field_player() -> (Field, Player) {
-        let mut field = if SETTINGS.field.from_test_chunk {
+        let mut field = if SETTINGS.read().unwrap().field.from_test_chunk {
             let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
             Field::new(RENDER_DISTANCE, Some(test_chunk))
         } else {
@@ -182,12 +184,12 @@ impl State {
         };
         let mut player = Player::new(&field);
         player.pickup(Storable::C(Consumable::Apple), 2);
-        if SETTINGS.player.cheating_start {
+        if SETTINGS.read().unwrap().player.cheating_start {
             player.receive_cheat_package();
         }
 
         // spawn some initial mobs
-        let amount = (SETTINGS.mobs.spawning.initial_hostile_per_chunk *
+        let amount = (SETTINGS.read().unwrap().mobs.spawning.initial_hostile_per_chunk *
             (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as i32;
         field.spawn_mobs(&player, amount, true);
         field.spawn_mobs(&player, amount * 2, false);

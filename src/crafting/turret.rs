@@ -33,10 +33,10 @@ impl Interactable {
 
         let middle_idx = (field.chunk_pos(self.get_position().0),
                                    field.chunk_pos(self.get_position().1));
-        let size = SETTINGS.field.chunk_size;
+        let size = SETTINGS.read().unwrap().field.chunk_size;
         let chunk_distance =
             (targeting.range as f32 /
-                SETTINGS.field.chunk_size as f32).ceil() as i32;
+                SETTINGS.read().unwrap().field.chunk_size as f32).ceil() as i32;
 
         // iterate through close chunks not going out of loaded chunks
         for i in max(min_loaded.0 / size, middle_idx.0 - chunk_distance)
@@ -60,7 +60,7 @@ impl Interactable {
                     // put the arrow on the field
                     if targeting.ammo == Arrow {
                         let rng: f32 = rand::random();
-                        if rng > SETTINGS.player.arrow_break_chance {
+                        if rng > SETTINGS.read().unwrap().player.arrow_break_chance {
                             field.add_loot_at(vec![Arrow.into()], mob_pos);
                         }
                     }

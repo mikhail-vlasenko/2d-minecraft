@@ -1,6 +1,8 @@
 extern crate core;
 
 extern crate lazy_static;
+
+use std::sync::RwLock;
 use lazy_static::lazy_static;
 use crate::graphics::event_loop::run;
 use crate::settings::Settings;
@@ -13,7 +15,7 @@ pub mod character;
 mod settings;
 
 lazy_static! {
-    static ref SETTINGS: Settings = Settings::load().into_owned();
+    static ref SETTINGS: RwLock<Settings> = RwLock::new(Settings::load().into_owned());
 }
 
 pub fn lib_main() {

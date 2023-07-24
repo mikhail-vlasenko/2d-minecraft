@@ -12,7 +12,10 @@ use crate::SETTINGS;
 
 
 pub async fn run() {
-    let initial_size = PhysicalSize { width: SETTINGS.window.width, height: SETTINGS.window.height };
+    let initial_size = PhysicalSize {
+        width: SETTINGS.read().unwrap().window.width,
+        height: SETTINGS.read().unwrap().window.height
+    };
     env_logger::init();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()

@@ -32,9 +32,9 @@ fn pick_tile(size: &i32) -> (i32, i32) {
 
 fn pick_hostile_kind(dist: i32, game_time: f32) -> MobKind {
     let bane_prob = if game_time > 200. {
-        SETTINGS.mobs.spawning.probabilities.bane
+        SETTINGS.read().unwrap().mobs.spawning.probabilities.bane
     } else { 0. };
-    let ling_prob = SETTINGS.mobs.spawning.probabilities.ling;
+    let ling_prob = SETTINGS.read().unwrap().mobs.spawning.probabilities.ling;
     let rng: f32 = random();
     if rng < bane_prob {
         MobKind::Baneling

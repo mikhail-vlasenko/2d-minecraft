@@ -70,13 +70,13 @@ impl Chunk {
     pub fn gen_tile() -> Tile {
         let mut tile = Tile::make_dirt();
         randomly_augment(&mut tile, &Tile::make_rock,
-                         SETTINGS.field.generation.rock_proba);
+                         SETTINGS.read().unwrap().field.generation.rock_proba);
         randomly_augment(&mut tile, &Tile::add_tree,
-                         SETTINGS.field.generation.tree_proba);
+                         SETTINGS.read().unwrap().field.generation.tree_proba);
         randomly_augment(&mut tile, &Tile::make_iron,
-                         SETTINGS.field.generation.iron_proba);
+                         SETTINGS.read().unwrap().field.generation.iron_proba);
         randomly_augment(&mut tile, &Tile::make_diamond,
-                         SETTINGS.field.generation.diamond_proba);
+                         SETTINGS.read().unwrap().field.generation.diamond_proba);
         tile
     }
 

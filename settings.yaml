@@ -31,6 +31,7 @@ mobs:
     base_day_amount: 2
     base_night_amount: 5
     increase_amount_every: 3  # in days
+    max_mobs_on_chunk: 3
     probabilities:
       bane: 0.3
       ling: 0.2

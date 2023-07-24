@@ -48,7 +48,7 @@ impl Chunk {
 
     fn choose_structure() -> Option<Vec<Vec<Tile>>> {
         let rng: f32 = random();
-        if rng < SETTINGS.field.generation.structures.robot_proba {
+        if rng < SETTINGS.read().unwrap().field.generation.structures.robot_proba {
             Some(Self::make_war_robot())
         } else {
             None

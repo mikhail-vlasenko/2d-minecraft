@@ -14,7 +14,7 @@ pub struct ChunkLoader {
 
 impl ChunkLoader {
     pub fn new(loading_distance: usize) -> Self {
-        let chunk_size = SETTINGS.field.chunk_size as usize;
+        let chunk_size = SETTINGS.read().unwrap().field.chunk_size as usize;
         let chunks = HashMap::new();
 
         let mut loader = Self {
