@@ -2,28 +2,22 @@ use std::process::exit;
 use egui::{Align, Checkbox, FontDefinitions, Slider};
 use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
 use egui_wgpu_backend;
-use egui_wgpu_backend::ScreenDescriptor;
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
-use winit::dpi::PhysicalSize;
-use winit::event::Event;
-use winit::window::Window;
 use crate::character::player::Player;
 use crate::SETTINGS;
 use crate::settings::Settings;
 
 pub struct MainMenu {
     pub selected_option: u32,
-    pub settings_menu_open: bool,
-    pub controls_menu_open: bool,
+    pub second_panel: SecondPanelState,
 }
 
 impl MainMenu {
     pub fn new() -> Self {
         MainMenu {
             selected_option: 0,
-            settings_menu_open: false,
-            controls_menu_open: false,
+            second_panel: SecondPanelState::About,
         }
     }
 
@@ -60,16 +54,14 @@ impl MainMenu {
                             .strong()
                         ).clicked() {
                             self.selected_option = 3;
-                            self.controls_menu_open = false;
-                            self.settings_menu_open = true;
+                            self.second_panel = SecondPanelState::Settings;
                         }
                         if ui.button(RichText::new("Controls")
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
                             self.selected_option = 4;
-                            self.settings_menu_open = false;
-                            self.controls_menu_open = true;
+                            self.second_panel = SecondPanelState::Controls;
                         }
                         if ui.button(RichText::new("Exit Game")
                             .font(FontId::proportional(30.0))
@@ -81,7 +73,7 @@ impl MainMenu {
 
                     columns[0].add_space(50.0); // Add space below buttons
 
-                    if self.settings_menu_open {
+                    if self.second_panel == SecondPanelState::Settings {
                         columns[1].label(RichText::new("Settings")
                             .font(FontId::proportional(20.0))
                         );
@@ -93,18 +85,17 @@ impl MainMenu {
                         // Add a "Back" button at the end of the settings menu
                         columns[1].horizontal(|ui| {
                             if ui.button("Back").clicked() {
-                                // Close the settings menu
-                                self.settings_menu_open = false;
+                                self.second_panel = SecondPanelState::About;
                             }
                         });
-                    } else if self.controls_menu_open {
+                    } else if self.second_panel == SecondPanelState::Controls {
                         columns[1].label(RichText::new("Controls")
                             .font(FontId::proportional(20.0))
                         );
                         Self::render_controls(&mut columns[1]);
                         columns[1].horizontal(|ui| {
                             if ui.button("Back").clicked() {
-                                self.controls_menu_open = false;
+                                self.second_panel = SecondPanelState::About;
                             }
                         });
                     } else {
@@ -203,4 +194,11 @@ impl MainMenu {
             ui.label(format!("{}: {}", key, action));
         }
     }
+}
+
+#[derive(PartialEq)]
+pub enum SecondPanelState {
+    About,
+    Settings,
+    Controls,
 }
