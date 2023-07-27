@@ -1,6 +1,7 @@
 use std::cell::{RefCell, RefMut};
 use std::mem;
 use rand::{random, Rng};
+use serde::{Serialize, Deserialize};
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::inventory::Inventory;
 use crate::map_generation::block::Block;
@@ -13,6 +14,8 @@ use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::read_chunk::read_file;
 use crate::SETTINGS;
 
+
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Chunk {
     tiles: Vec<Vec<Tile>>,
     /// all mobs on this chunk are stored here

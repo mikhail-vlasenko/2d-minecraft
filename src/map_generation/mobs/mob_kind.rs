@@ -1,9 +1,10 @@
 use strum_macros::EnumIter;
+use serde::{Serialize, Deserialize};
 use crate::crafting::consumable::Consumable::{RawMeat, SpeedPotion};
 use crate::crafting::storable::Storable;
 use crate::map_generation::mobs::mob_kind::MobKind::*;
 
-#[derive(PartialEq, Copy, Clone, EnumIter, Debug)]
+#[derive(PartialEq, Copy, Clone, EnumIter, Serialize, Deserialize, Debug)]
 pub enum MobKind {
     Zombie,
     Zergling,
@@ -69,7 +70,7 @@ fn add_loot_with_probability(loot: &mut Vec<Storable>, item: Storable, probabili
     }
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
 pub enum MobState {
     Searching,
     Attacking,

@@ -1,4 +1,5 @@
 use std::cmp::{max, min};
+use serde::{Serialize, Deserialize};
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::character::player::Player;
 use crate::crafting::interactable::{Interactable, InteractableKind};
@@ -10,7 +11,7 @@ use crate::map_generation::field::Field;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::SETTINGS;
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 /// Data that is used by turrets
 pub struct TargetingData {
     /// which kinds of mobs this turret targets

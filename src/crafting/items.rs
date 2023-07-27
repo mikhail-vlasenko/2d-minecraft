@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use serde::{Serialize, Deserialize};
 use Storable::*;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
@@ -11,7 +12,7 @@ use crate::crafting::storable::CraftMenuSection::*;
 
 
 /// Something that can't be placed, but can be in the inventory.
-#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
+#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Serialize, Deserialize, Debug)]
 pub enum Item {
     Stick,
     WoodenPickaxe,

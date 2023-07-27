@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use rand::Rng;
+use serde::{Serialize, Deserialize};
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::graphics::state::RENDER_DISTANCE;
 use crate::map_generation::mobs::a_star::{AStar, can_step};
@@ -10,13 +11,14 @@ use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXP
 use crate::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
 
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
     pub z: usize,
 }
 
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Mob {
     pub pos: Position,
     rotation: i32,

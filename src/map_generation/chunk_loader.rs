@@ -3,9 +3,12 @@ use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
 use std::time::Instant;
+use serde::{Serialize, Deserialize, Serializer};
+use serde::ser::SerializeStruct;
 use crate::SETTINGS;
 
 
+#[derive(Debug)]
 pub struct ChunkLoader {
     chunks: HashMap<i64, Rc<RefCell<Chunk>>>,
     loading_distance: usize,
@@ -63,5 +66,81 @@ impl ChunkLoader {
         let low = x as i64;
         let high = (y as i64) << 32;
         low + high
+    }
+}
+
+impl PartialEq for ChunkLoader {
+    fn eq(&self, other: &Self) -> bool {
+        if self.loading_distance != other.loading_distance { return false; }
+        if self.chunk_size != other.chunk_size { return false; }
+        if self.chunks.len() != other.chunks.len() { return false; }
+        
+        for (key, value) in &self.chunks {
+            match other.chunks.get(key) {
+                Some(other_value) => {
+                    if *value.borrow() != *other_value.borrow() {
+                        return false;
+                    }
+                },
+                None => return false,
+            }
+        }
+        true
+    }
+}
+
+impl Serialize for ChunkLoader {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>  {
+        let mut state = serializer.serialize_struct("ChunkLoader", 3)?;
+        let mut chunks = Vec::new();
+        for (idx, chunk) in self.chunks.iter() {
+            chunks.push((idx.clone(), chunk.borrow().clone()));
+        }
+        state.serialize_field("chunks", &chunks)?;
+        state.serialize_field("loading_distance", &self.loading_distance)?;
+        state.serialize_field("chunk_size", &self.chunk_size)?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ChunkLoader {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field { Chunks, LoadingDistance, ChunkSize }
+
+        struct ChunkLoaderVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for ChunkLoaderVisitor {
+            type Value = ChunkLoader;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("struct ChunkLoader")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<ChunkLoader, V::Error>
+                where
+                    V: serde::de::SeqAccess<'de>,
+            {
+                let chunk_vector: Vec<(i64, Chunk)> = seq.next_element()?
+                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
+                let mut chunks = HashMap::new();
+                for (idx, chunk) in chunk_vector {
+                    chunks.insert(idx, Rc::new(RefCell::new(chunk)));
+                }
+                let loading_distance = seq.next_element()?
+                    .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
+                let chunk_size = seq.next_element()?
+                    .ok_or_else(|| serde::de::Error::invalid_length(2, &self))?;
+                Ok(ChunkLoader {
+                    chunks,
+                    loading_distance,
+                    chunk_size,
+                })
+            }
+        }
+
+        const FIELDS: &[&str] = &["chunks", "loading_distance", "chunk_size"];
+        deserializer.deserialize_struct("ChunkLoader", FIELDS, ChunkLoaderVisitor)
     }
 }

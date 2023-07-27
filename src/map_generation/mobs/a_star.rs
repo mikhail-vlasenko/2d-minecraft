@@ -1,8 +1,10 @@
+use serde::{Serialize, Deserialize};
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::priority_queue::PriorityQueue;
 
 /// Runs A* on the field. Cuts off execution if expected route is too long.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct AStar {
     size: usize,
     radius: i32,

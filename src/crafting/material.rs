@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use serde::{Serialize, Deserialize};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use Material::*;
@@ -10,7 +11,7 @@ use crate::crafting::texture_material::TextureMaterial;
 
 
 /// What a block on the field can be made of.
-#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
+#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Serialize, Deserialize, Debug)]
 pub enum Material {
     Dirt,
     TreeLog,

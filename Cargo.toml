@@ -33,6 +33,7 @@ egui_wgpu_backend = "0.22.0"
 egui_winit_platform = "0.18.0"
 
 enum-display = "0.1.3"
+derivative = "2.2.0"
 
 [dependencies.image]
 version = "0.24"

@@ -1,9 +1,10 @@
+use serde::{Serialize, Deserialize};
 use crate::crafting::items::Item::{DiamondSword, IronPickaxe, IronSword, WoodenPickaxe};
 use crate::crafting::storable::Storable;
 use crate::crafting::storable::Storable::{I, M};
 
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Inventory {
     items: Vec<(Storable, u32)>
 }

@@ -1,8 +1,9 @@
+use serde::{Serialize, Deserialize};
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Debug)]
 struct QueueRecord<T: Eq> {
     priority: i32,  // lower is served first
     value: T
@@ -21,6 +22,7 @@ impl<T: Eq> PartialOrd for QueueRecord<T> {
 }
 
 /// Lower priority is served first
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PriorityQueue<T: Eq> {
     heap: BinaryHeap<QueueRecord<T>>
 }

@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Display;
 use std::mem::take;
+use serde::{Serialize, Deserialize};
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
 use crate::crafting::material::Material;
@@ -10,7 +11,7 @@ use crate::crafting::storable::Storable;
 
 /// A square "column" on the field. Acts as a stack of Blocks.
 /// Every field cell is made of it.
-#[derive(Clone)]
+#[derive(PartialEq, Serialize, Deserialize, Debug, Clone)]
 pub struct Tile {
     pub blocks: Vec<Block>,
     pub loot: Vec<Storable>,

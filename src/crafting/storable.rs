@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use serde::{Serialize, Deserialize};
 use Storable::*;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
@@ -13,7 +14,7 @@ use crate::crafting::interactable::InteractableKind;
 
 /// Represents anything that can be stored in the inventory.
 /// This includes all materials (even unbreakable), and all items.
-#[derive(PartialEq, Copy, Clone, Hash)]
+#[derive(PartialEq, Copy, Clone, Hash, Serialize, Deserialize, Debug)]
 pub enum Storable {
     M(Material),
     I(Item),

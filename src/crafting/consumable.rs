@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use serde::{Serialize, Deserialize};
 use Storable::*;
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::storable::{Craftable, Storable};
@@ -10,7 +11,7 @@ use crate::crafting::material::Material;
 use crate::character::player::Player;
 
 
-#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
+#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Serialize, Deserialize, Debug)]
 pub enum Consumable {
     Apple,
     RawMeat,

@@ -6,6 +6,8 @@ use std::panic;
 use std::rc::Rc;
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use serde::{Serialize, Deserialize};
+use derivative::Derivative;
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -24,11 +26,14 @@ use crate::SETTINGS;
 
 
 /// The playing grid
+#[derive(Serialize, Deserialize, Debug, Derivative)]
+#[derivative(PartialEq)]
 pub struct Field {
     /// hashmap for all generated chunks. key: encoded xy position, value: the chunk
     chunk_loader: ChunkLoader,
     /// tiles from these chunks can be accessed
     /// shape is ((loading_distance * 2 + 1), (loading_distance * 2 + 1))
+    #[serde(skip)]
     loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
     /// position of the center of the currently loaded chunks. (usually the player's chunk)
     central_chunk: (i32, i32),
@@ -40,12 +45,15 @@ pub struct Field {
     /// radius of the map view, in tiles
     map_render_distance: usize,
     /// struct for pathing
+    #[derivative(PartialEq = "ignore")]
     a_star: AStar,
     /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
     stray_mobs: Vec<Mob>,
     /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
     time: f32,
     accumulated_time: f32,
+    #[serde(skip)]
+    #[derivative(PartialEq = "ignore")]
     rng: ThreadRng,
 }
 

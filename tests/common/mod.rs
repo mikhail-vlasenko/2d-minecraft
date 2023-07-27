@@ -37,7 +37,8 @@ impl Data {
     }
 
     pub fn act(&mut self, key: VirtualKeyCode) -> f32 {
-        act(&Some(key), &mut self.player, &mut self.field, &RefCell::new(false))
+        act(&Some(key), &mut self.player, &mut self.field,
+            &RefCell::new(false), &RefCell::new(false))
     }
     pub fn mine(&mut self) {
         self.act(Q);

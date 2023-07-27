@@ -1,9 +1,10 @@
 use std::fmt;
 use std::hash::Hash;
 use std::fmt::{Display, Formatter};
+use serde::{Serialize, Deserialize};
 use crate::crafting::material::Material;
 
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, Serialize, Deserialize, Debug)]
 pub struct Block {
     pub material: Material,
 }

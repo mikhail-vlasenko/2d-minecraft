@@ -2,6 +2,7 @@ use std::{fmt, mem};
 use std::fmt::Display;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
+use serde::{Serialize, Deserialize};
 use Storable::*;
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::character::player::Player;
@@ -16,7 +17,7 @@ use crate::crafting::turret::TargetingData;
 use crate::map_generation::field::Field;
 
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Interactable {
     kind: InteractableKind,
     inventory: Inventory,
@@ -87,7 +88,7 @@ impl ActingWithSpeed for Interactable {
 }
 
 /// Something that can be placed and interacted with.
-#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Debug)]
+#[derive(PartialEq, Copy, Clone, Hash, EnumIter, Serialize, Deserialize, Debug)]
 pub enum InteractableKind {
     CrossbowTurret,
 }
