@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::process::exit;
 use egui::{Align, Checkbox, FontDefinitions, Slider};
 use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
@@ -5,11 +6,14 @@ use egui_wgpu_backend;
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
 use crate::character::player::Player;
+use crate::map_generation::save_load::get_directories;
 use crate::SETTINGS;
 use crate::settings::Settings;
 
 pub struct MainMenu {
+    /// Used to communicate with the main game loop.
     pub selected_option: SelectedOption,
+    /// The second panel is the panel that appears on the right side of the main menu.
     pub second_panel: SecondPanelState,
     pub save_name: String,
 }
@@ -56,7 +60,7 @@ impl MainMenu {
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
-                            self.selected_option = SelectedOption::LoadGame;
+                            self.second_panel = SecondPanelState::LoadGame;
                         }
                         if ui.button(RichText::new("Settings")
                             .font(FontId::proportional(30.0))
@@ -80,11 +84,10 @@ impl MainMenu {
 
                     columns[0].add_space(50.0); // Add space below buttons
 
+                    self.second_panel_label(&mut columns[1]);
+
                     match self.second_panel {
                         SecondPanelState::SaveGame => {
-                            columns[1].label(RichText::new("Save Game")
-                                .font(FontId::proportional(20.0))
-                            );
                             columns[1].horizontal(|ui| {
                                 ui.label("Save name:");
                                 ui.text_edit_singleline(&mut self.save_name);
@@ -92,25 +95,41 @@ impl MainMenu {
                             if columns[1].button("Save").clicked() {
                                 self.selected_option = SelectedOption::SaveGame;
                             }
-                            self.back_button(&mut columns[1])
+                            self.back_button(&mut columns[1]);
+                        }
+                        SecondPanelState::LoadGame => {
+                            let path_string = settings.save_folder.clone().into_owned();
+                            let path = Path::new(&path_string);
+                            let save_names = get_directories(&path).unwrap_or(vec![]);
+
+                            // todo: make into a scroll area
+                            for name in save_names.iter() {
+                                if columns[1].button(RichText::new(name)
+                                    .font(FontId::proportional(20.0))).clicked() {
+                                    self.save_name = name.clone();
+                                    self.selected_option = SelectedOption::LoadGame;
+                                }
+                            }
+
+                            self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::Settings => {
-                            columns[1].label(RichText::new("Settings")
-                                .font(FontId::proportional(20.0))
-                            );
-
                             Self::render_difficulty_buttons(&mut columns[1], &mut settings);
                             columns[1].add_space(10.0);
                             Self::render_settings_sliders(&mut columns[1], &mut settings);
+                            columns[1].add_space(10.0);
 
-                            self.back_button(&mut columns[1])
+                            let mut save_folder = settings.save_folder.clone().into_owned();
+                            columns[1].horizontal(|ui| {
+                                ui.label("Save Folder:");
+                                ui.text_edit_singleline(&mut save_folder);
+                            });
+                            settings.save_folder = save_folder.into();
+                            self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::Controls => {
-                            columns[1].label(RichText::new("Controls")
-                                .font(FontId::proportional(20.0))
-                            );
                             Self::render_controls(&mut columns[1]);
-                            self.back_button(&mut columns[1])
+                            self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::About => {
                             columns[1].label("A short introduction to the game:");
@@ -210,6 +229,19 @@ impl MainMenu {
         }
     }
 
+    fn second_panel_label(&self, ui: &mut egui::Ui) {
+        let text = match self.second_panel {
+            SecondPanelState::About => "",
+            SecondPanelState::SaveGame => "Save Game",
+            SecondPanelState::LoadGame => "Load Game",
+            SecondPanelState::Settings => "Settings",
+            SecondPanelState::Controls => "Controls",
+        }.to_string();
+        ui.label(RichText::new(text)
+            .font(FontId::proportional(20.0))
+        );
+    }
+
     fn back_button(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Back").clicked() {
@@ -231,6 +263,7 @@ pub enum SelectedOption {
 pub enum SecondPanelState {
     About,
     SaveGame,
+    LoadGame,
     Settings,
     Controls,
 }

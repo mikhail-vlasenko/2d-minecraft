@@ -10,6 +10,7 @@ pub struct Settings {
     pub mobs: _Config__mobs,
     pub pathing: _Config__pathing,
     pub player: _Config__player,
+    pub save_folder: Cow<'static, str>,
     pub window: _Config__window,
 }
 
@@ -138,6 +139,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         cheating_start: true,
         max_hp: 100,
     },
+    save_folder: Cow::Borrowed("game_saves"),
     window: _Config__window {
         height: 1600,
         tiles_per_row: 17,

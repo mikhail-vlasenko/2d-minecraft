@@ -1,3 +1,4 @@
+use std::{fs, io};
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -59,4 +60,23 @@ pub fn load_game(path: &Path) -> (Field, Player) {
     let player = Player::from_binary_string(&data);
 
     (field, player)
+}
+
+pub fn get_directories(path: &Path) -> io::Result<Vec<String>> {
+    let mut directories = Vec::new();
+
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        // If the entry is a directory, add it to the list
+        if path.is_dir() {
+            if let Some(filename) = path.file_name() {
+                directories.push(filename.to_string_lossy().into_owned());
+            }
+        }
+    }
+    directories.sort();
+
+    Ok(directories)
 }

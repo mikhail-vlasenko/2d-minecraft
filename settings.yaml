@@ -41,3 +41,5 @@ player:
   max_hp: 100
   cheating_start: true
   arrow_break_chance: 0.3
+
+save_folder: game_saves

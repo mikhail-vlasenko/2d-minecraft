@@ -1,6 +1,6 @@
 use std::{iter};
 use std::borrow::BorrowMut;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use cgmath::{InnerSpace, Rotation3, Zero};
@@ -33,7 +33,7 @@ use crate::crafting::storable::Storable;
 use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::read_chunk::read_file;
-use crate::map_generation::save_load::save_game;
+use crate::map_generation::save_load::{load_game, save_game};
 use crate::SETTINGS;
 use crate::settings::{DEFAULT_SETTINGS, Settings};
 
@@ -264,8 +264,20 @@ impl State {
         }
 
         if self.egui_manager.main_menu.selected_option == SelectedOption::SaveGame {
-            let save_path_string = format!("game_saves/{}", self.egui_manager.main_menu.save_name.clone());
-            save_game(&self.field, &self.player, Path::new(&save_path_string));
+            let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
+            path.push(self.egui_manager.main_menu.save_name.clone());
+            save_game(&self.field, &self.player, path.as_path());
+            self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
+            self.egui_manager.main_menu.second_panel = SecondPanelState::About;
+        }
+
+        if self.egui_manager.main_menu.selected_option == SelectedOption::LoadGame {
+            let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
+            path.push(self.egui_manager.main_menu.save_name.clone());
+            let (field, player) = load_game(path.as_path());
+            self.field = field;
+            self.player = player;
+            self.egui_manager.main_menu_open.replace(false);
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
         }
