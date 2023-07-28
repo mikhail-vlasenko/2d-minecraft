@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
 use std::time::Instant;
-use serde::{Serialize, Deserialize, Serializer};
-use serde::ser::SerializeStruct;
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use crate::SETTINGS;
 
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ChunkLoader {
+    #[serde(with = "hash_map_serde")]
     chunks: HashMap<i64, Rc<RefCell<Chunk>>>,
     loading_distance: usize,
     chunk_size: usize,
@@ -74,7 +74,7 @@ impl PartialEq for ChunkLoader {
         if self.loading_distance != other.loading_distance { return false; }
         if self.chunk_size != other.chunk_size { return false; }
         if self.chunks.len() != other.chunks.len() { return false; }
-        
+
         for (key, value) in &self.chunks {
             match other.chunks.get(key) {
                 Some(other_value) => {
@@ -89,58 +89,23 @@ impl PartialEq for ChunkLoader {
     }
 }
 
-impl Serialize for ChunkLoader {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>  {
-        let mut state = serializer.serialize_struct("ChunkLoader", 3)?;
+mod hash_map_serde {
+    use super::*;
+    pub fn serialize<S: Serializer>(map: &HashMap<i64, Rc<RefCell<Chunk>>>, serializer: S) -> Result<S::Ok, S::Error> {
         let mut chunks = Vec::new();
-        for (idx, chunk) in self.chunks.iter() {
+        for (idx, chunk) in map.iter() {
             chunks.push((idx.clone(), chunk.borrow().clone()));
         }
-        state.serialize_field("chunks", &chunks)?;
-        state.serialize_field("loading_distance", &self.loading_distance)?;
-        state.serialize_field("chunk_size", &self.chunk_size)?;
-        state.end()
+        serializer.collect_seq(chunks)
     }
-}
 
-impl<'de> Deserialize<'de> for ChunkLoader {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        #[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "lowercase")]
-        enum Field { Chunks, LoadingDistance, ChunkSize }
-
-        struct ChunkLoaderVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for ChunkLoaderVisitor {
-            type Value = ChunkLoader;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("struct ChunkLoader")
-            }
-
-            fn visit_seq<V>(self, mut seq: V) -> Result<ChunkLoader, V::Error>
-                where
-                    V: serde::de::SeqAccess<'de>,
-            {
-                let chunk_vector: Vec<(i64, Chunk)> = seq.next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(0, &self))?;
-                let mut chunks = HashMap::new();
-                for (idx, chunk) in chunk_vector {
-                    chunks.insert(idx, Rc::new(RefCell::new(chunk)));
-                }
-                let loading_distance = seq.next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(1, &self))?;
-                let chunk_size = seq.next_element()?
-                    .ok_or_else(|| serde::de::Error::invalid_length(2, &self))?;
-                Ok(ChunkLoader {
-                    chunks,
-                    loading_distance,
-                    chunk_size,
-                })
-            }
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<i64, Rc<RefCell<Chunk>>>, D::Error>
+        where D: Deserializer<'de>
+    {
+        let mut map = HashMap::new();
+        for (idx, chunk) in Vec::<(i64, Chunk)>::deserialize(deserializer)? {
+            map.insert(idx, Rc::new(RefCell::new(chunk)));
         }
-
-        const FIELDS: &[&str] = &["chunks", "loading_distance", "chunk_size"];
-        deserializer.deserialize_struct("ChunkLoader", FIELDS, ChunkLoaderVisitor)
+        Ok(map)
     }
 }

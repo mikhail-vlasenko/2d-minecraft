@@ -7,7 +7,6 @@ use minecraft::character::player::Player;
 use winit::event::VirtualKeyCode;
 use winit::event::VirtualKeyCode::*;
 use minecraft::crafting::consumable::Consumable;
-use minecraft::crafting::material::Material;
 use minecraft::crafting::storable::Storable;
 
 
