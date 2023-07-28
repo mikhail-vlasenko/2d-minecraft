@@ -9,15 +9,17 @@ use crate::SETTINGS;
 use crate::settings::Settings;
 
 pub struct MainMenu {
-    pub selected_option: u32,
+    pub selected_option: SelectedOption,
     pub second_panel: SecondPanelState,
+    pub save_name: String,
 }
 
 impl MainMenu {
     pub fn new() -> Self {
         MainMenu {
-            selected_option: 0,
+            selected_option: SelectedOption::Nothing,
             second_panel: SecondPanelState::About,
+            save_name: String::from("default_save"),
         }
     }
 
@@ -41,26 +43,31 @@ impl MainMenu {
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
-                            self.selected_option = 1;
+                            self.selected_option = SelectedOption::NewGame;
+                        }
+                        if ui.button(RichText::new("Save Game")
+                            .font(FontId::proportional(30.0))
+                            .strong()
+                        ).clicked() {
+                            // self.selected_option = SelectedOption::SaveGame;
+                            self.second_panel = SecondPanelState::SaveGame;
                         }
                         if ui.button(RichText::new("Load Game")
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
-                            self.selected_option = 2;
+                            self.selected_option = SelectedOption::LoadGame;
                         }
                         if ui.button(RichText::new("Settings")
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
-                            self.selected_option = 3;
                             self.second_panel = SecondPanelState::Settings;
                         }
                         if ui.button(RichText::new("Controls")
                             .font(FontId::proportional(30.0))
                             .strong()
                         ).clicked() {
-                            self.selected_option = 4;
                             self.second_panel = SecondPanelState::Controls;
                         }
                         if ui.button(RichText::new("Exit Game")
@@ -73,39 +80,47 @@ impl MainMenu {
 
                     columns[0].add_space(50.0); // Add space below buttons
 
-                    if self.second_panel == SecondPanelState::Settings {
-                        columns[1].label(RichText::new("Settings")
-                            .font(FontId::proportional(20.0))
-                        );
-
-                        Self::render_difficulty_buttons(&mut columns[1], &mut settings);
-                        columns[1].add_space(10.0);
-                        Self::render_settings_sliders(&mut columns[1], &mut settings);
-
-                        // Add a "Back" button at the end of the settings menu
-                        columns[1].horizontal(|ui| {
-                            if ui.button("Back").clicked() {
-                                self.second_panel = SecondPanelState::About;
+                    match self.second_panel {
+                        SecondPanelState::SaveGame => {
+                            columns[1].label(RichText::new("Save Game")
+                                .font(FontId::proportional(20.0))
+                            );
+                            columns[1].horizontal(|ui| {
+                                ui.label("Save name:");
+                                ui.text_edit_singleline(&mut self.save_name);
+                            });
+                            if columns[1].button("Save").clicked() {
+                                self.selected_option = SelectedOption::SaveGame;
                             }
-                        });
-                    } else if self.second_panel == SecondPanelState::Controls {
-                        columns[1].label(RichText::new("Controls")
-                            .font(FontId::proportional(20.0))
-                        );
-                        Self::render_controls(&mut columns[1]);
-                        columns[1].horizontal(|ui| {
-                            if ui.button("Back").clicked() {
-                                self.second_panel = SecondPanelState::About;
-                            }
-                        });
-                    } else {
-                        columns[1].label("A short introduction to the game:");
-                        columns[1].label("This is a survival game that takes inspiration from Minecraft and Rogue.");
-                        columns[1].label("You will have to craft items, fight enemies and explore the world.");
-                        columns[1].label("You will be able to build your own base and defend it from enemies.");
-                        columns[1].label("Your attack damage depends on the items in your inventory.");
-                        columns[1].label("Better pickaxes will allow you to mine more types of blocks.");
-                        columns[1].label("Good luck!");
+                            self.back_button(&mut columns[1])
+                        }
+                        SecondPanelState::Settings => {
+                            columns[1].label(RichText::new("Settings")
+                                .font(FontId::proportional(20.0))
+                            );
+
+                            Self::render_difficulty_buttons(&mut columns[1], &mut settings);
+                            columns[1].add_space(10.0);
+                            Self::render_settings_sliders(&mut columns[1], &mut settings);
+
+                            self.back_button(&mut columns[1])
+                        }
+                        SecondPanelState::Controls => {
+                            columns[1].label(RichText::new("Controls")
+                                .font(FontId::proportional(20.0))
+                            );
+                            Self::render_controls(&mut columns[1]);
+                            self.back_button(&mut columns[1])
+                        }
+                        SecondPanelState::About => {
+                            columns[1].label("A short introduction to the game:");
+                            columns[1].label("This is a survival game that takes inspiration from Minecraft and Rogue.");
+                            columns[1].label("You will have to craft items, fight enemies and explore the world.");
+                            columns[1].label("You will be able to build your own base and defend it from enemies.");
+                            columns[1].label("Your attack damage depends on the items in your inventory.");
+                            columns[1].label("Better pickaxes will allow you to mine more types of blocks.");
+                            columns[1].label("Good luck!");
+                        }
                     }
                 });
             });
@@ -137,7 +152,7 @@ impl MainMenu {
             }
         });
     }
-    
+
     fn render_settings_sliders(ui: &mut egui::Ui, settings: &mut Settings) {
         ui.label("Mobs Spawning:");
         ui.add(Slider::new(&mut settings.mobs.spawning.initial_hostile_per_chunk, 0.0..=1.0)
@@ -194,11 +209,28 @@ impl MainMenu {
             ui.label(format!("{}: {}", key, action));
         }
     }
+
+    fn back_button(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            if ui.button("Back").clicked() {
+                self.second_panel = SecondPanelState::About;
+            }
+        });
+    }
+}
+
+#[derive(PartialEq)]
+pub enum SelectedOption {
+    Nothing,
+    NewGame,
+    SaveGame,
+    LoadGame,
 }
 
 #[derive(PartialEq)]
 pub enum SecondPanelState {
     About,
+    SaveGame,
     Settings,
     Controls,
 }

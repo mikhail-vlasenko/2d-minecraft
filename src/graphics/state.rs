@@ -1,5 +1,6 @@
 use std::{iter};
 use std::borrow::BorrowMut;
+use std::path::Path;
 use std::time::Instant;
 
 use cgmath::{InnerSpace, Rotation3, Zero};
@@ -29,8 +30,10 @@ use crate::map_generation::field::Field;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
+use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::read_chunk::read_file;
+use crate::map_generation::save_load::save_game;
 use crate::SETTINGS;
 use crate::settings::{DEFAULT_SETTINGS, Settings};
 
@@ -254,10 +257,17 @@ impl State {
     }
 
     pub fn update(&mut self) {
-        if self.egui_manager.main_menu.selected_option == 1 {
+        if self.egui_manager.main_menu.selected_option == SelectedOption::NewGame {
             self.new_game();
             self.egui_manager.main_menu_open.replace(false);
-            self.egui_manager.main_menu.selected_option = 0;
+            self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
+        }
+
+        if self.egui_manager.main_menu.selected_option == SelectedOption::SaveGame {
+            let save_path_string = format!("game_saves/{}", self.egui_manager.main_menu.save_name.clone());
+            save_game(&self.field, &self.player, Path::new(&save_path_string));
+            self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
+            self.egui_manager.main_menu.second_panel = SecondPanelState::About;
         }
 
         let mob_positions = self.field.all_mob_positions_and_hp(&self.player);
