@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use rand::Rng;
 use minecraft::input_decoding::act;
 use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
@@ -67,6 +68,13 @@ impl Data {
         for _ in 0..turns {
             self.field.step_interactables(&mut self.player);
         }
+    }
+    
+    pub fn random_action(&mut self) {
+        let mut rng = rand::thread_rng();
+        let mut actions = vec![W, A, S, D, Q, E, C, F];
+        let key = actions.remove(rng.gen_range(0..actions.len()));
+        self.act(key);
     }
 }
 

@@ -1,11 +1,12 @@
 mod common;
 
-use std::fs::{File, read_to_string, remove_file};
+use std::fs::{File, read_to_string, remove_dir_all, remove_file};
 use std::io::{Read, Write};
 use std::path::Path;
 use postcard;
 extern crate alloc;
 use alloc::vec::Vec;
+use minecraft::character::player::Player;
 use serde::Serialize;
 use crate::common::Data;
 
@@ -66,12 +67,60 @@ fn test_field_serialization_file_postcard() {
 #[test]
 fn test_full_save_load_functions() {
     let field = Field::new(8, None);
-    let path = Path::new("game_saves/test_field2.postcard");
-    save_game(&field, &path);
-    let loaded_field = load_game(&path);
+    let player = Player::new(&field);
+
+    let path = Path::new("game_saves/test_save2");
+    save_game(&field, &player, &path);
+    let (loaded_field, loaded_player) = load_game(&path);
     assert_eq!(field, loaded_field);
+    assert_eq!(player, loaded_player);
 
     let another_field = Field::new(8, None);
     // in an extremely unlikely event these two fields can be equal (because random generation coincided)
     assert_ne!(loaded_field, another_field);
+
+    remove_dir_all(&path).unwrap();
+}
+
+#[test]
+fn test_save_load_mobs() {
+    let mut data = Data::new();
+    data.spawn_mobs(10, true);
+    data.step_mobs();
+    data.step_mobs();
+
+    let path = Path::new("game_saves/test_save3");
+    save_game(&data.field, &data.player, &path);
+    let (loaded_field, loaded_player) = load_game(&path);
+    assert_eq!(data.field, loaded_field);
+    assert_eq!(data.player, loaded_player);
+
+    let another_field = Field::new(8, None);
+    assert_ne!(loaded_field, another_field);
+
+    remove_dir_all(&path).unwrap();
+}
+
+#[test]
+fn test_save_load_after_moves(){
+    let mut data = Data::new();
+    data.spawn_mobs(10, true);
+    data.spawn_mobs(3, false);
+
+    for _ in 0..10 {
+        data.mine();
+        data.random_action();
+        data.step_time();
+    }
+
+    let path = Path::new("game_saves/test_save4");
+    save_game(&data.field, &data.player, &path);
+    let (loaded_field, loaded_player) = load_game(&path);
+    assert_eq!(data.field, loaded_field);
+    assert_eq!(data.player, loaded_player);
+
+    let another_player = Player::new(&loaded_field);
+    assert_ne!(loaded_player, another_player);
+
+    remove_dir_all(&path).unwrap();
 }

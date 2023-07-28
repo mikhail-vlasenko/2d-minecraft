@@ -1,6 +1,7 @@
 use std::cell::{Ref, RefMut};
 use std::cmp::min;
 use std::f32::consts::PI;
+use serde::{Serialize, Deserialize};
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::{Interactable, InteractableKind};
@@ -17,6 +18,7 @@ use crate::SETTINGS;
 
 
 /// The player.
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Player {
     pub x: i32,
     pub y: i32,
