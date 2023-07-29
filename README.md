@@ -9,11 +9,12 @@ The grey circle indicates the height of the top block (the one you see). The dar
 
 Key features:
  - The game has crafting, and for some items you will need a crafting table nearby.
- - The map infinite in 2 dimensions.
+ - The map is infinite in 2 dimensions.
  - Your attack damage depends on the items in your inventory.
  - You need different tiers of pickaxes to break some blocks.
  - Zombies on unloaded chunks do not vanish. They remain in place until the chunk is loaded again.
  - Banelings (hostile mobs) are better than creepers: they blow up and destroy walls if they can't find a route to player, even if the player is a few blocks away from the explosion radius.
+ - Zerglings are smart and only attack in groups.
  - Shot arrows can be reused if they don't break.
  - Self-shooting turrets can be placed to help you defend.
  
@@ -29,8 +30,11 @@ But would require no computer vision, and would run significantly faster than th
 ## Gameplay screenshots:
 <img width="801" alt="image" src="https://user-images.githubusercontent.com/27450370/222000895-111b83c9-b2c2-43f3-88f0-093e4267ed13.png">
 
-<img width="800" alt="image" src="https://user-images.githubusercontent.com/27450370/205680241-c074a1d6-f313-4c28-b18d-93cf71e76321.png">
+<img width="800" alt="image" src="https://github.com/mikhail-vlasenko/2d-minecraft/assets/27450370/2e5c9bd4-b2c1-4944-b81e-4e38d4375851">
 
 <img width="788" alt="image" src="https://user-images.githubusercontent.com/27450370/222001819-a4cee2c1-49e7-4a2a-b093-390b68a0661b.png">
 
 <img width="802" alt="image" src="https://user-images.githubusercontent.com/27450370/208272156-e5e712cf-3fe6-4f8d-afff-71f8c5db42aa.png">
+
+<img width="799" alt="image" src="https://github.com/mikhail-vlasenko/2d-minecraft/assets/27450370/d8c6774c-51b9-4a3c-89f3-cb9470907464">
+
