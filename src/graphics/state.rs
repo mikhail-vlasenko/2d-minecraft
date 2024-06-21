@@ -250,6 +250,20 @@ impl<'a> State<'a> {
         }
     }
 
+    fn handle_action(&mut self, virtual_keycode: &KeyCode) {
+        if virtual_keycode == &KeyCode::Escape ||
+            (self.player.get_hp() > 0 && !*self.egui_manager.main_menu_open.borrow()) {
+            self.player.message = String::new();
+            // different actions take different time, so sometimes mobs are not allowed to step
+            let passed_time = act(virtual_keycode,
+                                  &mut self.player, &mut self.field,
+                                  &self.egui_manager.craft_menu_open,
+                                  &self.egui_manager.main_menu_open
+            );
+            self.field.step_time(passed_time, &mut self.player);
+        }
+    }
+
     pub fn input(&mut self, event: &WindowEvent) -> bool {
         self.window().request_redraw();
         match event {
@@ -270,17 +284,23 @@ impl<'a> State<'a> {
                 },
                 ..
             } => {
-                // escape always works, other actions only if player is alive and the menu is closed
-                if virtual_keycode == &KeyCode::Escape ||
-                    (self.player.get_hp() > 0 && !*self.egui_manager.main_menu_open.borrow()) {
-                    self.player.message = String::new();
-                    // different actions take different time, so sometimes mobs are not allowed to step
-                    let passed_time = act(virtual_keycode,
-                                          &mut self.player, &mut self.field,
-                                          &self.egui_manager.craft_menu_open,
-                                          &self.egui_manager.main_menu_open
-                    );
-                    self.field.step_time(passed_time, &mut self.player);
+                self.handle_action(virtual_keycode);
+                false
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button,
+                ..
+            } => {
+                match button {
+                    // the 2 mouse buttons are mapped to keyboard keys to allow only one hand on the keyboard
+                    MouseButton::Forward => {
+                        self.handle_action(&KeyCode::ArrowRight);
+                    }
+                    MouseButton::Back => {
+                        self.handle_action(&KeyCode::ArrowLeft);
+                    }
+                    _ => {}
                 }
                 false
             }

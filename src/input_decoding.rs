@@ -22,6 +22,6 @@ pub fn act(key: &KeyCode, player: &mut Player, field: &mut Field, craft_menu_ope
         KeyCode::KeyM => { player.toggle_map(); 0. },
         KeyCode::Space => { craft_menu_open.replace(!craft_menu_open.take()); 0. },
         KeyCode::Escape => { main_menu_open.replace(!main_menu_open.take()); 0. },
-        _ => { println!("Unknown action"); 0. }
+        _ => { println!("Unknown action for key code {:?}", key); 0. }
     }
 }
