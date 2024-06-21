@@ -1,13 +1,5 @@
-use std::cell::RefCell;
 use egui::{Align, Checkbox, FontDefinitions, Slider};
-use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
-use egui_wgpu_backend;
-use egui_wgpu_backend::ScreenDescriptor;
-use egui_winit_platform::{Platform, PlatformDescriptor};
-use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
-use winit::dpi::PhysicalSize;
-use winit::event::Event;
-use winit::window::Window;
+use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta, Context};
 use crate::character::player::Player;
 use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
@@ -33,7 +25,7 @@ impl InteractablesMenu {
     }
     pub fn render_interact_menu(
         &mut self,
-        platform: &Platform,
+        context: &Context,
         player: &mut Player,
         field: &mut Field,
         width: f32,
@@ -44,7 +36,7 @@ impl InteractablesMenu {
             .anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
             .fixed_size([width, 300.])
-            .show(&platform.context(), |ui| {
+            .show(context, |ui| {
                 let num_columns = 2;
                 ui.columns(num_columns, |columns| {
                     columns[0].label(format!("Interactable's inventory:"));

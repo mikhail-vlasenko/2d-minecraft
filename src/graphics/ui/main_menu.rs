@@ -1,10 +1,8 @@
 use std::path::Path;
 use std::process::exit;
 use egui::{Align, Checkbox, FontDefinitions, Slider};
-use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
-use egui_wgpu_backend;
-use egui_winit_platform::{Platform, PlatformDescriptor};
-use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
+use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta, Context};
+use egui_wgpu::wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
 use crate::character::player::Player;
 use crate::map_generation::save_load::get_directories;
 use crate::SETTINGS;
@@ -29,7 +27,7 @@ impl MainMenu {
 
     pub fn render_main_menu(
         &mut self,
-        platform: &Platform,
+        context: &Context,
         player: &mut Player,
         width: f32,
     ) {
@@ -38,7 +36,7 @@ impl MainMenu {
             .anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
             .fixed_size([width, 500.])
-            .show(&platform.context(), |ui| {
+            .show(context, |ui| {
                 ui.columns(2, |columns| {
                     columns[0].add_space(50.0); // Add space below buttons
 

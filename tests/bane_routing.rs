@@ -10,7 +10,6 @@ use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
 use minecraft::character::player::Player;
-use winit::event::VirtualKeyCode::*;
 use minecraft::crafting::consumable::Consumable::RawMeat;
 use minecraft::crafting::ranged_weapon::RangedWeapon::Bow;
 use minecraft::crafting::storable::Storable;

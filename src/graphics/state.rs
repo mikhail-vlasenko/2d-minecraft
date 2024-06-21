@@ -7,13 +7,16 @@ use cgmath::{InnerSpace, Rotation3, Zero};
 use lazy_static::lazy_static;
 use rand::random;
 use strum::IntoEnumIterator;
-use wgpu::{BindGroup, BindGroupLayout, Buffer, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, TextureFormat, TextureView};
-use wgpu::util::DeviceExt;
-use winit::{
+use egui_wgpu::wgpu;
+use egui_wgpu::wgpu::{BindGroup, BindGroupLayout, Buffer, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, StoreOp, TextureFormat, TextureView};
+use egui_wgpu::wgpu::util::DeviceExt;
+use egui_winit::winit;
+use egui_winit::winit::{
     event::*,
     window::Window,
 };
-use winit::dpi::PhysicalSize;
+use egui_winit::winit::dpi::PhysicalSize;
+use egui_winit::winit::keyboard::{KeyCode, PhysicalKey};
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 
@@ -30,6 +33,7 @@ use crate::map_generation::field::Field;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
+use crate::graphics::ui::egui_renderer::EguiRenderer;
 use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::read_chunk::read_file;
@@ -51,8 +55,12 @@ pub const RENDER_DISTANCE: usize = ((TILES_PER_ROW - 1) / 2) as usize;
 /// Catches input.
 /// Renders the playing grid.
 /// Owns the Player and the Field.
-pub struct State {
-    surface: wgpu::Surface,
+pub struct State<'a> {
+    surface: wgpu::Surface<'a>,
+    // The window must be declared after the surface so
+    // it gets dropped after it as the surface contains
+    // unsafe references to the window's resources.
+    pub window: &'a Window,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
@@ -61,14 +69,15 @@ pub struct State {
     render_pipeline: wgpu::RenderPipeline,
     buffers: Buffers,
     bind_groups: TextureBindGroups,
+    pub egui_renderer: EguiRenderer,
     egui_manager: EguiManager,
     field: Field,
     player: Player,
 }
 
-impl State {
+impl<'a> State<'a> {
     // Creating some of the wgpu types requires async code
-    pub async fn new(window: &Window) -> Self {
+    pub async fn new(window: &'a Window) -> State<'a> {
         // SETTINGS.borrow_mut();
         let size = window.inner_size();
 
@@ -85,8 +94,14 @@ impl State {
         ).await.unwrap();
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor {
-                features: wgpu::Features::empty(),
-                limits: wgpu::Limits::default(),
+                required_features: wgpu::Features::empty(),
+                // WebGL doesn't support all of wgpu's features, so if
+                // we're building for the web, we'll have to disable some.
+                required_limits: if cfg!(target_arch = "wasm32") {
+                    wgpu::Limits::downlevel_webgl2_defaults()
+                } else {
+                    wgpu::Limits::default()
+                },
                 label: None,
             },
             None, // Trace path
@@ -99,10 +114,9 @@ impl State {
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: Default::default(),
             view_formats: vec![],
+            desired_maximum_frame_latency: 2,
         };
         surface.configure(&device, &config);
-
-        let egui_manager = EguiManager::new(window, &size, &surface, &adapter, &device);
 
         let bind_groups = TextureBindGroups::new(&device, &queue);
 
@@ -158,12 +172,24 @@ impl State {
 
         let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0 };
 
+        let egui_renderer = EguiRenderer::new(
+            &device,       // wgpu Device
+            config.format, // TextureFormat
+            None,          // this can be None
+            1,             // samples
+            window,       // winit Window
+        );
+
+        let egui_manager = EguiManager::new();
+
+
         let (field, player) = Self::init_field_player();
 
         let buffers = Buffers::new(&device, field.get_map_render_distance() as i32);
 
         Self {
             surface,
+            window,
             device,
             queue,
             config,
@@ -172,6 +198,7 @@ impl State {
             render_pipeline,
             buffers,
             bind_groups,
+            egui_renderer,
             egui_manager,
             field,
             player,
@@ -210,6 +237,10 @@ impl State {
         self.size
     }
 
+    pub fn window(&self) -> &Window {
+        &self.window
+    }
+
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
@@ -220,6 +251,7 @@ impl State {
     }
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
+        self.window().request_redraw();
         match event {
             WindowEvent::CursorMoved { position, .. } => {
                 self.clear_color = wgpu::Color {
@@ -228,18 +260,18 @@ impl State {
                     b: 1.0,
                     a: 1.0,
                 };
-                true
+                false
             }
             WindowEvent::KeyboardInput {
-                input: KeyboardInput {
+                event: KeyEvent {
                     state: ElementState::Pressed,
-                    virtual_keycode,
+                    physical_key: PhysicalKey::Code(virtual_keycode),
                     ..
                 },
                 ..
             } => {
                 // escape always works, other actions only if player is alive and the menu is closed
-                if virtual_keycode == &Some(VirtualKeyCode::Escape) ||
+                if virtual_keycode == &KeyCode::Escape ||
                     (self.player.get_hp() > 0 && !*self.egui_manager.main_menu_open.borrow()) {
                     self.player.message = String::new();
                     // different actions take different time, so sometimes mobs are not allowed to step
@@ -250,7 +282,7 @@ impl State {
                     );
                     self.field.step_time(passed_time, &mut self.player);
                 }
-                true
+                false
             }
             _ => false,
         }
@@ -304,7 +336,7 @@ impl State {
         );
     }
 
-    pub fn render(&mut self, window: &Window) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -315,43 +347,43 @@ impl State {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
             });
+        
+        {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(self.clear_color),
+                        store: StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
 
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(self.clear_color),
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        });
+            render_pass.set_pipeline(&self.render_pipeline);
 
-        render_pass.set_pipeline(&self.render_pipeline);
-
-        if !self.player.viewing_map {
-            self.render_game(&mut render_pass);
-        } else {
-            self.render_map(&mut render_pass);
+            if !self.player.viewing_map {
+                self.render_game(&mut render_pass);
+            } else {
+                self.render_map(&mut render_pass);
+            }
         }
-        drop(render_pass);
 
-        let texture_delta = self.egui_manager.render_ui(
-            &self.config, &self.device, &self.queue, &mut encoder, &view, window,
+        self.egui_manager.render_ui(
+            &mut self.egui_renderer,
+            &self.config, &self.device, &self.queue, &mut encoder, &view, self.window,
             &mut self.player, &mut self.field,
         );
 
         self.queue.submit(iter::once(encoder.finish()));
         output.present();
 
-        self.egui_manager.post_render_cleanup(texture_delta);
-
         Ok(())
     }
 
-    fn render_game<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_game(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
@@ -370,10 +402,6 @@ impl State {
 
         // render night filter
         self.render_night(render_pass);
-    }
-
-    pub fn handle_ui_event<T>(&mut self, event: &Event<T>) {
-        self.egui_manager.handle_event(&event);
     }
 
     /// Converts coordinates and rotation to an index in the buffer
@@ -427,7 +455,7 @@ impl State {
     }
 
     /// Draws top material or texture. in case of texture also draws material underneath
-    fn draw_material<'a>(&'a self, i: i32, j: i32, render_pass: &mut RenderPass<'a>, map: bool) {
+    fn draw_material(&'a self, i: i32, j: i32, render_pass: &mut RenderPass<'a>, map: bool) {
         let material = self.field.top_material_at((i, j));
         let idx = if map {
             self.convert_map_view_index(i - self.player.x, j - self.player.y)
@@ -451,7 +479,7 @@ impl State {
     /// # Arguments
     ///
     /// * `render_pass`: the primary render pass
-    fn render_field<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_field(&'a self, render_pass: &mut RenderPass<'a>) {
         // let now = Instant::now();
         // draw materials of top block in tiles
         for i in (self.player.x - RENDER_DISTANCE as i32)..=(self.player.x + RENDER_DISTANCE as i32) {
@@ -489,7 +517,7 @@ impl State {
         // println!("Elapsed: {:.2?}", elapsed);
     }
 
-    fn render_mobs<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_mobs(&'a self, render_pass: &mut RenderPass<'a>) {
         let max_drawable_index = ((TILES_PER_ROW - 1) / 2) as i32;
         for mob_kind in MobKind::iter() {
             render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
@@ -506,7 +534,7 @@ impl State {
         }
     }
 
-    fn render_hp_bars<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_hp_bars(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(1, self.buffers.hp_bar_instance_buffer.slice(..));
 
         for i in 0..self.buffers.hp_bar_vertex_buffer.len() {
@@ -517,7 +545,7 @@ impl State {
         }
     }
 
-    fn render_night<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_night(&'a self, render_pass: &mut RenderPass<'a>) {
         if self.field.is_night() {
             if self.field.is_red_moon() {
                 render_pass.set_bind_group(0, self.bind_groups.get_bind_group_red_moon(), &[]);
@@ -537,7 +565,7 @@ impl State {
     }
 
     /// Only renders the materials, but with a much larger render distance.
-    fn render_map<'a>(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_map(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.map_instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);

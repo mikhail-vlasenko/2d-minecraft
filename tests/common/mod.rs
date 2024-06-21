@@ -5,8 +5,8 @@ use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
 use minecraft::character::player::Player;
-use winit::event::VirtualKeyCode;
-use winit::event::VirtualKeyCode::*;
+use egui_winit::winit::keyboard::KeyCode;
+use egui_winit::winit::keyboard::KeyCode::*;
 use minecraft::crafting::consumable::Consumable;
 use minecraft::crafting::storable::Storable;
 
@@ -36,24 +36,24 @@ impl Data {
         Self::create_with_chunk(test_chunk)
     }
 
-    pub fn act(&mut self, key: VirtualKeyCode) -> f32 {
-        act(&Some(key), &mut self.player, &mut self.field,
+    pub fn act(&mut self, key: KeyCode) -> f32 {
+        act(&key, &mut self.player, &mut self.field,
             &RefCell::new(false), &RefCell::new(false))
     }
     pub fn mine(&mut self) {
-        self.act(Q);
+        self.act(KeyQ);
     }
     pub fn place(&mut self, m: Storable) {
         self.player.placement_storable = m;
-        self.act(E);
+        self.act(KeyE);
     }
     pub fn craft(&mut self, s: Storable) {
         self.player.crafting_item = s;
-        self.act(C);
+        self.act(KeyC);
     }
     pub fn consume(&mut self, consumable: Consumable) {
         self.player.consumable = consumable;
-        self.act(F);
+        self.act(KeyF);
     }
     pub fn step_mobs(&mut self) {
         self.field.step_mobs(&mut self.player);
@@ -72,7 +72,7 @@ impl Data {
     
     pub fn random_action(&mut self) {
         let mut rng = rand::thread_rng();
-        let mut actions = vec![W, A, S, D, Q, E, C, F];
+        let mut actions = vec![KeyW, KeyA, KeyS, KeyD, KeyQ, KeyE, KeyC, KeyF];
         let key = actions.remove(rng.gen_range(0..actions.len()));
         self.act(key);
     }

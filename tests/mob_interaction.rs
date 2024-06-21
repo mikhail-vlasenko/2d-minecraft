@@ -10,7 +10,7 @@ use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
 use minecraft::character::player::Player;
-use winit::event::VirtualKeyCode::*;
+use egui_winit::winit::keyboard::KeyCode::*;
 use minecraft::crafting::consumable::Consumable::RawMeat;
 use minecraft::crafting::ranged_weapon::RangedWeapon::Bow;
 use minecraft::crafting::storable::Storable;
@@ -80,10 +80,10 @@ fn test_killing_and_looting() {
     data.field.get_chunk(0, 1).add_mob(mob);
 
     let init_meat = data.player.inventory_count(&Storable::C(RawMeat));
-    data.act(S);
-    data.act(S);
-    data.act(S);
-    data.act(S);
+    data.act(KeyS);
+    data.act(KeyS);
+    data.act(KeyS);
+    data.act(KeyS);
     assert!(data.player.inventory_count(&Storable::C(RawMeat)) > init_meat)
 }
 
@@ -99,31 +99,31 @@ fn test_shooting() {
     let mob = Mob::new(pos.clone(), kind);
     data.field.get_chunk(0, 2).add_mob(mob);
 
-    data.act(Right);
-    data.act(Right);
+    data.act(ArrowRight);
+    data.act(ArrowRight);
 
     // cant shoot
-    data.act(X);
-    data.act(X);
+    data.act(KeyX);
+    data.act(KeyX);
     assert!(data.field.is_occupied((2, 0)));
 
     data.player.pickup(RW(Bow), 1);
     // no ammo
-    data.act(X);
-    data.act(X);
+    data.act(KeyX);
+    data.act(KeyX);
     assert!(data.field.is_occupied((2, 0)));
 
     data.player.pickup(Storable::I(Arrow), 2);
-    data.act(X);
-    data.act(X);
+    data.act(KeyX);
+    data.act(KeyX);
     // killed
     assert!(!data.field.is_occupied((2, 0)));
 
     let mob = Mob::new(pos.clone(), kind);
     data.field.get_chunk(0, 2).add_mob(mob);
     // out of ammo
-    data.act(X);
-    data.act(X);
+    data.act(KeyX);
+    data.act(KeyX);
     assert!(data.field.is_occupied((2, 0)));
 }
 
@@ -152,7 +152,7 @@ fn test_three_lings_engage() {
     let mut data = Data::new();
 
     // clear tile with tree
-    data.act(Right);
+    data.act(ArrowRight);
     data.mine();
     data.mine();
 

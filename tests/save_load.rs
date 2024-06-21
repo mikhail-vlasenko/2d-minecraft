@@ -12,7 +12,6 @@ use crate::common::Data;
 
 use minecraft::map_generation::field::Field;
 use minecraft::map_generation::save_load::{load_game, save_game};
-use winit::event::VirtualKeyCode::*;
 
 
 #[test]

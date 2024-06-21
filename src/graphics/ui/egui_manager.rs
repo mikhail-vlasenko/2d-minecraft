@@ -1,13 +1,13 @@
 use std::cell::RefCell;
 use egui::{Align, Checkbox, FontDefinitions, Slider};
-use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta};
-use egui_wgpu_backend;
-use egui_wgpu_backend::ScreenDescriptor;
-use egui_winit_platform::{Platform, PlatformDescriptor};
-use wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
-use winit::dpi::PhysicalSize;
-use winit::event::Event;
-use winit::window::Window;
+use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta, Context};
+use egui_wgpu::ScreenDescriptor;
+use egui_wgpu::wgpu;
+use egui_wgpu::wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
+use egui_winit::winit;
+use egui_winit::winit::dpi::PhysicalSize;
+use egui_winit::winit::event::Event;
+use egui_winit::winit::window::Window;
 use crate::character::player::Player;
 use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
@@ -17,6 +17,7 @@ use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::{CraftMenuSection, Storable};
 use crate::crafting::storable::Craftable;
+use crate::graphics::ui::egui_renderer::EguiRenderer;
 use crate::graphics::ui::interactables_menu::InteractablesMenu;
 use crate::graphics::ui::main_menu::MainMenu;
 use crate::map_generation::field::Field;
@@ -25,8 +26,6 @@ use crate::map_generation::mobs::mob_kind::MobKind;
 
 /// Renders UI
 pub struct EguiManager {
-    platform: Platform,
-    render_pass: egui_wgpu_backend::RenderPass,
     pub craft_menu_open: RefCell<bool>,
     pub interactables_menu: InteractablesMenu,
     pub main_menu: MainMenu,
@@ -34,28 +33,8 @@ pub struct EguiManager {
 }
 
 impl EguiManager {
-    pub fn new(
-        window: &Window,
-        size: &PhysicalSize<u32>,
-        surface: &Surface,
-        adapter: &Adapter,
-        device: &Device,
-    ) -> Self {
-        let surface_format = surface.get_capabilities(&adapter).formats[0];
-
-        let platform = Platform::new(PlatformDescriptor {
-            physical_width: size.width as u32,
-            physical_height: size.height as u32,
-            scale_factor: window.scale_factor(),
-            font_definitions: FontDefinitions::default(),
-            style: Default::default(),
-        });
-
-        let render_pass = egui_wgpu_backend::RenderPass::new(&device, surface_format, 1);
-
+    pub fn new() -> Self {
         Self {
-            platform,
-            render_pass,
             craft_menu_open: RefCell::new(false),
             interactables_menu: InteractablesMenu::new(),
             main_menu: MainMenu::new(),
@@ -65,6 +44,7 @@ impl EguiManager {
 
     /// Renders all of the necessary UI elements.
     pub fn render_ui(&mut self,
+                     egui_renderer: &mut EguiRenderer,
                      config: &SurfaceConfiguration,
                      device: &Device,
                      queue: &Queue,
@@ -73,67 +53,43 @@ impl EguiManager {
                      window: &Window,
                      player: &mut Player,
                      field: &mut Field,
-    ) -> TexturesDelta {
-        self.platform.begin_frame();
-
-        if *self.main_menu_open.borrow() {
-            self.main_menu.render_main_menu(&self.platform, player, config.width as f32 / 2.1);
-        } else if !player.viewing_map {
-            self.render_place_craft_menu(player);
-            self.render_inventory(player);
-            self.render_info(player, field.get_time());
-            if player.interacting_with.is_some() {
-                self.interactables_menu.render_interact_menu(&self.platform, player, field, config.width as f32 / 2.1);
-            }
-            if *self.craft_menu_open.borrow() {
-                self.render_craft_menu(player, config.width as f32 / 2.1);
-            }
-        }
-
-        if player.get_hp() <= 0 {
-            self.render_game_over();
-        }
-
-        // End the UI frame. We could now handle the output and draw the UI with the backend.
-        let full_output = self.platform.end_frame(Some(window));
-        let paint_jobs = self.platform.context().tessellate(full_output.shapes);
-
-        // Upload all resources for the GPU.
+    ) {
         let screen_descriptor = ScreenDescriptor {
-            physical_width: config.width,
-            physical_height: config.height,
-            scale_factor: window.scale_factor() as f32,
+            size_in_pixels: [config.width, config.height],
+            pixels_per_point: window.scale_factor() as f32,
         };
+        egui_renderer.draw(
+            device,
+            queue,
+            encoder,
+            window,
+            view,
+            screen_descriptor,
+            |context| {
+                if *self.main_menu_open.borrow() {
+                    self.main_menu.render_main_menu(context, player, config.width as f32 / 2.1);
+                } else if !player.viewing_map {
+                    self.render_place_craft_menu(context, player);
+                    self.render_inventory(context, player);
+                    self.render_info(context, player, field.get_time());
+                    if player.interacting_with.is_some() {
+                        self.interactables_menu.render_interact_menu(context, player, field, config.width as f32 / 2.1);
+                    }
+                    if *self.craft_menu_open.borrow() {
+                        self.render_craft_menu(context, player, config.width as f32 / 2.1);
+                    }
+                }
 
-        let texture_delta: TexturesDelta = full_output.textures_delta;
-        self.render_pass
-            .add_textures(&device, &queue, &texture_delta)
-            .expect("add texture ok");
-        self.render_pass.update_buffers(&device, &queue, &paint_jobs, &screen_descriptor);
-
-        // Record all render passes.
-        self.render_pass
-            .execute(
-                encoder,
-                &view,
-                &paint_jobs,
-                &screen_descriptor,
-                None,
-            )
-            .unwrap();
-
-        texture_delta
+                if player.get_hp() <= 0 {
+                    self.render_game_over(context);
+                }
+            },
+        )
     }
 
-    pub fn post_render_cleanup(&mut self, texture_delta: TexturesDelta) {
-        self.render_pass
-            .remove_textures(texture_delta)
-            .expect("remove texture ok");
-    }
-
-    fn render_place_craft_menu(&self, player: &mut Player) {
+    fn render_place_craft_menu(&self, context: &Context, player: &mut Player) {
         egui::Window::new("Menu").anchor(Align2::LEFT_TOP, [0., 0.]).auto_sized()
-            .show(&self.platform.context(), |ui| {
+            .show(context, |ui| {
                 ui.label("Placing material");
                 for material in Material::iter() {
                     let count = player.inventory_count(&material.into());
@@ -176,11 +132,11 @@ impl EguiManager {
     }
 
     /// Render the menu with all the items for crafting.
-    fn render_craft_menu(&self, player: &mut Player, width: f32) {
+    fn render_craft_menu(&self, context: &Context, player: &mut Player, width: f32) {
         egui::Window::new("Craft Menu").anchor(Align2::CENTER_CENTER, [0., 0.])
             .collapsible(false)
             .fixed_size([width, 300.])
-            .show(&self.platform.context(), |ui| {
+            .show(context, |ui| {
                 let mut menu_iter = CraftMenuSection::iter();
                 let count = menu_iter.clone().count();
                 ui.columns(count, |columns| {
@@ -243,9 +199,9 @@ impl EguiManager {
         recipe
     }
 
-    fn render_inventory(&self, player: &Player) {
+    fn render_inventory(&self, context: &Context, player: &Player) {
         egui::Window::new("Inventory").anchor(Align2::LEFT_BOTTOM, [0., 0.])
-            .show(&self.platform.context(), |ui| {
+            .show(context, |ui| {
                 for item in player.get_inventory() {
                     if item.1 != 0 {
                         ui.label(format!("{}: {}", item.0, item.1));
@@ -254,9 +210,9 @@ impl EguiManager {
             });
     }
 
-    fn render_info(&self, player: &Player, time: f32) {
+    fn render_info(&self, context: &Context, player: &Player, time: f32) {
         egui::Window::new("Info").anchor(Align2::RIGHT_TOP, [0., 0.])
-            .show(&self.platform.context(), |ui| {
+            .show(context, |ui| {
                 ui.add(Label::new(
                     format!("Position: {}, {}, {}", player.x, player.y, player.z)
                 ).wrap(false));
@@ -276,19 +232,15 @@ impl EguiManager {
             });
     }
 
-    fn render_game_over(&self) {
+    fn render_game_over(&self, context: &Context) {
         egui::Window::new("").anchor(Align2::CENTER_CENTER, [0., 0.])
-            .show(&self.platform.context(), |ui| {
+            .show(context, |ui| {
                 ui.add(Label::new(RichText::new("Game Over!")
                     .font(FontId::proportional(80.0))
                     .color(Color32::RED)
                     .strong()
                 ).wrap(false));
             });
-    }
-
-    pub fn handle_event<T>(&mut self, event: &Event<T>) {
-        self.platform.handle_event(event);
     }
 }
 

@@ -10,7 +10,7 @@ use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
 use minecraft::map_generation::read_chunk::read_file;
 use minecraft::character::player::Player;
-use winit::event::VirtualKeyCode::*;
+use egui_winit::winit::keyboard::KeyCode::*;
 
 
 #[test]
@@ -27,11 +27,11 @@ fn test_player_basic() {
 fn test_player_good_weather() {
     let mut data = Data::new();
 
-    data.act(Right);
+    data.act(ArrowRight);
     data.mine();
     data.mine();
-    data.act(S);
-    data.act(D);
+    data.act(KeyS);
+    data.act(KeyD);
     data.mine();
     data.mine();
 
@@ -48,11 +48,11 @@ fn test_player_good_weather() {
     assert!(data.player.has(&Storable::I(WoodenPickaxe)));
 
     assert!(!data.player.has(&Storable::I(IronPickaxe)));
-    data.act(Left);
-    data.act(Left);
+    data.act(ArrowLeft);
+    data.act(ArrowLeft);
     data.mine();
     data.mine();
-    data.act(Left);
+    data.act(ArrowLeft);
     data.mine();
     data.mine();
     data.craft(Storable::I(IronIngot));
@@ -67,9 +67,9 @@ fn test_player_good_weather() {
     data.craft(Storable::I(IronSword));
     assert!(!data.player.has(&Storable::I(IronSword)));
 
-    data.act(S);
+    data.act(KeyS);
     assert_eq!(data.player.z, 1);
-    data.act(Left);
+    data.act(ArrowLeft);
     data.mine();
     data.mine();
     data.craft(Storable::I(Stick));
@@ -92,11 +92,11 @@ fn test_player_no_craft_table() {
     let mut data = Data::new();
 
     assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
-    data.act(Right);
+    data.act(ArrowRight);
     data.mine();
     data.mine();
-    data.act(S);
-    data.act(D);
+    data.act(KeyS);
+    data.act(KeyD);
     data.mine();
     data.mine();
 
@@ -112,15 +112,15 @@ fn test_player_no_craft_table() {
     assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
 
     data.place(CraftTable.into());
-    data.act(S);
-    data.act(S);
-    data.act(D);
+    data.act(KeyS);
+    data.act(KeyS);
+    data.act(KeyD);
 
     // too far from crafting table
     data.craft(Storable::I(WoodenPickaxe));
     assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
 
-    data.act(W); // come closer
+    data.act(KeyW); // come closer
     data.craft(Storable::I(WoodenPickaxe));
     assert!(data.player.has(&Storable::I(WoodenPickaxe)));
 }
@@ -129,13 +129,13 @@ fn test_player_no_craft_table() {
 fn test_player_mining_pwr() {
     let mut data = Data::new();
 
-    data.act(S);
-    data.act(S);
-    data.act(S);
-    data.act(S);
-    data.act(D);
-    data.act(D);
-    data.act(D);
+    data.act(KeyS);
+    data.act(KeyS);
+    data.act(KeyS);
+    data.act(KeyS);
+    data.act(KeyD);
+    data.act(KeyD);
+    data.act(KeyD);
     data.mine();
     data.mine();
     data.mine();
