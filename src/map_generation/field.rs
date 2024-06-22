@@ -36,7 +36,7 @@ pub struct Field {
     #[serde(skip)]
     loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
     /// position of the center of the currently loaded chunks. (usually the player's chunk)
-    central_chunk: (i32, i32),
+    central_chunk: AbsoluteChunkPos,
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
@@ -235,7 +235,7 @@ impl Field {
     /// * `center`: x and y of tile that is the epicenter
     /// * `radius`: radius in manhattan distance
     /// * `destruction_power`: mining power applied to remove blocks
-    pub fn explosion(&mut self, center: (i32, i32), radius: i32, destruction_power: i32, player: &mut Player) {
+    pub fn explosion(&mut self, center: AbsolutePos, radius: i32, destruction_power: i32, player: &mut Player) {
         let start_height = self.len_at(center);
         let damage = destruction_power * 10;
         for i in (center.0 - radius)..=(center.0 + radius) {
@@ -259,8 +259,8 @@ impl Field {
 
     /// Perform a full A* pathing from source to destination.
     pub fn full_pathing(&mut self,
-                        source: (i32, i32), destination: (i32, i32),
-                        player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
+                        source: AbsolutePos, destination: AbsolutePos,
+                        player: AbsolutePos, max_detour: Option<i32>) -> (AbsolutePos, i32) {
         let detour =
             if max_detour.is_none() {
                 SETTINGS.read().unwrap().pathing.default_detour
@@ -365,20 +365,20 @@ impl Field {
     }
 
     /// Absolute index of the current central chunk
-    pub fn get_central_chunk(&self) -> (i32, i32) {
+    pub fn get_central_chunk(&self) -> AbsoluteChunkPos {
         self.central_chunk
     }
 }
 
 /// Rendering-related
 impl Field {
-    pub fn min_loaded_idx(&self) -> (i32, i32) {
+    pub fn min_loaded_idx(&self) -> AbsolutePos {
         let x = (self.central_chunk.0 - self.loading_distance as i32) * self.chunk_size as i32;
         let y = (self.central_chunk.1 - self.loading_distance as i32) * self.chunk_size as i32;
         (x, y)
     }
 
-    pub fn max_loaded_idx(&self) -> (i32, i32) {
+    pub fn max_loaded_idx(&self) -> AbsolutePos {
         let x = (self.central_chunk.0 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
         let y = (self.central_chunk.1 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
         (x, y)
@@ -416,16 +416,16 @@ impl Field {
     /// * `radius`: how far field from player is included
     ///
     /// returns: (2d Vector: the list of positions)
-    pub fn texture_indices(&self, player: &Player, material: Material, radius: i32) -> Vec<(i32, i32)> {
-        let cond = |i, j| { self.top_material_at((i, j)) == material };
+    pub fn texture_indices(&self, player: &Player, material: Material, radius: i32) -> Vec<RelativePos> {
+        let cond = |(i, j)| { self.top_material_at((i, j)) == material };
         self.indices_around_player(player, cond, radius)
     }
 
-    fn indices_around_player<F: Fn(i32, i32) -> bool>(&self, player: &Player, condition: F, radius: i32) -> Vec<(i32, i32)> {
-        let mut res: Vec<(i32, i32)> = Vec::new();
+    fn indices_around_player<F: Fn(AbsolutePos) -> bool>(&self, player: &Player, condition: F, radius: i32) -> Vec<RelativePos> {
+        let mut res = Vec::new();
         for i in (player.x - radius)..=(player.x + radius) {
             for j in (player.y - radius)..=(player.y + radius) {
-                if condition(i, j) {
+                if condition((i, j)) {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -434,15 +434,15 @@ impl Field {
     }
 
     /// Makes a list of player-centered positions of blocks of given height around the player.
-    pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<(i32, i32)> {
-        let cond = |i, j| { self.len_at((i, j)) == height };
+    pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<RelativePos> {
+        let cond = |(i, j)| { self.len_at((i, j)) == height };
         self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
     /// Makes a list of positions of blocks that have loot on them.
     /// Does not count arrows as loot.
-    pub fn loot_indices(&self, player: &Player) -> Vec<(i32, i32)> {
-        let cond = |i, j| {
+    pub fn loot_indices(&self, player: &Player) -> Vec<RelativePos> {
+        let cond = |(i, j)| {
             let chunk = self.get_chunk_immut(i, j);
             let loot = chunk.get_loot_at(i, j);
             for l in loot {
@@ -456,16 +456,16 @@ impl Field {
     }
 
     /// Makes a list of positions of blocks that have loot on them
-    pub fn arrow_indices(&self, player: &Player) -> Vec<(i32, i32)> {
-        let cond = |i, j| {
+    pub fn arrow_indices(&self, player: &Player) -> Vec<RelativePos> {
+        let cond = |(i, j)| {
             self.get_chunk_immut(i, j).get_loot_at(i, j).contains(&Storable::I(Arrow))
         };
         self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
-    pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<(i32, i32)> {
+    pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<RelativePos> {
         // todo: can rewrite like mob_indices for speed
-        let cond = |i, j| {
+        let cond = |(i, j)| {
             self.get_interactable_kind_at((i, j)) == Some(interactable)
         };
         self.indices_around_player(player, cond, self.render_distance as i32)
@@ -473,15 +473,15 @@ impl Field {
 
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
     /// Positions are centered on the player.
-    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32, u32)> {
-        let mut res: Vec<(i32, i32, u32)> = Vec::new();
+    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(RelativePos, u32)> {
+        let mut res= Vec::new();
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
                 for m in self.loaded_chunks[i][j].borrow().get_mobs() {
                     if m.get_kind() == &kind {
-                        res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_rotation()));
+                        res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
                     }
                 }
             }
@@ -490,22 +490,22 @@ impl Field {
             if m.get_kind() == &kind &&
                 (m.pos.x - player.x).abs() <= self.render_distance as i32 &&
                 (m.pos.y - player.y).abs() <= self.render_distance as i32 {
-                res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_rotation()));
+                res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
             }
         }
         res
     }
     
     /// Player-relative positions of close mobs and their hp shares.
-    pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(i32, i32, f32)> {
+    pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(RelativePos, f32)> {
         // doesnt account for stray mobs
-        let mut res: Vec<(i32, i32, f32)> = Vec::new();
+        let mut res: Vec<(RelativePos, f32)> = Vec::new();
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
                 for m in self.loaded_chunks[i][j].borrow().get_mobs() {
-                    res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_hp_share()));
+                    res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_hp_share()));
                 }
             }
         }
@@ -615,3 +615,6 @@ impl Field {
 }
 
 pub const DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+pub type AbsolutePos = (i32, i32);
+pub type RelativePos = (i32, i32);  // relative to the player
+pub type AbsoluteChunkPos = (i32, i32);

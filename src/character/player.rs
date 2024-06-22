@@ -6,7 +6,7 @@ use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
-use crate::map_generation::field::Field;
+use crate::map_generation::field::{AbsoluteChunkPos, Field};
 use crate::crafting::inventory::Inventory;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -215,7 +215,7 @@ impl Player {
             }
 
             // chunk loading
-            let curr_chunk = (field.chunk_pos(self.x), field.chunk_pos(self.y));
+            let curr_chunk: AbsoluteChunkPos = (field.chunk_pos(self.x), field.chunk_pos(self.y));
             if curr_chunk != field.get_central_chunk() {
                 field.load(curr_chunk.0, curr_chunk.1);
             }

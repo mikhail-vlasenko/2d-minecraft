@@ -5,7 +5,7 @@ use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::graphics::state::RENDER_DISTANCE;
 use crate::map_generation::mobs::a_star::{AStar, can_step};
 use crate::character::player::Player;
-use crate::map_generation::field::Field;
+use crate::map_generation::field::{Field, RelativePos};
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind, MobState, ZERGLING_ATTACK_RANGE};
 use crate::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
@@ -150,8 +150,8 @@ impl Mob {
                 // indices will never have the current mob because it is neither in stray nor in chunk
                 let mut close_count = 0;
                 for ind in indices {
-                    // positions are centered on the player
-                    let dist = ind.0.abs() + ind.1.abs();
+                    let pos: RelativePos = ind.0;
+                    let dist = pos.0.abs() + pos.1.abs();
                     if dist <= ZERGLING_ATTACK_RANGE {
                         close_count += 1;
                     }

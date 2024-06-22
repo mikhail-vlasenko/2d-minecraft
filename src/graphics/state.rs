@@ -29,7 +29,7 @@ use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
-use crate::map_generation::field::Field;
+use crate::map_generation::field::{AbsolutePos, Field, RelativePos};
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
@@ -337,14 +337,14 @@ impl<'a> State<'a> {
         let mob_positions = self.field.all_mob_positions_and_hp(&self.player);
 
         self.buffers.hp_bar_vertex_buffer = vec![];
-        for m in &mob_positions {
+        for mob_info in &mob_positions {
             self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(1.));
-            self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(m.2));
+            self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(mob_info.1));
         }
         self.buffers.hp_bar_instances = vec![];
-        for m in &mob_positions {
-            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(m.0, m.1));
-            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(m.0, m.1));
+        for mob_info in &mob_positions {
+            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
+            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
         }
         let hp_bar_instance_data = self.buffers.hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         self.buffers.hp_bar_instance_buffer = self.device.create_buffer_init(
@@ -439,22 +439,22 @@ impl<'a> State<'a> {
     ///
     /// # Arguments
     ///
-    /// * `x` - x coordinate (as usual, the vertical one)
-    /// * `y` - y coordinate (as usual, the horizontal one)
+    /// * `pos` - relative position with the first element as x coordinate (as usual, the vertical one)
+    ///     and second element as y coordinate (as usual, the horizontal one)
     /// * `rotation` - rotation of the texture (number from 0 to 3)
-    fn convert_index(x: i32, y: i32, rotation: u32) -> u32 {
+    fn convert_index(pos: RelativePos, rotation: u32) -> u32 {
         // Here we want x to be horizontal, like mathematical coords
         // Also, second component should be greater when higher (so negate it)
-        (-x + RENDER_DISTANCE as i32) as u32 * TILES_PER_ROW
-            + (y + RENDER_DISTANCE as i32) as u32
+        (-pos.0 + RENDER_DISTANCE as i32) as u32 * TILES_PER_ROW
+            + (pos.1 + RENDER_DISTANCE as i32) as u32
             + rotation * TILES_PER_ROW.pow(2)
     }
 
-    fn hp_bar_position_instance(&self, mob_x: i32, mob_y: i32) -> Instance {
+    fn hp_bar_position_instance(&self, mob_pos: RelativePos) -> Instance {
         Instance {
             position: cgmath::Vector3 {
-                x: (mob_y as f32 - 0.5) * DISP_COEF,
-                y: (-mob_x as f32 + 0.3) * DISP_COEF,
+                x: (mob_pos.1 as f32 - 0.5) * DISP_COEF,
+                y: (-mob_pos.0 as f32 + 0.3) * DISP_COEF,
                 z: 0.0
             },
             rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
@@ -473,7 +473,7 @@ impl<'a> State<'a> {
     }
 
     /// Draws the current texture at the player-centered grid positions.
-    fn draw_at_indices(&self, indices: &Vec<(i32, i32)>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
+    fn draw_at_indices(&self, indices: &Vec<RelativePos>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
         let rots = if rotations.is_some() {
             rotations.unwrap()
         } else {
@@ -481,21 +481,21 @@ impl<'a> State<'a> {
         };
         for i in 0..indices.len() {
             let pos = indices[i];
-            let idx = State::convert_index(pos.0, pos.1, rots[i]);
+            let idx = State::convert_index(pos, rots[i]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
         }
     }
 
     /// Draws top material or texture. in case of texture also draws material underneath
-    fn draw_material(&'a self, i: i32, j: i32, render_pass: &mut RenderPass<'a>, map: bool) {
-        let material = self.field.top_material_at((i, j));
+    fn draw_material(&'a self, pos: AbsolutePos, render_pass: &mut RenderPass<'a>, map: bool) {
+        let material = self.field.top_material_at(pos);
         let idx = if map {
-            self.convert_map_view_index(i - self.player.x, j - self.player.y)
+            self.convert_map_view_index(pos.0 - self.player.x, pos.1 - self.player.y)
         } else {
-            State::convert_index(i - self.player.x, j - self.player.y, 0)
+            State::convert_index((pos.0 - self.player.x, pos.1 - self.player.y), 0)
         };
         if let Material::Texture(_) = material {
-            let non_texture = self.field.non_texture_material_at((i, j));
+            let non_texture = self.field.non_texture_material_at(pos);
             render_pass.set_bind_group(
                 0, self.bind_groups.get_bind_group_material(non_texture), &[]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
@@ -516,7 +516,7 @@ impl<'a> State<'a> {
         // draw materials of top block in tiles
         for i in (self.player.x - RENDER_DISTANCE as i32)..=(self.player.x + RENDER_DISTANCE as i32) {
             for j in (self.player.y - RENDER_DISTANCE as i32)..=(self.player.y + RENDER_DISTANCE as i32) {
-                self.draw_material(i, j, render_pass, false);
+                self.draw_material((i, j), render_pass, false);
             }
         }
 
@@ -558,10 +558,10 @@ impl<'a> State<'a> {
 
             let mut mobs = self.field.mob_indices(&self.player, mob_kind);
             mobs = mobs.into_iter().filter(
-                |(x, y, _)| x.abs() <= max_drawable_index && y.abs() <= max_drawable_index
+                |(pos, _)| pos.0.abs() <= max_drawable_index && pos.1.abs() <= max_drawable_index
             ).collect();
-            let rotations: Vec<u32> = mobs.clone().into_iter().map(|(_, _, rot)| rot).collect();
-            let positions = mobs.into_iter().map(|(x, y, _)| (x, y)).collect();
+            let rotations: Vec<u32> = mobs.clone().into_iter().map(|(_, rot)| rot).collect();
+            let positions = mobs.into_iter().map(|(pos, _)| pos).collect();
             self.draw_at_indices(&positions, &mut *render_pass, Some(rotations));
         }
     }
@@ -614,7 +614,7 @@ impl<'a> State<'a> {
         let radius = self.field.get_map_render_distance() as i32;
         for i in (self.player.x - radius)..=(self.player.x + radius) {
             for j in (self.player.y - radius)..=(self.player.y + radius) {
-                self.draw_material(i, j, render_pass, true);
+                self.draw_material((i, j), render_pass, true);
             }
         }
     }
