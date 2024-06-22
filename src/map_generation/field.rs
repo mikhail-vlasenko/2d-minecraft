@@ -253,6 +253,9 @@ impl Field {
                         self.pop_at((i, j));
                     }
                 }
+                if self.get_interactable_kind_at((i, j)).is_some() {
+                    self.break_interactable_at((i, j));
+                }
                 if self.is_occupied((i, j)) {
                     self.damage_mob((i, j), damage);
                 }
