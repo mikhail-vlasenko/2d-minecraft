@@ -60,8 +60,20 @@ pub fn make_hp_vertices(hp_share: f32) -> [Vertex; 4] {
     let hp_share = hp_share.max(0.0).min(1.0);
     [
         Vertex { position: [0.0, 0.0, 0.0], tex_coords: [0.0, 1.0], },
-        Vertex { position: [hp_share, 0.0, 0.0], tex_coords: [1.0, 1.0], },
-        Vertex { position: [hp_share, HP_VERTICES_SCALING_COEF, 0.0], tex_coords: [1.0, 0.0], },
+        Vertex { position: [hp_share, 0.0, 0.0], tex_coords: [hp_share, 1.0], },
+        Vertex { position: [hp_share, HP_VERTICES_SCALING_COEF, 0.0], tex_coords: [hp_share, 0.0], },
         Vertex { position: [0.0, HP_VERTICES_SCALING_COEF, 0.0], tex_coords: [0.0, 0.0], },
+    ]
+}
+
+pub fn make_animation_vertices(frame_number: u32, total_frames: u32) -> [Vertex; 4] {
+    let frame_number = frame_number as f32;
+    let total_frames = total_frames as f32;
+    let frame_share = frame_number / total_frames;
+    [
+        Vertex { position: [0.0, 0.0, 0.0], tex_coords: [frame_share, 1.0], },
+        Vertex { position: [1.0, 0.0, 0.0], tex_coords: [frame_share + 1. / total_frames, 1.0], },
+        Vertex { position: [1.0, 1.0, 0.0], tex_coords: [frame_share + 1. / total_frames, 0.0], },
+        Vertex { position: [0.0, 1.0, 0.0], tex_coords: [frame_share, 0.0], },
     ]
 }

@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use cgmath::{InnerSpace, Rotation3, Zero};
 use lazy_static::lazy_static;
-use rand::random;
+use rand::{random, Rng};
 use strum::IntoEnumIterator;
 use egui_wgpu::wgpu;
 use egui_wgpu::wgpu::{BindGroup, BindGroupLayout, Buffer, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, StoreOp, TextureFormat, TextureView};
@@ -26,7 +26,7 @@ use crate::graphics::buffers::Buffers;
 use crate::graphics::ui::egui_manager::EguiManager;
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
-use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
+use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::field::Field;
@@ -84,7 +84,7 @@ impl<'a> State<'a> {
         // The instance is a handle to our GPU
         // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(InstanceDescriptor::default());
-        let surface = unsafe { instance.create_surface(window) }.unwrap();
+        let surface = instance.create_surface(window).unwrap();
         let adapter = instance.request_adapter(
             &wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -354,6 +354,15 @@ impl<'a> State<'a> {
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
+
+        self.buffers.animation_vertex_buffer = vec![];
+        self.buffers.animation_vertex_buffer.push(self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Animation Vertex Buffer"),
+                contents: bytemuck::cast_slice(&make_animation_vertices(rand::thread_rng().gen_range(0..14), 14)),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        ));
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -417,6 +426,8 @@ impl<'a> State<'a> {
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_player(), &[]);
         let idx = self.player.get_rotation();
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+        
+        self.render_animations(render_pass);
 
         self.render_hp_bars(render_pass);
 
@@ -461,6 +472,7 @@ impl<'a> State<'a> {
         )
     }
 
+    /// Draws the current texture at the player-centered grid positions.
     fn draw_at_indices(&self, indices: &Vec<(i32, i32)>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
         let rots = if rotations.is_some() {
             rotations.unwrap()
@@ -562,6 +574,15 @@ impl<'a> State<'a> {
             render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer[i].slice(..));
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(red), &[]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, i as u32..(i+1) as u32);
+        }
+    }
+
+    fn render_animations(&'a self, render_pass: &mut RenderPass<'a>) {
+        render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
+        for i in 0..self.buffers.animation_vertex_buffer.len() {
+            render_pass.set_vertex_buffer(0, self.buffers.animation_vertex_buffer[i].slice(..));
+            render_pass.set_bind_group(0, &self.bind_groups.animation, &[]);
+            self.draw_at_indices(&vec![(1, 1)], render_pass, None);
         }
     }
 

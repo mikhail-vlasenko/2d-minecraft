@@ -433,7 +433,7 @@ impl Field {
         res
     }
 
-    /// Makes a list of positions of blocks of given height around the player.
+    /// Makes a list of player-centered positions of blocks of given height around the player.
     pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<(i32, i32)> {
         let cond = |i, j| { self.len_at((i, j)) == height };
         self.indices_around_player(player, cond, self.render_distance as i32)
@@ -496,6 +496,7 @@ impl Field {
         res
     }
     
+    /// Player-relative positions of close mobs and their hp shares.
     pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(i32, i32, f32)> {
         // doesnt account for stray mobs
         let mut res: Vec<(i32, i32, f32)> = Vec::new();

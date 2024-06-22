@@ -38,3 +38,10 @@ But would require no computer vision, and would run significantly faster than th
 
 <img width="799" alt="image" src="https://github.com/mikhail-vlasenko/2d-minecraft/assets/27450370/d8c6774c-51b9-4a3c-89f3-cb9470907464">
 
+## Asset Credits
+
+- Most of the blocks - minecraft
+- PLayer - Riley Gombart
+- Zergling and Baneling - Starcraft 2
+- Cow - Minecraft
+- Hit animations - Sinestesia

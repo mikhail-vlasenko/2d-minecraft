@@ -6,3 +6,4 @@ pub mod event_loop;
 mod texture_bind_groups;
 mod buffers;
 mod ui;
+mod animations;

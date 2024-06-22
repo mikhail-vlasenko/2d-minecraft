@@ -29,6 +29,7 @@ pub struct TextureBindGroups {
     crossbow_turret: BindGroup,
     red_hp_bar: BindGroup,
     green_hp_bar: BindGroup,
+    pub animation: BindGroup,
     texture_materials: TextureMaterials,
     pub bind_group_layout: BindGroupLayout,
 }
@@ -110,6 +111,8 @@ impl TextureBindGroups {
         let red_hp_bar = make_bind_group_from_texture!("../../res/red_hp_bar.png");
         let green_hp_bar = make_bind_group_from_texture!("../../res/green_hp_bar.png");
         let player = make_bind_group_from_texture!("../../res/tiles/player_top_view.png");
+        
+        let animation = make_bind_group_from_texture!("../../res/animations/unrolled_yellow_hit.png");
 
         let depth_indicators = Self::init_depth_groups(device, queue, &bind_group_layout);
 
@@ -137,6 +140,7 @@ impl TextureBindGroups {
             crossbow_turret,
             red_hp_bar,
             green_hp_bar,
+            animation,
             texture_materials,
             bind_group_layout,
         }
