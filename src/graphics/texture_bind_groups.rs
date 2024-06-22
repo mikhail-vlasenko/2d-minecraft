@@ -32,6 +32,7 @@ pub struct TextureBindGroups {
     green_hp_bar: BindGroup,
     yellow_hit: BindGroup,
     red_hit: BindGroup,
+    vertical_arrow: BindGroup,
     texture_materials: TextureMaterials,
     pub bind_group_layout: BindGroupLayout,
 }
@@ -116,6 +117,7 @@ impl TextureBindGroups {
         
         let yellow_hit = make_bind_group_from_texture!("../../res/animations/unrolled_yellow_hit.png");
         let red_hit = make_bind_group_from_texture!("../../res/animations/unrolled_red_hit_center_crop.png");
+        let vertical_arrow = make_bind_group_from_texture!("../../res/animations/fat_arrow_vertical.png");
 
         let depth_indicators = Self::init_depth_groups(device, queue, &bind_group_layout);
 
@@ -145,6 +147,7 @@ impl TextureBindGroups {
             green_hp_bar,
             yellow_hit,
             red_hit,
+            vertical_arrow,
             texture_materials,
             bind_group_layout,
         }
@@ -244,6 +247,10 @@ impl TextureBindGroups {
             YellowHit => &self.yellow_hit,
             RedHit => &self.red_hit,
         }
+    }
+    
+    pub fn get_bind_group_vertical_arrow(&self) -> &BindGroup {
+        &self.vertical_arrow
     }
 }
 

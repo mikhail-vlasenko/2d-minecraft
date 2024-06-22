@@ -2,6 +2,7 @@ use std::cell::{Ref, RefMut};
 use std::cmp::min;
 use std::f32::consts::PI;
 use serde::{Serialize, Deserialize};
+use crate::auxiliary::animations::{AnimationsBuffer, ProjectileType};
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::{Interactable, InteractableKind};
@@ -40,6 +41,7 @@ pub struct Player {
     pub viewing_map: bool,
 
     pub message: String,
+    pub animations_buffer: AnimationsBuffer,
 }
 
 impl Player {
@@ -59,6 +61,7 @@ impl Player {
             interacting_with: None,
             viewing_map: false,
             message: String::new(),
+            animations_buffer: AnimationsBuffer::new(),
         };
         player.land(field);
         player
@@ -143,7 +146,6 @@ impl Player {
             self.interacting_with = None;
             return;
         }
-        println!("Interacting with {:?}", pos);
         self.interacting_with = Some(pos);
     }
 
@@ -346,6 +348,7 @@ impl Player {
             } else {
                 self.add_message(&"Arrow broke");
             }
+            self.animations_buffer.add_projectile_animation(ProjectileType::Arrow, (self.x, self.y), curr_tile);
         }
         self.get_speed_multiplier()
     }

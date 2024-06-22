@@ -265,9 +265,8 @@ impl<'a> State<'a> {
                                   &self.egui_manager.main_menu_open
             );
             self.field.step_time(passed_time, &mut self.player);
-            for animation in self.field.get_new_tile_animations() {
-                self.animation_manager.add_tile_animation(animation.0, animation.1);
-            }
+            self.animation_manager.absorb_buffer(&mut self.field.animations_buffer);
+            self.animation_manager.absorb_buffer(&mut self.player.animations_buffer);
         }
     }
 
@@ -348,12 +347,12 @@ impl<'a> State<'a> {
             self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(1.));
             self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(mob_info.1));
         }
-        self.buffers.hp_bar_instances = vec![];
+        let mut hp_bar_instances = vec![];
         for mob_info in &mob_positions {
-            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
-            self.buffers.hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
+            hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
+            hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
         }
-        let hp_bar_instance_data = self.buffers.hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let hp_bar_instance_data = hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         self.buffers.hp_bar_instance_buffer = self.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
@@ -376,6 +375,19 @@ impl<'a> State<'a> {
                 }
             ));
         }
+        let mut projectile_instances = vec![];
+        for projectile_animation in self.animation_manager.get_projectile_animations() {
+            projectile_instances.push(self.projectile_instance(
+                projectile_animation.get_relative_position(&self.player), projectile_animation.get_rotation()));
+        }
+        let projectile_instance_data = projectile_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        self.buffers.projectile_instance_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&projectile_instance_data),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -484,16 +496,29 @@ impl<'a> State<'a> {
             }
         )
     }
+    
+    /// position is relative, but float
+    fn projectile_instance(&self, position: (f32, f32), rotation: f32) -> Instance {
+        Instance {
+            position: cgmath::Vector3 {
+                x: (position.1 - 0.5) * DISP_COEF,
+                y: (-position.0 + 0.5) * DISP_COEF,
+                z: 0.0
+            },
+            rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Rad(rotation)),
+            scaling: DISP_COEF,
+        }
+    }
 
     /// Draws the current texture at the player-centered grid positions.
-    fn draw_at_indices(&self, indices: &Vec<RelativePos>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
+    fn draw_at_grid_positions(&self, positions: &Vec<RelativePos>, render_pass: &mut RenderPass, rotations: Option<Vec<u32>>) {
         let rots = if rotations.is_some() {
             rotations.unwrap()
         } else {
-            vec![0; indices.len()]
+            vec![0; positions.len()]
         };
-        for i in 0..indices.len() {
-            let pos = indices[i];
+        for i in 0..positions.len() {
+            let pos = positions[i];
             let idx = State::convert_index(pos, rots[i]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
         }
@@ -537,7 +562,7 @@ impl<'a> State<'a> {
         for i in 0..=3 {
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_depth(i), &[]);
             let depth = self.field.depth_indices(&self.player, i + 2);
-            self.draw_at_indices(&depth, &mut *render_pass, None);
+            self.draw_at_grid_positions(&depth, &mut *render_pass, None);
         }
 
         // draw interactable objects
@@ -546,18 +571,18 @@ impl<'a> State<'a> {
                                        &self.bind_groups.get_bind_group_interactable(interactable),
                                        &[]);
             let interactables = self.field.interactable_indices(&self.player, interactable);
-            self.draw_at_indices(&interactables, &mut *render_pass, None);
+            self.draw_at_grid_positions(&interactables, &mut *render_pass, None);
         }
 
         // draw loot where exists
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_loot(), &[]);
         let loot = self.field.loot_indices(&self.player);
-        self.draw_at_indices(&loot, &mut *render_pass, None);
+        self.draw_at_grid_positions(&loot, &mut *render_pass, None);
 
         // draw arrows left from shooting
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_arrow(), &[]);
         let loot = self.field.arrow_indices(&self.player);
-        self.draw_at_indices(&loot, &mut *render_pass, None);
+        self.draw_at_grid_positions(&loot, &mut *render_pass, None);
         // let elapsed = now.elapsed();
         // println!("Elapsed: {:.2?}", elapsed);
     }
@@ -575,7 +600,7 @@ impl<'a> State<'a> {
             ).collect();
             let rotations: Vec<u32> = mobs.clone().into_iter().map(|(_, rot)| rot).collect();
             let positions = mobs.into_iter().map(|(pos, _)| pos).collect();
-            self.draw_at_indices(&positions, &mut *render_pass, Some(rotations));
+            self.draw_at_grid_positions(&positions, &mut *render_pass, Some(rotations));
         }
     }
 
@@ -597,8 +622,15 @@ impl<'a> State<'a> {
             let animation_type = self.animation_manager.get_tile_animations()[i].get_animation_type();
             let animation_pos = self.animation_manager.get_tile_animations()[i].get_pos();
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_animation(*animation_type), &[]);
-            self.draw_at_indices(&vec![absolute_to_relative(*animation_pos, &self.player)], render_pass, None);
+            let mut rel_animation_positions = vec![absolute_to_relative(*animation_pos, &self.player)];
+            rel_animation_positions = self.filter_out_of_view_tiles(rel_animation_positions);
+            self.draw_at_grid_positions(&rel_animation_positions, render_pass, None);
         }
+        
+        render_pass.set_vertex_buffer(0, self.buffers.projectile_vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.buffers.projectile_instance_buffer.slice(..));
+        render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_vertical_arrow(), &[]);
+        render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..self.animation_manager.get_projectile_animations().len() as u32);
     }
 
     fn render_night(&'a self, render_pass: &mut RenderPass<'a>) {
@@ -618,6 +650,13 @@ impl<'a> State<'a> {
         (-x + self.field.get_map_render_distance() as i32) as u32 *
             ((self.field.get_map_render_distance() as u32 * 2) + 1) +
             (y + self.field.get_map_render_distance() as i32) as u32
+    }
+    
+    fn filter_out_of_view_tiles(&self, positions: Vec<RelativePos>) -> Vec<RelativePos> {
+        let max_drawable_index = ((TILES_PER_ROW - 1) / 2) as i32;
+        positions.into_iter().filter(
+            |pos| pos.0.abs() <= max_drawable_index && pos.1.abs() <= max_drawable_index
+        ).collect()
     }
 
     /// Only renders the materials, but with a much larger render distance.

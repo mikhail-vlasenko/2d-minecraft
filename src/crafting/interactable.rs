@@ -14,7 +14,7 @@ use crate::crafting::storable::CraftMenuSection::*;
 use crate::crafting::interactable::InteractableKind::*;
 use crate::crafting::inventory::Inventory;
 use crate::crafting::turret::TargetingData;
-use crate::map_generation::field::Field;
+use crate::map_generation::field::{AbsolutePos, Field};
 
 
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
@@ -57,7 +57,7 @@ impl Interactable {
     pub fn get_kind(&self) -> InteractableKind {
         self.kind
     }
-    pub fn get_position(&self) -> (i32, i32) {
+    pub fn get_position(&self) -> AbsolutePos {
         self.position
     }
     pub fn get_targeting_data(&self) -> &TargetingData {

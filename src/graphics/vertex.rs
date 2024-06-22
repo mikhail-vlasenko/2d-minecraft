@@ -40,10 +40,10 @@ pub const INDICES: &[u16] = &[
 
 pub const PLAYER_VERTICES: &[Vertex] = &[
     // player square, always in one place
-    Vertex { position: [0.0, 0.0, 0.0], tex_coords: [0.0, 1.0], },
-    Vertex { position: [1.0, 0.0, 0.0], tex_coords: [1.0, 1.0], },
-    Vertex { position: [1.0, 1.0, 0.0], tex_coords: [1.0, 0.0], },
-    Vertex { position: [0.0, 1.0, 0.0], tex_coords: [0.0, 0.0], },
+    Vertex { position: [-0.5, -0.5, 0.0], tex_coords: [0.0, 1.0], },
+    Vertex { position: [0.5, -0.5, 0.0], tex_coords: [1.0, 1.0], },
+    Vertex { position: [0.5, 0.5, 0.0], tex_coords: [1.0, 0.0], },
+    Vertex { position: [-0.5, 0.5, 0.0], tex_coords: [0.0, 0.0], },
 ];
 
 pub const NIGHT_FILTER_VERTICES: &[Vertex] = &[
@@ -53,7 +53,7 @@ pub const NIGHT_FILTER_VERTICES: &[Vertex] = &[
     Vertex { position: [-1.0, 1.0, 0.0], tex_coords: [0.0, 0.0], },
 ];
 
-pub const HP_VERTICES_SCALING_COEF: f32 = 1.0 / 12.0;
+const HP_VERTICES_SCALING_COEF: f32 = 1.0 / 12.0;
 pub const HP_BAR_SCALING_COEF: f32 = 1.0 / 8.0;
 
 pub fn make_hp_vertices(hp_share: f32) -> [Vertex; 4] {
@@ -77,3 +77,13 @@ pub fn make_animation_vertices(frame_number: u32, total_frames: u32) -> [Vertex;
         Vertex { position: [0.0, 1.0, 0.0], tex_coords: [frame_share, 0.0], },
     ]
 }
+
+// only for the arrow, as there are no other projectiles (yet)
+const PROJECTILE_VERTICES_SCALING_COEF: f32 = 1.0 / 8.0;
+
+pub const PROJECTILE_VERTICES: &[Vertex] = &[
+    Vertex { position: [-PROJECTILE_VERTICES_SCALING_COEF, -0.5, 0.0], tex_coords: [0.0, 1.0], },
+    Vertex { position: [PROJECTILE_VERTICES_SCALING_COEF, -0.5, 0.0], tex_coords: [1.0, 1.0], },
+    Vertex { position: [PROJECTILE_VERTICES_SCALING_COEF, 0.5, 0.0], tex_coords: [1.0, 0.0], },
+    Vertex { position: [-PROJECTILE_VERTICES_SCALING_COEF, 0.5, 0.0], tex_coords: [0.0, 0.0], },
+];
