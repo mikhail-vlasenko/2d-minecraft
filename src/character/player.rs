@@ -1,4 +1,3 @@
-use std::cell::{Ref, RefMut};
 use std::cmp::min;
 use std::f32::consts::PI;
 use serde::{Serialize, Deserialize};
@@ -430,7 +429,6 @@ impl Player {
                     multiplier = 0.5;
                     break
                 }
-                _ => {}
             }
         }
         multiplier

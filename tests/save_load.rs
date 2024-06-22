@@ -1,13 +1,12 @@
 mod common;
 
-use std::fs::{File, read_to_string, remove_dir_all, remove_file};
+use std::fs::{File, remove_dir_all, remove_file};
 use std::io::{Read, Write};
 use std::path::Path;
 use postcard;
 extern crate alloc;
 use alloc::vec::Vec;
 use minecraft::character::player::Player;
-use serde::Serialize;
 use crate::common::Data;
 
 use minecraft::map_generation::field::Field;

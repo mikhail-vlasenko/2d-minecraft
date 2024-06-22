@@ -1,8 +1,7 @@
 use std::path::Path;
 use std::process::exit;
-use egui::{Align, Checkbox, FontDefinitions, Slider};
-use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta, Context};
-use egui_wgpu::wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
+use egui::{Slider};
+use egui::{Align2, Color32, FontId, RichText, Context};
 use crate::character::player::Player;
 use crate::map_generation::save_load::get_directories;
 use crate::SETTINGS;

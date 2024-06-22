@@ -1,9 +1,8 @@
-use std::cmp::{max, min};
-use rand::Rng;
+use std::cmp::{max};
 use serde::{Serialize, Deserialize};
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::graphics::state::RENDER_DISTANCE;
-use crate::map_generation::mobs::a_star::{AStar, can_step};
+use crate::map_generation::mobs::a_star::{can_step};
 use crate::character::player::Player;
 use crate::map_generation::field::{Field, RelativePos};
 use crate::map_generation::field::DIRECTIONS;

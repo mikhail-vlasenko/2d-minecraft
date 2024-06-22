@@ -1,11 +1,6 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use serde::{Serialize, Deserialize};
-use Storable::*;
-use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
-use crate::crafting::storable::CraftMenuSection::*;
+use crate::crafting::storable::{Storable};
 
 
 /// A non-destructible block that displays some texture.

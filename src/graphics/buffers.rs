@@ -4,7 +4,6 @@ use wgpu::util::DeviceExt;
 use crate::graphics::instance::{Instance, InstanceRaw};
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
 use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, PROJECTILE_VERTICES, VERTICES};
-use crate::SETTINGS;
 
 
 /// Creates and stores wgpu buffers

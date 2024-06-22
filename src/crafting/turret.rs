@@ -7,7 +7,6 @@ use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::interactable::InteractableKind::*;
 use crate::crafting::items::Item;
 use crate::crafting::items::Item::Arrow;
-use crate::crafting::storable::Storable;
 use crate::map_generation::field::Field;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::SETTINGS;

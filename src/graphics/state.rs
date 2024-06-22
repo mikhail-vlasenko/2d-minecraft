@@ -1,16 +1,11 @@
 use std::{iter};
-use std::borrow::BorrowMut;
-use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::path::{PathBuf};
 
-use cgmath::{InnerSpace, Rotation3, Zero};
-use lazy_static::lazy_static;
-use rand::{random, Rng};
+use cgmath::{Rotation3};
 use strum::IntoEnumIterator;
 use egui_wgpu::wgpu;
-use egui_wgpu::wgpu::{BindGroup, BindGroupLayout, Buffer, CommandEncoder, include_wgsl, InstanceDescriptor, RenderPass, StoreOp, TextureFormat, TextureView};
+use egui_wgpu::wgpu::{Buffer, include_wgsl, InstanceDescriptor, RenderPass, StoreOp};
 use egui_wgpu::wgpu::util::DeviceExt;
-use egui_winit::winit;
 use egui_winit::winit::{
     event::*,
     window::Window,
@@ -18,7 +13,6 @@ use egui_winit::winit::{
 use egui_winit::winit::dpi::PhysicalSize;
 use egui_winit::winit::keyboard::{KeyCode, PhysicalKey};
 use crate::crafting::consumable::Consumable;
-use crate::crafting::items::Item;
 
 use crate::character::player::Player;
 use crate::crafting::interactable::InteractableKind;
@@ -26,12 +20,11 @@ use crate::graphics::buffers::Buffers;
 use crate::graphics::ui::egui_manager::EguiManager;
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
-use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
+use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, Vertex};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::field::{absolute_to_relative, AbsolutePos, Field, RelativePos};
 use crate::crafting::material::Material;
-use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
 use crate::auxiliary::animations::AnimationManager;
 use crate::graphics::ui::egui_renderer::EguiRenderer;
@@ -40,7 +33,7 @@ use crate::map_generation::chunk::Chunk;
 use crate::map_generation::read_chunk::read_file;
 use crate::map_generation::save_load::{load_game, save_game};
 use crate::SETTINGS;
-use crate::settings::{DEFAULT_SETTINGS, Settings};
+use crate::settings::{DEFAULT_SETTINGS};
 
 pub const TILES_PER_ROW: u32 = DEFAULT_SETTINGS.window.tiles_per_row as u32;
 pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;

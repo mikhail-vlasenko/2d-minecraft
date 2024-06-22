@@ -2,7 +2,6 @@ use std::fmt;
 use std::fmt::Display;
 use std::mem::take;
 use serde::{Serialize, Deserialize};
-use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
 use crate::crafting::material::Material;
 use crate::crafting::material::Material::*;

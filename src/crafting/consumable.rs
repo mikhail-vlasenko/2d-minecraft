@@ -1,13 +1,11 @@
 use std::fmt;
 use std::fmt::Display;
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use serde::{Serialize, Deserialize};
 use Storable::*;
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::storable::{Craftable, Storable};
 use crate::crafting::consumable::Consumable::*;
-use crate::crafting::material::Material;
 use crate::character::player::Player;
 
 

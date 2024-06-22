@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use crate::crafting::items::Item::{DiamondSword, IronPickaxe, IronSword, WoodenPickaxe};
 use crate::crafting::storable::Storable;
-use crate::crafting::storable::Storable::{I, M};
+use crate::crafting::storable::Storable::{I};
 
 
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]

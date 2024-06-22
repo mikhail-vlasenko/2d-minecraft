@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::ops::Not;
 use winit::keyboard::KeyCode;
 use crate::character::player::Player;
 use crate::map_generation::field::Field;

@@ -20,7 +20,7 @@ use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
 use crate::map_generation::mobs::a_star::AStar;
-use crate::map_generation::mobs::mob::{Mob, Position};
+use crate::map_generation::mobs::mob::{Mob};
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::mobs::spawning::create_mob;
 use crate::SETTINGS;

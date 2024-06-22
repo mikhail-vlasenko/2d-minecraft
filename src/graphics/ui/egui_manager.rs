@@ -1,27 +1,21 @@
 use std::cell::RefCell;
-use egui::{Align, Checkbox, FontDefinitions, Slider};
-use egui::{Align2, Color32, FontId, Label, RichText, TexturesDelta, Context};
+use egui::{Align2, Color32, FontId, Label, RichText, Context};
 use egui_wgpu::ScreenDescriptor;
-use egui_wgpu::wgpu;
-use egui_wgpu::wgpu::{Adapter, CommandEncoder, Device, Queue, Surface, SurfaceConfiguration, TextureView};
-use egui_winit::winit;
-use egui_winit::winit::dpi::PhysicalSize;
-use egui_winit::winit::event::Event;
+use egui_wgpu::wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
 use egui_winit::winit::window::Window;
 use crate::character::player::Player;
 use strum::IntoEnumIterator;
 use crate::crafting::consumable::Consumable;
-use crate::crafting::interactable::{Interactable, InteractableKind};
+use crate::crafting::interactable::{InteractableKind};
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
-use crate::crafting::storable::{CraftMenuSection, Storable};
+use crate::crafting::storable::{CraftMenuSection};
 use crate::crafting::storable::Craftable;
 use crate::graphics::ui::egui_renderer::EguiRenderer;
 use crate::graphics::ui::interactables_menu::InteractablesMenu;
 use crate::graphics::ui::main_menu::MainMenu;
 use crate::map_generation::field::Field;
-use crate::map_generation::mobs::mob_kind::MobKind;
 
 
 /// Renders UI
