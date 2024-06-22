@@ -1,14 +1,10 @@
 mod common;
 use crate::common::Data;
 
-use minecraft::crafting::items::Item;
 use minecraft::crafting::items::Item::*;
-use minecraft::crafting::material::Material;
 use minecraft::crafting::material::Material::*;
 use minecraft::crafting::storable::Storable;
-use minecraft::map_generation::chunk::Chunk;
 use minecraft::map_generation::field::Field;
-use minecraft::map_generation::read_chunk::read_file;
 use minecraft::character::player::Player;
 use egui_winit::winit::keyboard::KeyCode::*;
 

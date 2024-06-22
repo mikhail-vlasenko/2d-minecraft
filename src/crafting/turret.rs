@@ -1,12 +1,12 @@
 use std::cmp::{max, min};
 use serde::{Serialize, Deserialize};
+use crate::auxiliary::animations::ProjectileType;
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::character::player::Player;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::interactable::InteractableKind::*;
 use crate::crafting::items::Item;
 use crate::crafting::items::Item::Arrow;
-use crate::crafting::storable::Storable;
 use crate::map_generation::field::Field;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::SETTINGS;
@@ -67,6 +67,7 @@ impl Interactable {
                     }
                     // remove the arrow from the turret
                     self.unload_item(&targeting.ammo.into(), 1);
+                    field.animations_buffer.add_projectile_animation(ProjectileType::Arrow, self.get_position(), mob_pos);
                     player.add_message(&format!("Turret shot mob at ({}, {})", mob_pos.0, mob_pos.1));
                     return;
                 }

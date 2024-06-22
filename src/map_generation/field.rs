@@ -8,6 +8,7 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 use serde::{Serialize, Deserialize};
 use derivative::Derivative;
+use crate::auxiliary::animations::{AnimationsBuffer, TileAnimationType};
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -19,7 +20,7 @@ use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
 use crate::map_generation::mobs::a_star::AStar;
-use crate::map_generation::mobs::mob::{Mob, Position};
+use crate::map_generation::mobs::mob::{Mob};
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::mobs::spawning::create_mob;
 use crate::SETTINGS;
@@ -36,7 +37,7 @@ pub struct Field {
     #[serde(skip)]
     loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
     /// position of the center of the currently loaded chunks. (usually the player's chunk)
-    central_chunk: (i32, i32),
+    central_chunk: AbsoluteChunkPos,
     chunk_size: usize,
     /// how far from the player's chunk the chunks are loaded
     loading_distance: usize,
@@ -49,6 +50,8 @@ pub struct Field {
     a_star: AStar,
     /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
     stray_mobs: Vec<Mob>,
+    /// animations that have to be started as a result of events
+    pub animations_buffer: AnimationsBuffer,
     /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
     time: f32,
     accumulated_time: f32,
@@ -73,6 +76,7 @@ impl Field {
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
+        let animations_buffer = AnimationsBuffer::new();
 
         let a_star = AStar::new(SETTINGS.read().unwrap().pathing.a_star_radius);
 
@@ -90,6 +94,7 @@ impl Field {
             map_render_distance,
             a_star,
             stray_mobs,
+            animations_buffer,
             time,
             accumulated_time,
             rng
@@ -235,7 +240,7 @@ impl Field {
     /// * `center`: x and y of tile that is the epicenter
     /// * `radius`: radius in manhattan distance
     /// * `destruction_power`: mining power applied to remove blocks
-    pub fn explosion(&mut self, center: (i32, i32), radius: i32, destruction_power: i32, player: &mut Player) {
+    pub fn explosion(&mut self, center: AbsolutePos, radius: i32, destruction_power: i32, player: &mut Player) {
         let start_height = self.len_at(center);
         let damage = destruction_power * 10;
         for i in (center.0 - radius)..=(center.0 + radius) {
@@ -248,7 +253,12 @@ impl Field {
                         self.pop_at((i, j));
                     }
                 }
-                self.damage_mob((i, j), damage);
+                if self.get_interactable_kind_at((i, j)).is_some() {
+                    self.break_interactable_at((i, j));
+                }
+                if self.is_occupied((i, j)) {
+                    self.damage_mob((i, j), damage);
+                }
                 if player.x == i && player.y == j {
                     player.receive_damage(damage);
                 }
@@ -259,8 +269,8 @@ impl Field {
 
     /// Perform a full A* pathing from source to destination.
     pub fn full_pathing(&mut self,
-                        source: (i32, i32), destination: (i32, i32),
-                        player: (i32, i32), max_detour: Option<i32>) -> ((i32, i32), i32) {
+                        source: AbsolutePos, destination: AbsolutePos,
+                        player: AbsolutePos, max_detour: Option<i32>) -> (AbsolutePos, i32) {
         let detour =
             if max_detour.is_none() {
                 SETTINGS.read().unwrap().pathing.default_detour
@@ -365,20 +375,20 @@ impl Field {
     }
 
     /// Absolute index of the current central chunk
-    pub fn get_central_chunk(&self) -> (i32, i32) {
+    pub fn get_central_chunk(&self) -> AbsoluteChunkPos {
         self.central_chunk
     }
 }
 
 /// Rendering-related
 impl Field {
-    pub fn min_loaded_idx(&self) -> (i32, i32) {
+    pub fn min_loaded_idx(&self) -> AbsolutePos {
         let x = (self.central_chunk.0 - self.loading_distance as i32) * self.chunk_size as i32;
         let y = (self.central_chunk.1 - self.loading_distance as i32) * self.chunk_size as i32;
         (x, y)
     }
 
-    pub fn max_loaded_idx(&self) -> (i32, i32) {
+    pub fn max_loaded_idx(&self) -> AbsolutePos {
         let x = (self.central_chunk.0 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
         let y = (self.central_chunk.1 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
         (x, y)
@@ -416,16 +426,16 @@ impl Field {
     /// * `radius`: how far field from player is included
     ///
     /// returns: (2d Vector: the list of positions)
-    pub fn texture_indices(&self, player: &Player, material: Material, radius: i32) -> Vec<(i32, i32)> {
-        let cond = |i, j| { self.top_material_at((i, j)) == material };
+    pub fn texture_indices(&self, player: &Player, material: Material, radius: i32) -> Vec<RelativePos> {
+        let cond = |(i, j)| { self.top_material_at((i, j)) == material };
         self.indices_around_player(player, cond, radius)
     }
 
-    fn indices_around_player<F: Fn(i32, i32) -> bool>(&self, player: &Player, condition: F, radius: i32) -> Vec<(i32, i32)> {
-        let mut res: Vec<(i32, i32)> = Vec::new();
+    fn indices_around_player<F: Fn(AbsolutePos) -> bool>(&self, player: &Player, condition: F, radius: i32) -> Vec<RelativePos> {
+        let mut res = Vec::new();
         for i in (player.x - radius)..=(player.x + radius) {
             for j in (player.y - radius)..=(player.y + radius) {
-                if condition(i, j) {
+                if condition((i, j)) {
                     res.push((i as i32 - player.x, j as i32 - player.y));
                 }
             }
@@ -433,16 +443,16 @@ impl Field {
         res
     }
 
-    /// Makes a list of positions of blocks of given height around the player.
-    pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<(i32, i32)> {
-        let cond = |i, j| { self.len_at((i, j)) == height };
+    /// Makes a list of player-centered positions of blocks of given height around the player.
+    pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<RelativePos> {
+        let cond = |(i, j)| { self.len_at((i, j)) == height };
         self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
     /// Makes a list of positions of blocks that have loot on them.
     /// Does not count arrows as loot.
-    pub fn loot_indices(&self, player: &Player) -> Vec<(i32, i32)> {
-        let cond = |i, j| {
+    pub fn loot_indices(&self, player: &Player) -> Vec<RelativePos> {
+        let cond = |(i, j)| {
             let chunk = self.get_chunk_immut(i, j);
             let loot = chunk.get_loot_at(i, j);
             for l in loot {
@@ -456,16 +466,16 @@ impl Field {
     }
 
     /// Makes a list of positions of blocks that have loot on them
-    pub fn arrow_indices(&self, player: &Player) -> Vec<(i32, i32)> {
-        let cond = |i, j| {
+    pub fn arrow_indices(&self, player: &Player) -> Vec<RelativePos> {
+        let cond = |(i, j)| {
             self.get_chunk_immut(i, j).get_loot_at(i, j).contains(&Storable::I(Arrow))
         };
         self.indices_around_player(player, cond, self.render_distance as i32)
     }
 
-    pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<(i32, i32)> {
+    pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<RelativePos> {
         // todo: can rewrite like mob_indices for speed
-        let cond = |i, j| {
+        let cond = |(i, j)| {
             self.get_interactable_kind_at((i, j)) == Some(interactable)
         };
         self.indices_around_player(player, cond, self.render_distance as i32)
@@ -473,15 +483,15 @@ impl Field {
 
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
     /// Positions are centered on the player.
-    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(i32, i32, u32)> {
-        let mut res: Vec<(i32, i32, u32)> = Vec::new();
+    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(RelativePos, u32)> {
+        let mut res= Vec::new();
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
                 for m in self.loaded_chunks[i][j].borrow().get_mobs() {
                     if m.get_kind() == &kind {
-                        res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_rotation()));
+                        res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
                     }
                 }
             }
@@ -490,21 +500,22 @@ impl Field {
             if m.get_kind() == &kind &&
                 (m.pos.x - player.x).abs() <= self.render_distance as i32 &&
                 (m.pos.y - player.y).abs() <= self.render_distance as i32 {
-                res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_rotation()));
+                res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
             }
         }
         res
     }
     
-    pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(i32, i32, f32)> {
+    /// Player-relative positions of close mobs and their hp shares.
+    pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(RelativePos, f32)> {
         // doesnt account for stray mobs
-        let mut res: Vec<(i32, i32, f32)> = Vec::new();
+        let mut res: Vec<(RelativePos, f32)> = Vec::new();
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
                 for m in self.loaded_chunks[i][j].borrow().get_mobs() {
-                    res.push((m.pos.x - player.x, m.pos.y - player.y, m.get_hp_share()));
+                    res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_hp_share()));
                 }
             }
         }
@@ -536,6 +547,7 @@ impl Field {
         self.get_chunk_immut(xy.0, xy.1).non_texture_material_at(xy.0, xy.1)
     }
     pub fn pop_at(&mut self, xy: (i32, i32)) -> Option<Block> {
+        self.animations_buffer.add_tile_animation(TileAnimationType::mining(), xy);
         self.get_chunk(xy.0, xy.1).pop_at(xy.0, xy.1)
     }
     pub fn full_at(&self, xy: (i32, i32)) -> bool {
@@ -574,7 +586,7 @@ impl Field {
     }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,
-    /// when (some) of the mobs are extracted from chunks
+    /// when (some of) the mobs are extracted from chunks
     pub fn is_occupied(&self, xy: (i32, i32)) -> bool {
         self.get_chunk_immut(xy.0, xy.1).is_occupied(xy.0, xy.1) || {
             for m in &self.stray_mobs {
@@ -585,7 +597,11 @@ impl Field {
             false
         }
     }
-    pub fn damage_mob(&mut self, xy: (i32, i32), damage: i32) -> bool {
+    /// Deals damage to the mob at the given position and removes them if they die.
+    /// The mob must exist at the given position.
+    /// Returns true if the mob was removed.
+    pub fn damage_mob(&mut self, xy: AbsolutePos, damage: i32) -> bool {
+        self.animations_buffer.add_tile_animation(TileAnimationType::receive_damage(), xy);
         if self.stray_mobs.len() > 0 {
             for i in 0..self.stray_mobs.len() {
                 // found the mob in strays
@@ -614,3 +630,14 @@ impl Field {
 }
 
 pub const DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+pub type AbsolutePos = (i32, i32);
+pub type RelativePos = (i32, i32);  // relative to the player
+pub type AbsoluteChunkPos = (i32, i32);
+
+pub fn absolute_to_relative((x, y): AbsolutePos, player: &Player) -> RelativePos {
+    (x - player.x, y - player.y)
+}
+
+pub fn relative_to_absolute((x, y): RelativePos, player: &Player) -> AbsolutePos {
+    (x + player.x, y + player.y)
+}

@@ -5,9 +5,7 @@ use Storable::*;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
-use crate::crafting::material;
 use crate::crafting::ranged_weapon::RangedWeapon;
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use crate::crafting::interactable::InteractableKind;
 

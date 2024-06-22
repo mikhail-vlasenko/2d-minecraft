@@ -1,10 +1,9 @@
 use egui_winit::winit::{
     event::*,
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{EventLoop},
     window::{WindowBuilder},
 };
 use egui_winit::winit::dpi::PhysicalSize;
-use egui_winit::winit::keyboard::{KeyCode, PhysicalKey};
 use crate::graphics::state::State;
 use crate::SETTINGS;
 

@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::ops::Not;
 use winit::keyboard::KeyCode;
 use crate::character::player::Player;
 use crate::map_generation::field::Field;
@@ -21,7 +20,15 @@ pub fn act(key: &KeyCode, player: &mut Player, field: &mut Field, craft_menu_ope
         KeyCode::KeyX => player.shoot_current(field),
         KeyCode::KeyM => { player.toggle_map(); 0. },
         KeyCode::Space => { craft_menu_open.replace(!craft_menu_open.take()); 0. },
-        KeyCode::Escape => { main_menu_open.replace(!main_menu_open.take()); 0. },
+        KeyCode::Escape => {
+            // if player is interacting, close the interaction
+            if player.interacting_with.is_some() {
+                player.interacting_with = None;
+                return 0.;
+            }
+            main_menu_open.replace(!main_menu_open.take()); 
+            0. 
+        },
         _ => { println!("Unknown action for key code {:?}", key); 0. }
     }
 }

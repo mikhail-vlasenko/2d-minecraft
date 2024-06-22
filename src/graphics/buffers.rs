@@ -1,25 +1,26 @@
 use cgmath::Rotation3;
-use wgpu::Device;
+use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
-use crate::graphics::instance::Instance;
+use crate::graphics::instance::{Instance, InstanceRaw};
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
-use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_hp_vertices, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
-use crate::SETTINGS;
+use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, PROJECTILE_VERTICES, VERTICES};
 
 
 /// Creates and stores wgpu buffers
 pub struct Buffers {
-    pub vertex_buffer: wgpu::Buffer,
-    pub player_vertex_buffer: wgpu::Buffer,
-    pub index_buffer: wgpu::Buffer,
-    pub instance_buffer: wgpu::Buffer,
-    pub player_instance_buffer: wgpu::Buffer,
-    pub night_vertex_buffer: wgpu::Buffer,
-    pub night_instance_buffer: wgpu::Buffer,
-    pub map_instance_buffer: wgpu::Buffer,
-    pub hp_bar_vertex_buffer: Vec<wgpu::Buffer>,
-    pub hp_bar_instances: Vec<Instance>,
-    pub hp_bar_instance_buffer: wgpu::Buffer,
+    pub vertex_buffer: Buffer,
+    pub player_vertex_buffer: Buffer,
+    pub index_buffer: Buffer,
+    pub instance_buffer: Buffer,
+    pub player_instance_buffer: Buffer,
+    pub night_vertex_buffer: Buffer,
+    pub night_instance_buffer: Buffer,
+    pub map_instance_buffer: Buffer,
+    pub hp_bar_vertex_buffer: Vec<Buffer>,
+    pub hp_bar_instance_buffer: Buffer,
+    pub animation_vertex_buffer: Vec<Buffer>,
+    pub projectile_vertex_buffer: Buffer,
+    pub projectile_instance_buffer: Buffer,
 }
 
 impl Buffers {
@@ -67,12 +68,10 @@ impl Buffers {
         );
 
         let player_instances = (0..4).map(move |angle| {
-            let x_rot_compensation = if angle == 1 || angle == 2 { 1 } else { 0 };
-            let y_rot_compensation = if angle > 1 { 1 } else { 0 };
             let position =
                 cgmath::Vector3 {
-                    x: (((TILES_PER_ROW - 1) / 2) + x_rot_compensation) as f32 * DISP_COEF,
-                    y: (((TILES_PER_ROW - 1) / 2) + y_rot_compensation) as f32 * DISP_COEF,
+                    x: (((TILES_PER_ROW - 1) / 2) as f32 + 0.5) * DISP_COEF,
+                    y: (((TILES_PER_ROW - 1) / 2) as f32 + 0.5) * DISP_COEF,
                     z: 0.0,
                 }
                     + INITIAL_POS;
@@ -163,23 +162,30 @@ impl Buffers {
             }
         );
 
-        let hp_bar_vertex_buffer = vec![device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(&make_hp_vertices(1.)),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }
-        )];
-        let hp_bar_instances = vec![Instance {
-            position: cgmath::Vector3 { x: 0.0, y: 0.0, z: 0.0 },
-            rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
-            scaling: HP_BAR_SCALING_COEF,
-        }];
-        let hp_bar_instance_data = hp_bar_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let hp_bar_vertex_buffer = vec![];
+        let hp_bar_instance_data: Vec<InstanceRaw> = vec![];
         let hp_bar_instance_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
                 contents: bytemuck::cast_slice(&hp_bar_instance_data),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+        
+        let animation_vertex_buffer: Vec<Buffer> = vec![];
+        
+        let projectile_vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Projectile Buffer"),
+                contents: bytemuck::cast_slice(PROJECTILE_VERTICES),
+                usage: wgpu::BufferUsages::VERTEX,
+            }
+        );
+        let projectile_instance_data: Vec<InstanceRaw> = vec![];
+        let projectile_instance_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&projectile_instance_data),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
@@ -194,8 +200,10 @@ impl Buffers {
             night_instance_buffer,
             map_instance_buffer,
             hp_bar_vertex_buffer,
-            hp_bar_instances,
             hp_bar_instance_buffer,
+            animation_vertex_buffer,
+            projectile_vertex_buffer,
+            projectile_instance_buffer,
         }
     }
 }

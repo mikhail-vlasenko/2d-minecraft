@@ -1,6 +1,5 @@
 use std::fmt;
 use std::fmt::Display;
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use serde::{Serialize, Deserialize};
 use Storable::*;

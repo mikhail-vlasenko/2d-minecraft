@@ -1,12 +1,12 @@
-use std::cell::{Ref, RefMut};
 use std::cmp::min;
 use std::f32::consts::PI;
 use serde::{Serialize, Deserialize};
+use crate::auxiliary::animations::{AnimationsBuffer, ProjectileType};
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
-use crate::map_generation::field::Field;
+use crate::map_generation::field::{AbsoluteChunkPos, AbsolutePos, Field};
 use crate::crafting::inventory::Inventory;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -40,6 +40,7 @@ pub struct Player {
     pub viewing_map: bool,
 
     pub message: String,
+    pub animations_buffer: AnimationsBuffer,
 }
 
 impl Player {
@@ -59,13 +60,14 @@ impl Player {
             interacting_with: None,
             viewing_map: false,
             message: String::new(),
+            animations_buffer: AnimationsBuffer::new(),
         };
         player.land(field);
         player
     }
     /// Breaks the top block or picks up the interactable at the given position.
     /// Returns how much action was spent.
-    pub fn mine(&mut self, field: &mut Field, pos: (i32, i32)) -> f32 {
+    pub fn mine(&mut self, field: &mut Field, pos: AbsolutePos) -> f32 {
         if self.interacting_with.is_some() {
             self.interacting_with = None;
         }
@@ -143,7 +145,6 @@ impl Player {
             self.interacting_with = None;
             return;
         }
-        println!("Interacting with {:?}", pos);
         self.interacting_with = Some(pos);
     }
 
@@ -215,7 +216,7 @@ impl Player {
             }
 
             // chunk loading
-            let curr_chunk = (field.chunk_pos(self.x), field.chunk_pos(self.y));
+            let curr_chunk: AbsoluteChunkPos = (field.chunk_pos(self.x), field.chunk_pos(self.y));
             if curr_chunk != field.get_central_chunk() {
                 field.load(curr_chunk.0, curr_chunk.1);
             }
@@ -346,6 +347,7 @@ impl Player {
             } else {
                 self.add_message(&"Arrow broke");
             }
+            self.animations_buffer.add_projectile_animation(ProjectileType::Arrow, (self.x, self.y), curr_tile);
         }
         self.get_speed_multiplier()
     }
@@ -427,7 +429,6 @@ impl Player {
                     multiplier = 0.5;
                     break
                 }
-                _ => {}
             }
         }
         multiplier

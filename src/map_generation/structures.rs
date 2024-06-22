@@ -1,8 +1,6 @@
 use rand::{random, Rng};
-use crate::crafting::interactable::{Interactable, InteractableKind};
-use crate::map_generation::tile::{randomly_augment, Tile};
+use crate::map_generation::tile::{Tile};
 use crate::crafting::material::Material;
-use crate::crafting::storable::Storable;
 use crate::crafting::texture_material::TextureMaterial;
 use crate::SETTINGS;
 use crate::map_generation::chunk::Chunk;

@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
 use std::rc::Rc;
-use std::time::Instant;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use crate::SETTINGS;
 
@@ -11,7 +10,9 @@ use crate::SETTINGS;
 pub struct ChunkLoader {
     #[serde(with = "hash_map_serde")]
     chunks: HashMap<i64, Rc<RefCell<Chunk>>>,
+    /// in chunks, not tiles
     loading_distance: usize,
+    /// in tiles
     chunk_size: usize,
 }
 
@@ -35,6 +36,7 @@ impl ChunkLoader {
         loader
     }
 
+    /// chunk_x and chunk_y are in chunk coordinates, not tiles
     pub fn generate_close_chunks(&mut self, chunk_x: i32, chunk_y: i32) {
         for x in (chunk_x - self.loading_distance as i32)..=(chunk_x + self.loading_distance as i32) {
             for y in (chunk_y - self.loading_distance as i32)..=(chunk_y + self.loading_distance as i32) {
