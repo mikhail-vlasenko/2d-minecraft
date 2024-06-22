@@ -29,10 +29,11 @@ use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, PLAYER_VERTICES, Vertex, VERTICES};
 use crate::input_decoding::act;
 use crate::map_generation::mobs::mob_kind::MobKind;
-use crate::map_generation::field::{AbsolutePos, Field, RelativePos};
+use crate::map_generation::field::{absolute_to_relative, AbsolutePos, Field, RelativePos};
 use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
+use crate::auxiliary::animations::AnimationManager;
 use crate::graphics::ui::egui_renderer::EguiRenderer;
 use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use crate::map_generation::chunk::Chunk;
@@ -71,6 +72,7 @@ pub struct State<'a> {
     bind_groups: TextureBindGroups,
     pub egui_renderer: EguiRenderer,
     egui_manager: EguiManager,
+    animation_manager: AnimationManager,
     field: Field,
     player: Player,
 }
@@ -182,6 +184,7 @@ impl<'a> State<'a> {
 
         let egui_manager = EguiManager::new();
 
+        let animation_manager = AnimationManager::new();
 
         let (field, player) = Self::init_field_player();
 
@@ -200,6 +203,7 @@ impl<'a> State<'a> {
             bind_groups,
             egui_renderer,
             egui_manager,
+            animation_manager,
             field,
             player,
         }
@@ -261,6 +265,9 @@ impl<'a> State<'a> {
                                   &self.egui_manager.main_menu_open
             );
             self.field.step_time(passed_time, &mut self.player);
+            for animation in self.field.get_new_tile_animations() {
+                self.animation_manager.add_tile_animation(animation.0, animation.1);
+            }
         }
     }
 
@@ -355,14 +362,20 @@ impl<'a> State<'a> {
             }
         );
 
+        // update before writing vertices. new animations will not change
+        self.animation_manager.update();
         self.buffers.animation_vertex_buffer = vec![];
-        self.buffers.animation_vertex_buffer.push(self.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Animation Vertex Buffer"),
-                contents: bytemuck::cast_slice(&make_animation_vertices(rand::thread_rng().gen_range(0..14), 14)),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }
-        ));
+        for tile_animation in self.animation_manager.get_tile_animations() {
+            self.buffers.animation_vertex_buffer.push(self.device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: Some("Animation Vertex Buffer"),
+                    contents: bytemuck::cast_slice(
+                        &make_animation_vertices(tile_animation.get_frame(), 
+                                                 tile_animation.get_num_frames())),
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                }
+            ));
+        }
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -581,8 +594,10 @@ impl<'a> State<'a> {
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
         for i in 0..self.buffers.animation_vertex_buffer.len() {
             render_pass.set_vertex_buffer(0, self.buffers.animation_vertex_buffer[i].slice(..));
-            render_pass.set_bind_group(0, &self.bind_groups.animation, &[]);
-            self.draw_at_indices(&vec![(1, 1)], render_pass, None);
+            let animation_type = self.animation_manager.get_tile_animations()[i].get_animation_type();
+            let animation_pos = self.animation_manager.get_tile_animations()[i].get_pos();
+            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_animation(*animation_type), &[]);
+            self.draw_at_indices(&vec![absolute_to_relative(*animation_pos, &self.player)], render_pass, None);
         }
     }
 

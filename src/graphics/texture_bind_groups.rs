@@ -1,4 +1,5 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
+use crate::auxiliary::animations::TileAnimationType;
 use crate::crafting::interactable::InteractableKind;
 use crate::crafting::material::Material;
 use crate::crafting::texture_material::TextureMaterial;
@@ -29,7 +30,8 @@ pub struct TextureBindGroups {
     crossbow_turret: BindGroup,
     red_hp_bar: BindGroup,
     green_hp_bar: BindGroup,
-    pub animation: BindGroup,
+    yellow_hit: BindGroup,
+    red_hit: BindGroup,
     texture_materials: TextureMaterials,
     pub bind_group_layout: BindGroupLayout,
 }
@@ -112,7 +114,8 @@ impl TextureBindGroups {
         let green_hp_bar = make_bind_group_from_texture!("../../res/green_hp_bar.png");
         let player = make_bind_group_from_texture!("../../res/tiles/player_top_view.png");
         
-        let animation = make_bind_group_from_texture!("../../res/animations/unrolled_yellow_hit.png");
+        let yellow_hit = make_bind_group_from_texture!("../../res/animations/unrolled_yellow_hit.png");
+        let red_hit = make_bind_group_from_texture!("../../res/animations/unrolled_red_hit_center_crop.png");
 
         let depth_indicators = Self::init_depth_groups(device, queue, &bind_group_layout);
 
@@ -140,7 +143,8 @@ impl TextureBindGroups {
             crossbow_turret,
             red_hp_bar,
             green_hp_bar,
-            animation,
+            yellow_hit,
+            red_hit,
             texture_materials,
             bind_group_layout,
         }
@@ -231,6 +235,14 @@ impl TextureBindGroups {
             &self.red_hp_bar
         } else {
             &self.green_hp_bar
+        }
+    }
+    
+    pub fn get_bind_group_animation(&self, tile_animation_type: TileAnimationType) -> &BindGroup {
+        use TileAnimationType::*;
+        match tile_animation_type {
+            YellowHit => &self.yellow_hit,
+            RedHit => &self.red_hit,
         }
     }
 }

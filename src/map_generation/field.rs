@@ -8,6 +8,7 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 use serde::{Serialize, Deserialize};
 use derivative::Derivative;
+use crate::auxiliary::animations::TileAnimationType;
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -49,6 +50,8 @@ pub struct Field {
     a_star: AStar,
     /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
     stray_mobs: Vec<Mob>,
+    /// tile animations that have to be started as a result of events
+    new_tile_animations: Vec<(TileAnimationType, AbsolutePos)>,
     /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
     time: f32,
     accumulated_time: f32,
@@ -73,6 +76,7 @@ impl Field {
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
+        let new_tile_animations = Vec::new();
 
         let a_star = AStar::new(SETTINGS.read().unwrap().pathing.a_star_radius);
 
@@ -90,6 +94,7 @@ impl Field {
             map_render_distance,
             a_star,
             stray_mobs,
+            new_tile_animations,
             time,
             accumulated_time,
             rng
@@ -304,6 +309,13 @@ impl Field {
 
     pub fn get_map_render_distance(&self) -> usize {
         self.map_render_distance
+    }
+    
+    /// Returns the list and clears it.
+    pub fn get_new_tile_animations(&mut self) -> Vec<(TileAnimationType, AbsolutePos)> {
+        let mut res = Vec::new();
+        swap(&mut res, &mut self.new_tile_animations);
+        res
     }
 }
 
@@ -537,6 +549,7 @@ impl Field {
         self.get_chunk_immut(xy.0, xy.1).non_texture_material_at(xy.0, xy.1)
     }
     pub fn pop_at(&mut self, xy: (i32, i32)) -> Option<Block> {
+        self.new_tile_animations.push((TileAnimationType::mining(), xy));
         self.get_chunk(xy.0, xy.1).pop_at(xy.0, xy.1)
     }
     pub fn full_at(&self, xy: (i32, i32)) -> bool {
@@ -575,7 +588,7 @@ impl Field {
     }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,
-    /// when (some) of the mobs are extracted from chunks
+    /// when (some of) the mobs are extracted from chunks
     pub fn is_occupied(&self, xy: (i32, i32)) -> bool {
         self.get_chunk_immut(xy.0, xy.1).is_occupied(xy.0, xy.1) || {
             for m in &self.stray_mobs {
@@ -586,7 +599,11 @@ impl Field {
             false
         }
     }
-    pub fn damage_mob(&mut self, xy: (i32, i32), damage: i32) -> bool {
+    /// Deals damage to the mob at the given position and removes them if they die.
+    /// The mob must exist at the given position.
+    /// Returns true if the mob was removed.
+    pub fn damage_mob(&mut self, xy: AbsolutePos, damage: i32) -> bool {
+        self.new_tile_animations.push((TileAnimationType::receive_damage(), xy));
         if self.stray_mobs.len() > 0 {
             for i in 0..self.stray_mobs.len() {
                 // found the mob in strays
@@ -618,3 +635,11 @@ pub const DIRECTIONS: [(i32, i32); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
 pub type AbsolutePos = (i32, i32);
 pub type RelativePos = (i32, i32);  // relative to the player
 pub type AbsoluteChunkPos = (i32, i32);
+
+pub fn absolute_to_relative((x, y): AbsolutePos, player: &Player) -> RelativePos {
+    (x - player.x, y - player.y)
+}
+
+pub fn relative_to_absolute((x, y): RelativePos, player: &Player) -> AbsolutePos {
+    (x + player.x, y + player.y)
+}

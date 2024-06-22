@@ -12,6 +12,7 @@ pub mod crafting;
 mod graphics;
 pub mod input_decoding;
 pub mod character;
+pub mod auxiliary;
 mod settings;
 
 lazy_static! {

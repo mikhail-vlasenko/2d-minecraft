@@ -3,7 +3,7 @@ use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
 use crate::graphics::instance::Instance;
 use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
-use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_hp_vertices, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
+use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
 use crate::SETTINGS;
 
 

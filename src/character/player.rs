@@ -6,7 +6,7 @@ use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
-use crate::map_generation::field::{AbsoluteChunkPos, Field};
+use crate::map_generation::field::{AbsoluteChunkPos, AbsolutePos, Field};
 use crate::crafting::inventory::Inventory;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -65,7 +65,7 @@ impl Player {
     }
     /// Breaks the top block or picks up the interactable at the given position.
     /// Returns how much action was spent.
-    pub fn mine(&mut self, field: &mut Field, pos: (i32, i32)) -> f32 {
+    pub fn mine(&mut self, field: &mut Field, pos: AbsolutePos) -> f32 {
         if self.interacting_with.is_some() {
             self.interacting_with = None;
         }
