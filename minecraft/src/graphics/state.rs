@@ -33,16 +33,8 @@ use game_logic::map_generation::chunk::Chunk;
 use game_logic::map_generation::read_chunk::read_file;
 use game_logic::map_generation::save_load::{load_game, save_game};
 use game_logic::SETTINGS;
-use game_logic::settings::{DEFAULT_SETTINGS};
+use crate::graphical_config::CONFIG;
 
-pub const TILES_PER_ROW: u32 = DEFAULT_SETTINGS.window.tiles_per_row as u32;
-pub const DISP_COEF: f32 = 2.0 / TILES_PER_ROW as f32;
-pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
-    -1.0,
-    -1.0,
-    0.0,
-);
-pub const RENDER_DISTANCE: usize = ((TILES_PER_ROW - 1) / 2) as usize;
 
 /// The main class of the application.
 /// Initializes graphics.
@@ -73,7 +65,6 @@ pub struct State<'a> {
 impl<'a> State<'a> {
     // Creating some of the wgpu types requires async code
     pub async fn new(window: &'a Window) -> State<'a> {
-        // SETTINGS.borrow_mut();
         let size = window.inner_size();
 
         // The instance is a handle to our GPU
@@ -205,9 +196,9 @@ impl<'a> State<'a> {
     pub fn init_field_player() -> (Field, Player) {
         let mut field = if SETTINGS.read().unwrap().field.from_test_chunk {
             let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
-            Field::new(RENDER_DISTANCE, Some(test_chunk))
+            Field::new(CONFIG.render_distance, Some(test_chunk))
         } else {
-            Field::new(RENDER_DISTANCE, None)
+            Field::new(CONFIG.render_distance, None)
         };
         let mut player = Player::new(&field);
         player.pickup(Storable::C(Consumable::Apple), 2);
@@ -463,16 +454,16 @@ impl<'a> State<'a> {
     fn convert_index(pos: RelativePos, rotation: u32) -> u32 {
         // Here we want x to be horizontal, like mathematical coords
         // Also, second component should be greater when higher (so negate it)
-        (-pos.0 + RENDER_DISTANCE as i32) as u32 * TILES_PER_ROW
-            + (pos.1 + RENDER_DISTANCE as i32) as u32
-            + rotation * TILES_PER_ROW.pow(2)
+        (-pos.0 + CONFIG.render_distance as i32) as u32 * CONFIG.tiles_per_row
+            + (pos.1 + CONFIG.render_distance as i32) as u32
+            + rotation * CONFIG.tiles_per_row.pow(2)
     }
 
     fn hp_bar_position_instance(&self, mob_pos: RelativePos) -> Instance {
         Instance {
             position: cgmath::Vector3 {
-                x: (mob_pos.1 as f32 - 0.5) * DISP_COEF,
-                y: (-mob_pos.0 as f32 + 0.3) * DISP_COEF,
+                x: (mob_pos.1 as f32 - 0.5) * CONFIG.disp_coef,
+                y: (-mob_pos.0 as f32 + 0.3) * CONFIG.disp_coef,
                 z: 0.0
             },
             rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(0.0)),
@@ -494,12 +485,12 @@ impl<'a> State<'a> {
     fn projectile_instance(&self, position: (f32, f32), rotation: f32) -> Instance {
         Instance {
             position: cgmath::Vector3 {
-                x: (position.1 - 0.5) * DISP_COEF,
-                y: (-position.0 + 0.5) * DISP_COEF,
+                x: (position.1 - 0.5) * CONFIG.disp_coef,
+                y: (-position.0 + 0.5) * CONFIG.disp_coef,
                 z: 0.0
             },
             rotation: cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Rad(rotation)),
-            scaling: DISP_COEF,
+            scaling: CONFIG.disp_coef,
         }
     }
 
@@ -545,8 +536,8 @@ impl<'a> State<'a> {
     fn render_field(&'a self, render_pass: &mut RenderPass<'a>) {
         // let now = Instant::now();
         // draw materials of top block in tiles
-        for i in (self.player.x - RENDER_DISTANCE as i32)..=(self.player.x + RENDER_DISTANCE as i32) {
-            for j in (self.player.y - RENDER_DISTANCE as i32)..=(self.player.y + RENDER_DISTANCE as i32) {
+        for i in (self.player.x - CONFIG.render_distance as i32)..=(self.player.x + CONFIG.render_distance as i32) {
+            for j in (self.player.y - CONFIG.render_distance as i32)..=(self.player.y + CONFIG.render_distance as i32) {
                 self.draw_material((i, j), render_pass, false);
             }
         }
@@ -581,7 +572,7 @@ impl<'a> State<'a> {
     }
 
     fn render_mobs(&'a self, render_pass: &mut RenderPass<'a>) {
-        let max_drawable_index = ((TILES_PER_ROW - 1) / 2) as i32;
+        let max_drawable_index = ((CONFIG.tiles_per_row - 1) / 2) as i32;
         for mob_kind in MobKind::iter() {
             render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
@@ -646,7 +637,7 @@ impl<'a> State<'a> {
     }
     
     fn filter_out_of_view_tiles(&self, positions: Vec<RelativePos>) -> Vec<RelativePos> {
-        let max_drawable_index = ((TILES_PER_ROW - 1) / 2) as i32;
+        let max_drawable_index = ((CONFIG.tiles_per_row - 1) / 2) as i32;
         positions.into_iter().filter(
             |pos| pos.0.abs() <= max_drawable_index && pos.1.abs() <= max_drawable_index
         ).collect()

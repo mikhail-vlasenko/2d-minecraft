@@ -1,8 +1,8 @@
 use cgmath::Rotation3;
 use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
+use crate::graphical_config::CONFIG;
 use crate::graphics::instance::{Instance, InstanceRaw};
-use crate::graphics::state::{DISP_COEF, INITIAL_POS, TILES_PER_ROW};
 use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, PROJECTILE_VERTICES, VERTICES};
 
 
@@ -28,12 +28,12 @@ impl Buffers {
         let instances = (0..4).flat_map(|angle| {
             let x_rot_compensation = if angle == 1 || angle == 2 { 1 } else { 0 };
             let y_rot_compensation = if angle > 1 { 1 } else { 0 };
-            (0..TILES_PER_ROW).flat_map(move |y| {
-                (0..TILES_PER_ROW).map(move |x| {
+            (0..CONFIG.tiles_per_row).flat_map(move |y| {
+                (0..CONFIG.tiles_per_row).map(move |x| {
                     let position =
                         cgmath::Vector3 {
-                            x: (x + x_rot_compensation) as f32 * DISP_COEF,
-                            y: (y + y_rot_compensation) as f32 * DISP_COEF,
+                            x: (x + x_rot_compensation) as f32 * CONFIG.disp_coef,
+                            y: (y + y_rot_compensation) as f32 * CONFIG.disp_coef,
                             z: 0.0
                         }
                             + INITIAL_POS;
@@ -44,7 +44,7 @@ impl Buffers {
                     Instance {
                         position,
                         rotation,
-                        scaling: DISP_COEF,
+                        scaling: CONFIG.disp_coef,
                     }
                 })
             })
@@ -70,8 +70,8 @@ impl Buffers {
         let player_instances = (0..4).map(move |angle| {
             let position =
                 cgmath::Vector3 {
-                    x: (((TILES_PER_ROW - 1) / 2) as f32 + 0.5) * DISP_COEF,
-                    y: (((TILES_PER_ROW - 1) / 2) as f32 + 0.5) * DISP_COEF,
+                    x: (CONFIG.render_distance as f32 + 0.5) * CONFIG.disp_coef,
+                    y: (CONFIG.render_distance as f32 + 0.5) * CONFIG.disp_coef,
                     z: 0.0,
                 }
                     + INITIAL_POS;
@@ -82,7 +82,7 @@ impl Buffers {
             Instance {
                 position,
                 rotation,
-                scaling: DISP_COEF,
+                scaling: CONFIG.disp_coef,
             }
         }).collect::<Vec<_>>();
 
@@ -207,3 +207,9 @@ impl Buffers {
         }
     }
 }
+
+pub const INITIAL_POS: cgmath::Vector3<f32> = cgmath::Vector3::new(
+    -1.0,
+    -1.0,
+    0.0,
+);

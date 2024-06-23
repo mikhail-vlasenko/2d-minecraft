@@ -93,7 +93,6 @@ pub struct _Config__player {
 pub struct _Config__window {
     pub height: i32,
     pub render_distance: i32,
-    pub tiles_per_row: i32,
     pub width: i32,
 }
 
@@ -144,7 +143,6 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     window: _Config__window {
         height: 1600,
         render_distance: 8,
-        tiles_per_row: 17,
         width: 1600,
     },
 };
