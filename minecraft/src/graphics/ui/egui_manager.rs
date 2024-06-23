@@ -3,19 +3,19 @@ use egui::{Align2, Color32, FontId, Label, RichText, Context};
 use egui_wgpu::ScreenDescriptor;
 use egui_wgpu::wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
 use egui_winit::winit::window::Window;
-use crate::character::player::Player;
+use game_logic::character::player::Player;
 use strum::IntoEnumIterator;
-use crate::crafting::consumable::Consumable;
-use crate::crafting::interactable::{InteractableKind};
-use crate::crafting::items::Item;
-use crate::crafting::material::Material;
-use crate::crafting::ranged_weapon::RangedWeapon;
-use crate::crafting::storable::{CraftMenuSection};
-use crate::crafting::storable::Craftable;
+use game_logic::crafting::consumable::Consumable;
+use game_logic::crafting::interactable::{InteractableKind};
+use game_logic::crafting::items::Item;
+use game_logic::crafting::material::Material;
+use game_logic::crafting::ranged_weapon::RangedWeapon;
+use game_logic::crafting::storable::{CraftMenuSection};
+use game_logic::crafting::storable::Craftable;
 use crate::graphics::ui::egui_renderer::EguiRenderer;
 use crate::graphics::ui::interactables_menu::InteractablesMenu;
 use crate::graphics::ui::main_menu::MainMenu;
-use crate::map_generation::field::Field;
+use game_logic::map_generation::field::Field;
 
 
 /// Renders UI

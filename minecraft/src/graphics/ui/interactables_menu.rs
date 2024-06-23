@@ -1,9 +1,9 @@
 use egui::{Align, Slider};
 use egui::{Align2, Context};
-use crate::character::player::Player;
+use game_logic::character::player::Player;
 use strum::IntoEnumIterator;
-use crate::map_generation::field::Field;
-use crate::map_generation::mobs::mob_kind::MobKind;
+use game_logic::map_generation::field::Field;
+use game_logic::map_generation::mobs::mob_kind::MobKind;
 
 
 pub struct InteractablesMenu {

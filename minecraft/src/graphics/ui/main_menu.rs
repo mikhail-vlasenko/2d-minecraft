@@ -2,10 +2,10 @@ use std::path::Path;
 use std::process::exit;
 use egui::{Slider};
 use egui::{Align2, Color32, FontId, RichText, Context};
-use crate::character::player::Player;
-use crate::map_generation::save_load::get_directories;
-use crate::SETTINGS;
-use crate::settings::Settings;
+use game_logic::character::player::Player;
+use game_logic::map_generation::save_load::get_directories;
+use game_logic::SETTINGS;
+use game_logic::settings::Settings;
 
 pub struct MainMenu {
     /// Used to communicate with the main game loop.

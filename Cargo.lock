@@ -891,6 +891,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "game_logic"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "cgmath",
+ "config",
+ "config_struct",
+ "derivative",
+ "egui",
+ "egui-wgpu",
+ "egui-winit",
+ "enum-display",
+ "env_logger",
+ "image",
+ "lazy_static",
+ "log",
+ "pollster",
+ "postcard",
+ "rand",
+ "serde",
+ "serde_yaml 0.9.17",
+ "strum",
+ "strum_macros",
+ "text_io",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1390,6 +1420,7 @@ dependencies = [
  "egui-winit",
  "enum-display",
  "env_logger",
+ "game_logic",
  "image",
  "lazy_static",
  "log",

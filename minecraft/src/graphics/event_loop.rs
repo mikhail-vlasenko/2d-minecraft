@@ -4,8 +4,8 @@ use egui_winit::winit::{
     window::{WindowBuilder},
 };
 use egui_winit::winit::dpi::PhysicalSize;
+use game_logic::SETTINGS;
 use crate::graphics::state::State;
-use crate::SETTINGS;
 
 
 pub async fn run() {

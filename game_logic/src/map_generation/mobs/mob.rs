@@ -1,13 +1,14 @@
 use std::cmp::{max};
 use serde::{Serialize, Deserialize};
 use crate::character::acting_with_speed::ActingWithSpeed;
-use crate::graphics::state::RENDER_DISTANCE;
 use crate::map_generation::mobs::a_star::{can_step};
 use crate::character::player::Player;
 use crate::map_generation::field::{Field, RelativePos};
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind, MobState, ZERGLING_ATTACK_RANGE};
 use crate::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
+use crate::SETTINGS;
+use crate::settings::DEFAULT_SETTINGS;
 
 
 #[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
@@ -118,7 +119,7 @@ impl Mob {
 
         let next_to_player = self.pos.x + directions.0 == player.x && self.pos.y + directions.1 == player.y;
         let visible = (max((player.x - self.pos.x).abs(),
-                           (player.y - self.pos.y).abs()) as usize) <= RENDER_DISTANCE;
+                           (player.y - self.pos.y).abs()) as usize) <= DEFAULT_SETTINGS.window.render_distance as usize;
 
         if (vertical_cant_go && horizontal_cant_go  || next_to_player) && visible {
             let (a_star_directions, len) = field.full_pathing(

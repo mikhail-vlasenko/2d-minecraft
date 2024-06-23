@@ -19,7 +19,7 @@ fn main() -> Result<(), Error> {
         max_array_size: 0,
     };
     config_struct::create_struct(
-        "settings.yaml",
+        "../settings.yaml",
         "src/settings.rs",
         &options)
 }

@@ -1,10 +1,10 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
-use crate::auxiliary::animations::TileAnimationType;
-use crate::crafting::interactable::InteractableKind;
-use crate::crafting::material::Material;
-use crate::crafting::texture_material::TextureMaterial;
+use game_logic::auxiliary::animations::TileAnimationType;
+use game_logic::crafting::interactable::InteractableKind;
+use game_logic::crafting::material::Material;
+use game_logic::crafting::texture_material::TextureMaterial;
+use game_logic::map_generation::mobs::mob_kind::MobKind;
 use crate::graphics::texture::Texture;
-use crate::map_generation::mobs::mob_kind::MobKind;
 
 
 /// Creates and stores wgpu texture bind groups.
