@@ -146,3 +146,9 @@ impl Into<Storable> for InteractableKind {
         IN(self)
     }
 }
+
+impl Default for InteractableKind {
+    fn default() -> Self {
+        CrossbowTurret
+    }
+}

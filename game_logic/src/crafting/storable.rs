@@ -119,3 +119,12 @@ pub trait Craftable: Display + Into<Storable> + Copy {
         }
     }
 }
+
+impl Default for Storable {
+    fn default() -> Self {
+        M(Material::Dirt)
+    }
+}
+
+// todo: vector of all storables
+// todo: vector of all craftables

@@ -1,32 +1,12 @@
+use strum::IntoEnumIterator;
 use crate::auxiliary::actions::Action;
+use crate::crafting::consumable::Consumable;
+use crate::crafting::interactable::InteractableKind;
 use crate::crafting::material::Material;
 use crate::crafting::texture_material::TextureMaterial;
 
 
 /// These conversions are used primarily for the FFI.
-
-impl Into<i32> for Action {
-    fn into(self) -> i32 {
-        use crate::auxiliary::actions::Action::*;
-        match self {
-            WalkNorth => 0,
-            WalkWest => 1,
-            WalkSouth => 2,
-            WalkEast => 3,
-            TurnLeft => 4,
-            TurnRight => 5,
-            Mine => 6,
-            Place => 7,
-            Craft => 8,
-            Consume => 9,
-            Shoot => 10,
-            CloseInteractableMenu => 11,
-            ToggleMap => 12,
-            ToggleCraftMenu => 13,
-            ToggleMainMenu => 14,
-        }
-    }
-}
 
 impl From<i32> for Action {
     fn from(i: i32) -> Self {
@@ -47,7 +27,38 @@ impl From<i32> for Action {
             12 => ToggleMap,
             13 => ToggleCraftMenu,
             14 => ToggleMainMenu,
-            _ => unreachable!(),
+            _ => {
+                let i = i as usize - 15;
+                let mut materials = Material::iter();
+                if i < materials.len() {
+                    let material = materials
+                        .nth(i)
+                        .expect("Material index out of bounds");
+                    return PlaceSpecificMaterial(material)
+                }
+                
+                let i = i - materials.len();
+                let mut interactables = InteractableKind::iter();
+                if i < interactables.len() {
+                    let interactable = interactables
+                        .nth(i)
+                        .expect("Interactable index out of bounds");
+                    return PlaceSpecificInteractable(interactable)
+                }
+                
+                let i = i - interactables.len();
+                
+                // todo Craftables for crafting
+                
+                let mut consumables = Consumable::iter();
+                if i < consumables.len() {
+                    let consumable = consumables
+                        .nth(i)
+                        .expect("Consumable index out of bounds");
+                    return ConsumeSpecific(consumable)
+                }
+                unreachable!()
+            },
         }
     }
 }

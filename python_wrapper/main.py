@@ -1,34 +1,31 @@
 import ctypes
 import numpy as np
 
-from python_wrapper.observation import CObservation, Observation
+from python_wrapper.ffi_elements import init_lib, Observation, reset, step, get_observation
+from python_wrapper.observation import ProcessedObservation
 
-# Load the shared library
-lib = ctypes.CDLL('./target/debug/ffi.dll')  # Replace with the actual path to your DLL
 
-# Define function prototypes
-lib.hello_from_rust.restype = None
-lib.reset.restype = None
-lib.get_observation.restype = CObservation
+lib = init_lib('./target/debug/ffi.dll')
 
-# Call the Rust function `hello_from_rust`
-lib.hello_from_rust()
 
-# Call the Rust function `reset`
-lib.reset()
+reset()
 
 # Call the Rust function `get_observation` and get the result
-c_observation = lib.get_observation()
-observation = Observation.from_c_observation(c_observation)
+c_observation = get_observation()
+observation = ProcessedObservation.from_c_observation(c_observation)
 print(observation)
 
-lib.step(0)
-c_observation = lib.get_observation()
-observation = Observation.from_c_observation(c_observation)
+step(0)
+c_observation = get_observation()
+observation = ProcessedObservation.from_c_observation(c_observation)
 print(observation)
 
-lib.step(6)
-c_observation = lib.get_observation()
-observation = Observation.from_c_observation(c_observation)
+step(6)
+c_observation = get_observation()
+observation = ProcessedObservation.from_c_observation(c_observation)
 print(observation)
 
+step(20)
+c_observation = get_observation()
+observation = ProcessedObservation.from_c_observation(c_observation)
+print(observation)

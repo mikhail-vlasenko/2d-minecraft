@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use crate::auxiliary::actions::Action;
 use crate::character::player::Player;
+use crate::crafting::storable::Storable;
 use crate::map_generation::field::Field;
 
 /// Makes an action, corresponding to the key.
@@ -22,5 +23,21 @@ pub fn act(action: &Action, player: &mut Player, field: &mut Field, craft_menu_o
         Action::ToggleMap => { player.toggle_map(); 0. },
         Action::ToggleCraftMenu => { craft_menu_open.replace(!craft_menu_open.take()); 0. },
         Action::ToggleMainMenu => { main_menu_open.replace(!main_menu_open.take()); 0. },
+        Action::PlaceSpecificMaterial(material) => {
+            player.placement_storable = Storable::M(material.clone());
+            player.place_current(field)
+        }
+        Action::PlaceSpecificInteractable(interactable) => {
+            player.placement_storable = Storable::IN(interactable.clone());
+            player.place_current(field)
+        }
+        Action::CraftSpecific(storable) => {
+            player.crafting_item = storable.clone();
+            player.craft_current(field)
+        }
+        Action::ConsumeSpecific(consumable) => {
+            player.consumable = consumable.clone();
+            player.consume_current()
+        }
     }
 }

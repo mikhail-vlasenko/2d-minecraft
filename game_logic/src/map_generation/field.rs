@@ -478,6 +478,7 @@ impl Field {
     /// Positions are centered on the player.
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(RelativePos, u32)> {
         let mut res= Vec::new();
+        // selects a square of chunks around the player that are close enough to have some tiles in view
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
         for i in min_idx..=max_idx {
@@ -517,7 +518,10 @@ impl Field {
 
     /// Index boundaries of chunks that are close to the player.
     fn get_close_chunk_indices(&self) -> (usize, usize) {
+        // self.loaded_chunks is centered on the player, so loaded_chunks[loading_distance][loading_distance] is the player's chunk
+        // the loaded_chunks also are square, so the returned indices are the same for both dimensions
         let middle_idx = self.loading_distance;
+        // how many chunks are in the render distance
         let chunk_distance = (self.render_distance as f32 / self.chunk_size as f32).ceil() as usize;
         let min_idx = middle_idx - chunk_distance;
         let max_idx = middle_idx + chunk_distance;

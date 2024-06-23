@@ -59,3 +59,9 @@ impl Into<Storable> for Consumable {
         C(self)
     }
 }
+
+impl Default for Consumable {
+    fn default() -> Self {
+        Apple
+    }
+}

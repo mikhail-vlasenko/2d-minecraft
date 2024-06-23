@@ -58,6 +58,8 @@ impl Material {
         }
     }
 
+    /// Returns the storable that is dropped when this material is mined.
+    /// None for default behavior - drop the material itself.
     pub fn drop_item(&self) -> Option<Storable> {
         match self {
             Texture(t) => t.drop_item(),
@@ -128,5 +130,11 @@ impl Display for Material {
 impl Into<Storable> for Material {
     fn into(self) -> Storable {
         M(self)
+    }
+}
+
+impl Default for Material {
+    fn default() -> Self {
+        Dirt
     }
 }

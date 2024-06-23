@@ -48,6 +48,8 @@ impl ChunkLoader {
         }
     }
 
+    /// Produces a vector of vectors of chunks that are around the given chunk coordinates
+    /// The chunk at [self.loading_distance][self.loading_distance] is the chunk at the given coordinates
     pub fn load_around(&self, chunk_x: i32, chunk_y: i32) -> Vec<Vec<Arc<Mutex<Chunk>>>> {
         let mut loaded = Vec::new();
         for x in 0..=(2 * self.loading_distance) {
