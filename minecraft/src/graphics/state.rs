@@ -32,7 +32,7 @@ use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use game_logic::map_generation::chunk::Chunk;
 use game_logic::map_generation::read_chunk::read_file;
 use game_logic::map_generation::save_load::{load_game, save_game};
-use game_logic::SETTINGS;
+use game_logic::{handle_action, init_field_player, SETTINGS};
 use crate::graphical_config::CONFIG;
 use crate::input_decoding::map_key_to_action;
 
@@ -52,7 +52,6 @@ pub struct State<'a> {
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: PhysicalSize<u32>,
-    clear_color: wgpu::Color,
     render_pipeline: wgpu::RenderPipeline,
     buffers: Buffers,
     bind_groups: TextureBindGroups,
@@ -156,9 +155,7 @@ impl<'a> State<'a> {
             },
             multiview: None, // 5.
         });
-
-        let clear_color = wgpu::Color { r: 0.1, g: 0.2, b: 0.3, a: 1.0 };
-
+        
         let egui_renderer = EguiRenderer::new(
             &device,       // wgpu Device
             config.format, // TextureFormat
@@ -171,7 +168,7 @@ impl<'a> State<'a> {
 
         let animation_manager = AnimationManager::new();
 
-        let (field, player) = Self::init_field_player();
+        let (field, player) = init_field_player();
 
         let buffers = Buffers::new(&device, field.get_map_render_distance() as i32);
 
@@ -182,7 +179,6 @@ impl<'a> State<'a> {
             queue,
             config,
             size,
-            clear_color,
             render_pipeline,
             buffers,
             bind_groups,
@@ -194,30 +190,8 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn init_field_player() -> (Field, Player) {
-        let mut field = if SETTINGS.read().unwrap().field.from_test_chunk {
-            let test_chunk = Chunk::from(read_file(String::from("res/chunks/test_chunk.txt")));
-            Field::new(CONFIG.render_distance, Some(test_chunk))
-        } else {
-            Field::new(CONFIG.render_distance, None)
-        };
-        let mut player = Player::new(&field);
-        player.pickup(Storable::C(Consumable::Apple), 2);
-        if SETTINGS.read().unwrap().player.cheating_start {
-            player.receive_cheat_package();
-        }
-
-        // spawn some initial mobs
-        let amount = (SETTINGS.read().unwrap().mobs.spawning.initial_hostile_per_chunk *
-            (field.get_loading_distance() * 2 + 1 as usize).pow(2) as f32) as i32;
-        field.spawn_mobs(&player, amount, true);
-        field.spawn_mobs(&player, amount * 2, false);
-
-        (field, player)
-    }
-
     pub fn new_game(&mut self) {
-        let (field, player) = Self::init_field_player();
+        let (field, player) = init_field_player();
         self.field = field;
         self.player = player;
     }
@@ -240,39 +214,21 @@ impl<'a> State<'a> {
     }
 
     fn handle_action(&mut self, virtual_keycode: &KeyCode) {
-        if virtual_keycode == &KeyCode::Escape ||
-            (self.player.get_hp() > 0 && !*self.egui_manager.main_menu_open.borrow()) {
-            self.player.message = String::new();
-            let action = map_key_to_action(virtual_keycode, &self.player);
-            let passed_time = if action.is_some() {
-                // different actions take different time, so sometimes mobs are not allowed to step
-                act(
-                    action.unwrap(),
-                    &mut self.player, &mut self.field,
-                    &self.egui_manager.craft_menu_open,
-                    &self.egui_manager.main_menu_open
-                )
-            } else { 
-                0.0
-            };
-            self.field.step_time(passed_time, &mut self.player);
-            self.animation_manager.absorb_buffer(&mut self.field.animations_buffer);
-            self.animation_manager.absorb_buffer(&mut self.player.animations_buffer);
+        let action = map_key_to_action(virtual_keycode, &self.player);
+        if action.is_some() {
+            handle_action(
+                &action.unwrap(),
+                &mut self.field, &mut self.player,
+                &self.egui_manager.main_menu_open,
+                &self.egui_manager.craft_menu_open,
+                Some(&mut self.animation_manager),
+            );
         }
     }
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
         self.window().request_redraw();
         match event {
-            WindowEvent::CursorMoved { position, .. } => {
-                self.clear_color = wgpu::Color {
-                    r: position.x as f64 / self.size.width as f64,
-                    g: position.y as f64 / self.size.height as f64,
-                    b: 1.0,
-                    a: 1.0,
-                };
-                false
-            }
             WindowEvent::KeyboardInput {
                 event: KeyEvent {
                     state: ElementState::Pressed,
@@ -400,7 +356,7 @@ impl<'a> State<'a> {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(self.clear_color),
+                        load: wgpu::LoadOp::Clear(wgpu::Color { r: 0.5, g: 0.7, b: 0.5, a: 1.0 }),
                         store: StoreOp::Store,
                     },
                 })],

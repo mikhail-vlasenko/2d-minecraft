@@ -231,4 +231,9 @@ impl AnimationsBuffer {
     pub fn add_projectile_animation(&mut self, projectile_type: ProjectileType, source: AbsolutePos, target: AbsolutePos) {
         self.new_projectile_animations.push(ProjectileAnimation::new(projectile_type, source, target));
     }
+    
+    pub fn clear(&mut self) {
+        self.new_tile_animations.clear();
+        self.new_projectile_animations.clear();
+    }
 }

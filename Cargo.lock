@@ -847,6 +847,10 @@ dependencies = [
 [[package]]
 name = "ffi"
 version = "0.1.0"
+dependencies = [
+ "game_logic",
+ "lazy_static",
+]
 
 [[package]]
 name = "flate2"

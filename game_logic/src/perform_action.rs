@@ -5,7 +5,7 @@ use crate::map_generation::field::Field;
 
 /// Makes an action, corresponding to the key.
 /// Returns how much turn was used.
-pub fn act(action: Action, player: &mut Player, field: &mut Field, craft_menu_open: &RefCell<bool>, main_menu_open: &RefCell<bool>) -> f32 {
+pub fn act(action: &Action, player: &mut Player, field: &mut Field, craft_menu_open: &RefCell<bool>, main_menu_open: &RefCell<bool>) -> f32 {
     match action {
         Action::WalkNorth => player.walk("w", field),
         Action::WalkWest => player.walk("a", field),

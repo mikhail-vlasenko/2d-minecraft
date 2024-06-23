@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+game_logic = { path = "../game_logic" }
+lazy_static = "1.4.0"
 
 [lib]
 crate-type = ["cdylib"]
