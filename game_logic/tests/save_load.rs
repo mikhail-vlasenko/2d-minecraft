@@ -6,11 +6,11 @@ use std::path::Path;
 use postcard;
 extern crate alloc;
 use alloc::vec::Vec;
-use minecraft::character::player::Player;
+use game_logic::character::player::Player;
 use crate::common::Data;
 
-use minecraft::map_generation::field::Field;
-use minecraft::map_generation::save_load::{load_game, save_game};
+use game_logic::map_generation::field::Field;
+use game_logic::map_generation::save_load::{load_game, save_game};
 
 
 #[test]

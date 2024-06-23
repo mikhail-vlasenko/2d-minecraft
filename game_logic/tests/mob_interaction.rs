@@ -1,15 +1,14 @@
 mod common;
 use crate::common::Data;
 
-use minecraft::crafting::items::Item::*;
-use minecraft::crafting::storable::Storable::*;
-use egui_winit::winit::keyboard::KeyCode::*;
-use minecraft::crafting::consumable::Consumable::RawMeat;
-use minecraft::crafting::ranged_weapon::RangedWeapon::Bow;
-use minecraft::crafting::storable::Storable;
-use minecraft::map_generation::mobs::mob::{Mob, Position};
-use minecraft::map_generation::mobs::mob_kind::MobKind::{Cow, Zergling, Zombie};
-
+use game_logic::crafting::items::Item::*;
+use game_logic::crafting::storable::Storable::*;
+use game_logic::crafting::consumable::Consumable::RawMeat;
+use game_logic::crafting::ranged_weapon::RangedWeapon::Bow;
+use game_logic::crafting::storable::Storable;
+use game_logic::map_generation::mobs::mob::{Mob, Position};
+use game_logic::map_generation::mobs::mob_kind::MobKind::{Cow, Zergling, Zombie};
+use game_logic::auxiliary::actions::Action::*;
 
 #[test]
 fn test_zombie_hits() {
@@ -73,10 +72,10 @@ fn test_killing_and_looting() {
     data.field.get_chunk(0, 1).add_mob(mob);
 
     let init_meat = data.player.inventory_count(&Storable::C(RawMeat));
-    data.act(KeyS);
-    data.act(KeyS);
-    data.act(KeyS);
-    data.act(KeyS);
+    data.act(WalkSouth);
+    data.act(WalkSouth);
+    data.act(WalkSouth);
+    data.act(WalkSouth);
     assert!(data.player.inventory_count(&Storable::C(RawMeat)) > init_meat)
 }
 
@@ -92,31 +91,31 @@ fn test_shooting() {
     let mob = Mob::new(pos.clone(), kind);
     data.field.get_chunk(0, 2).add_mob(mob);
 
-    data.act(ArrowRight);
-    data.act(ArrowRight);
+    data.act(TurnRight);
+    data.act(TurnRight);
 
-    // cant shoot
-    data.act(KeyX);
-    data.act(KeyX);
+    // can't shoot
+    data.act(Shoot);
+    data.act(Shoot);
     assert!(data.field.is_occupied((2, 0)));
 
     data.player.pickup(RW(Bow), 1);
     // no ammo
-    data.act(KeyX);
-    data.act(KeyX);
+    data.act(Shoot);
+    data.act(Shoot);
     assert!(data.field.is_occupied((2, 0)));
 
     data.player.pickup(Storable::I(Arrow), 2);
-    data.act(KeyX);
-    data.act(KeyX);
+    data.act(Shoot);
+    data.act(Shoot);
     // killed
     assert!(!data.field.is_occupied((2, 0)));
 
     let mob = Mob::new(pos.clone(), kind);
     data.field.get_chunk(0, 2).add_mob(mob);
     // out of ammo
-    data.act(KeyX);
-    data.act(KeyX);
+    data.act(Shoot);
+    data.act(Shoot);
     assert!(data.field.is_occupied((2, 0)));
 }
 
@@ -145,7 +144,7 @@ fn test_three_lings_engage() {
     let mut data = Data::new();
 
     // clear tile with tree
-    data.act(ArrowRight);
+    data.act(TurnRight);
     data.mine();
     data.mine();
 

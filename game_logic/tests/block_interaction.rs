@@ -1,13 +1,12 @@
 mod common;
 use crate::common::Data;
 
-use minecraft::crafting::items::Item::*;
-use minecraft::crafting::material::Material::*;
-use minecraft::crafting::storable::Storable;
-use minecraft::map_generation::field::Field;
-use minecraft::character::player::Player;
-use egui_winit::winit::keyboard::KeyCode::*;
-
+use game_logic::crafting::items::Item::*;
+use game_logic::crafting::material::Material::*;
+use game_logic::crafting::storable::Storable;
+use game_logic::map_generation::field::Field;
+use game_logic::character::player::Player;
+use game_logic::auxiliary::actions::Action::*;
 
 #[test]
 fn test_player_basic() {
@@ -23,11 +22,11 @@ fn test_player_basic() {
 fn test_player_good_weather() {
     let mut data = Data::new();
 
-    data.act(ArrowRight);
+    data.act(TurnRight);
     data.mine();
     data.mine();
-    data.act(KeyS);
-    data.act(KeyD);
+    data.act(WalkSouth);
+    data.act(WalkEast);
     data.mine();
     data.mine();
 
@@ -44,11 +43,11 @@ fn test_player_good_weather() {
     assert!(data.player.has(&Storable::I(WoodenPickaxe)));
 
     assert!(!data.player.has(&Storable::I(IronPickaxe)));
-    data.act(ArrowLeft);
-    data.act(ArrowLeft);
+    data.act(TurnLeft);
+    data.act(TurnLeft);
     data.mine();
     data.mine();
-    data.act(ArrowLeft);
+    data.act(TurnLeft);
     data.mine();
     data.mine();
     data.craft(Storable::I(IronIngot));
@@ -63,9 +62,9 @@ fn test_player_good_weather() {
     data.craft(Storable::I(IronSword));
     assert!(!data.player.has(&Storable::I(IronSword)));
 
-    data.act(KeyS);
+    data.act(WalkSouth);
     assert_eq!(data.player.z, 1);
-    data.act(ArrowLeft);
+    data.act(TurnLeft);
     data.mine();
     data.mine();
     data.craft(Storable::I(Stick));
@@ -88,11 +87,11 @@ fn test_player_no_craft_table() {
     let mut data = Data::new();
 
     assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
-    data.act(ArrowRight);
+    data.act(TurnRight);
     data.mine();
     data.mine();
-    data.act(KeyS);
-    data.act(KeyD);
+    data.act(WalkSouth);
+    data.act(WalkEast);
     data.mine();
     data.mine();
 
@@ -108,15 +107,15 @@ fn test_player_no_craft_table() {
     assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
 
     data.place(CraftTable.into());
-    data.act(KeyS);
-    data.act(KeyS);
-    data.act(KeyD);
+    data.act(WalkSouth);
+    data.act(WalkSouth);
+    data.act(WalkEast);
 
     // too far from crafting table
     data.craft(Storable::I(WoodenPickaxe));
     assert!(!data.player.has(&Storable::I(WoodenPickaxe)));
 
-    data.act(KeyW); // come closer
+    data.act(WalkNorth); // come closer
     data.craft(Storable::I(WoodenPickaxe));
     assert!(data.player.has(&Storable::I(WoodenPickaxe)));
 }
@@ -125,13 +124,13 @@ fn test_player_no_craft_table() {
 fn test_player_mining_pwr() {
     let mut data = Data::new();
 
-    data.act(KeyS);
-    data.act(KeyS);
-    data.act(KeyS);
-    data.act(KeyS);
-    data.act(KeyD);
-    data.act(KeyD);
-    data.act(KeyD);
+    data.act(WalkSouth);
+    data.act(WalkSouth);
+    data.act(WalkSouth);
+    data.act(WalkSouth);
+    data.act(WalkEast);
+    data.act(WalkEast);
+    data.act(WalkEast);
     data.mine();
     data.mine();
     data.mine();

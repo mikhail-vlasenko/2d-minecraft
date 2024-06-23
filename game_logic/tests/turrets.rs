@@ -1,10 +1,10 @@
 mod common;
 use crate::common::Data;
 
-use minecraft::crafting::items::Item::*;
-use minecraft::crafting::interactable::InteractableKind::CrossbowTurret;
-use minecraft::map_generation::mobs::mob::{Mob, Position};
-use minecraft::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
+use game_logic::crafting::items::Item::*;
+use game_logic::crafting::interactable::InteractableKind::CrossbowTurret;
+use game_logic::map_generation::mobs::mob::{Mob, Position};
+use game_logic::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
 
 
 #[test]

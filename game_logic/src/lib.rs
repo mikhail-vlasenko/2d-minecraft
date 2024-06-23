@@ -10,7 +10,6 @@ pub mod map_generation;
 pub mod crafting;
 pub mod character;
 pub mod auxiliary;
-pub mod gym_interface;
 pub mod perform_action;
 pub mod settings;
 

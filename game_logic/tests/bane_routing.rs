@@ -1,8 +1,8 @@
 mod common;
 use crate::common::Data;
 
-use minecraft::map_generation::mobs::mob::{Mob, Position};
-use minecraft::map_generation::mobs::mob_kind::MobKind::{Baneling};
+use game_logic::map_generation::mobs::mob::{Mob, Position};
+use game_logic::map_generation::mobs::mob_kind::MobKind::{Baneling};
 
 
 #[test]

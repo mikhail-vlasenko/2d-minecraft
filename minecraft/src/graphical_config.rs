@@ -13,7 +13,6 @@ impl GraphicalConfig {
         let render_distance = settings.window.render_distance as usize;
         let tiles_per_row = ((render_distance * 2) + 1) as u32;
         let disp_coef = 2.0 / tiles_per_row as f32;
-        let a = SETTINGS.read().unwrap();
         Self {
             render_distance,
             tiles_per_row,
