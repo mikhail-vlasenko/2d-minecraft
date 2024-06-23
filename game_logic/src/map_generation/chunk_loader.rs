@@ -1,15 +1,13 @@
-use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use crate::map_generation::chunk::Chunk;
-use std::rc::Rc;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use crate::SETTINGS;
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChunkLoader {
     #[serde(with = "hash_map_serde")]
-    chunks: HashMap<i64, Rc<RefCell<Chunk>>>,
+    chunks: HashMap<i64, Arc<Mutex<Chunk>>>,
     /// in chunks, not tiles
     loading_distance: usize,
     /// in tiles
@@ -29,10 +27,10 @@ impl ChunkLoader {
         loader.generate_close_chunks(0, 0);
         loader
     }
-    
+
     pub fn with_starting_chunk(loading_distance: usize, chunk: Chunk) -> Self {
         let mut loader = Self::new(loading_distance);
-        loader.chunks.insert(Self::encode_key(0, 0), Rc::new(RefCell::new(chunk)));
+        loader.chunks.insert(Self::encode_key(0, 0), Arc::new(Mutex::new(chunk)));
         loader
     }
 
@@ -44,13 +42,13 @@ impl ChunkLoader {
                 if !self.chunks.contains_key(&key) {
                     let generated = Chunk::new(self.chunk_size);
                     // spawn_hostile(&mut generated, x, y);
-                    self.chunks.insert(key, Rc::new(RefCell::new(generated)));
+                    self.chunks.insert(key, Arc::new(Mutex::new(generated)));
                 }
             }
         }
     }
 
-    pub fn load_around(&self, chunk_x: i32, chunk_y: i32) -> Vec<Vec<Rc<RefCell<Chunk>>>> {
+    pub fn load_around(&self, chunk_x: i32, chunk_y: i32) -> Vec<Vec<Arc<Mutex<Chunk>>>> {
         let mut loaded = Vec::new();
         for x in 0..=(2 * self.loading_distance) {
             loaded.push(Vec::new());
@@ -58,7 +56,7 @@ impl ChunkLoader {
                 let curr_x = chunk_x - self.loading_distance as i32 + x as i32;
                 let curr_y = chunk_y - self.loading_distance as i32 + y as i32;
                 let key = Self::encode_key(curr_x, curr_y);
-                loaded[x].push(Rc::clone(self.chunks.get(&key).unwrap()));
+                loaded[x].push(Arc::clone(self.chunks.get(&key).unwrap()));
             }
         }
         loaded
@@ -80,7 +78,7 @@ impl PartialEq for ChunkLoader {
         for (key, value) in &self.chunks {
             match other.chunks.get(key) {
                 Some(other_value) => {
-                    if *value.borrow() != *other_value.borrow() {
+                    if *value.lock().unwrap() != *other_value.lock().unwrap() {
                         return false;
                     }
                 },
@@ -93,20 +91,20 @@ impl PartialEq for ChunkLoader {
 
 mod hash_map_serde {
     use super::*;
-    pub fn serialize<S: Serializer>(map: &HashMap<i64, Rc<RefCell<Chunk>>>, serializer: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(map: &HashMap<i64, Arc<Mutex<Chunk>>>, serializer: S) -> Result<S::Ok, S::Error> {
         let mut chunks = Vec::new();
         for (idx, chunk) in map.iter() {
-            chunks.push((idx.clone(), chunk.borrow().clone()));
+            chunks.push((idx.clone(), chunk.lock().unwrap().clone()));
         }
         serializer.collect_seq(chunks)
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<i64, Rc<RefCell<Chunk>>>, D::Error>
-        where D: Deserializer<'de>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<i64, Arc<Mutex<Chunk>>>, D::Error>
+    where D: Deserializer<'de>
     {
         let mut map = HashMap::new();
         for (idx, chunk) in Vec::<(i64, Chunk)>::deserialize(deserializer)? {
-            map.insert(idx, Rc::new(RefCell::new(chunk)));
+            map.insert(idx, Arc::new(Mutex::new(chunk)));
         }
         Ok(map)
     }

@@ -1,11 +1,9 @@
-use std::cell::{Ref, RefCell, RefMut};
+use std::sync::{Arc, Mutex};
 use std::cmp::max;
 use std::mem::swap;
 use std::ops::DerefMut;
 use std::panic;
-use std::rc::Rc;
 use rand::Rng;
-use rand::rngs::ThreadRng;
 use serde::{Serialize, Deserialize};
 use derivative::Derivative;
 use crate::auxiliary::animations::{AnimationsBuffer, TileAnimationType};
@@ -25,7 +23,6 @@ use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::mobs::spawning::create_mob;
 use crate::SETTINGS;
 
-
 /// The playing grid
 #[derive(Serialize, Deserialize, Debug, Derivative)]
 #[derivative(PartialEq)]
@@ -35,7 +32,8 @@ pub struct Field {
     /// tiles from these chunks can be accessed
     /// shape is ((loading_distance * 2 + 1), (loading_distance * 2 + 1))
     #[serde(skip)]
-    loaded_chunks: Vec<Vec<Rc<RefCell<Chunk>>>>,
+    #[derivative(PartialEq = "ignore")]
+    loaded_chunks: Vec<Vec<Arc<Mutex<Chunk>>>>,
     /// position of the center of the currently loaded chunks. (usually the player's chunk)
     central_chunk: AbsoluteChunkPos,
     chunk_size: usize,
@@ -55,9 +53,6 @@ pub struct Field {
     /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
     time: f32,
     accumulated_time: f32,
-    #[serde(skip)]
-    #[derivative(PartialEq = "ignore")]
-    rng: ThreadRng,
 }
 
 impl Field {
@@ -82,7 +77,6 @@ impl Field {
 
         let time = 0.;
         let accumulated_time = 0.;
-        let rng = rand::thread_rng();
 
         let mut field = Self{
             chunk_loader,
@@ -97,7 +91,6 @@ impl Field {
             animations_buffer,
             time,
             accumulated_time,
-            rng
         };
         field.load(central_chunk.0, central_chunk.1);
         field
@@ -123,7 +116,7 @@ impl Field {
         while self.accumulated_time >= 1. {
             player.step_status_effects();
             self.step_interactables(player);
-            let rng: f32 = self.rng.gen();
+            let rng: f32 = rand::random();
             if rng > 0.9 {
                 self.spawn_mobs(player,
                                 self.get_mob_spawn_amount(),
@@ -150,7 +143,7 @@ impl Field {
     pub fn step_mobs(&mut self, player: &mut Player) {
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
-                self.stray_mobs.extend(self.loaded_chunks[i][j].borrow_mut().transfer_mobs());
+                self.stray_mobs.extend(self.loaded_chunks[i][j].lock().unwrap().transfer_mobs());
             }
         }
         for _ in 0..self.stray_mobs.len() {
@@ -165,7 +158,7 @@ impl Field {
 
             if m.is_alive() {
                 // mobs can self-destruct, dont add them in that case.
-                self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_mob(m);
+                self.loaded_chunks[x_chunk][y_chunk].lock().unwrap().add_mob(m);
             }
         }
     }
@@ -174,7 +167,7 @@ impl Field {
         let mut turrets = Vec::new();
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
-                turrets.extend(self.loaded_chunks[i][j].borrow_mut().transfer_turrets());
+                turrets.extend(self.loaded_chunks[i][j].lock().unwrap().transfer_turrets());
             }
         }
         for _ in 0..turrets.len() {
@@ -182,7 +175,7 @@ impl Field {
             turret.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
             let (x_chunk, y_chunk) =
                 self.chunk_idx_from_pos(turret.get_position().0, turret.get_position().1);
-            self.loaded_chunks[x_chunk][y_chunk].borrow_mut().add_interactable(turret);
+            self.loaded_chunks[x_chunk][y_chunk].lock().unwrap().add_interactable(turret);
         }
     }
 
@@ -327,14 +320,14 @@ impl Field {
     /// * `y`: absolute y position on the map
     ///
     /// returns: mutable reference to the Chunk at this position, or panics if the Chunk is not loaded
-    pub fn get_chunk(&mut self, x: i32, y: i32) -> RefMut<Chunk> {
+    pub fn get_chunk(&mut self, x: i32, y: i32) -> std::sync::MutexGuard<Chunk> {
         let chunk_idx = self.chunk_idx_from_pos(x, y);
-        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].as_ref().borrow_mut();
+        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].lock().unwrap();
     }
 
-    pub fn get_chunk_immut(&self, x: i32, y: i32) -> Ref<Chunk> {
+    pub fn get_chunk_immut(&self, x: i32, y: i32) -> std::sync::MutexGuard<Chunk> {
         let chunk_idx = self.chunk_idx_from_pos(x, y);
-        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].as_ref().borrow();
+        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].lock().unwrap();
     }
 
     /// Chunk's index in the loaded_chunks vector.
@@ -406,7 +399,7 @@ impl Field {
                     print!("P");
                 } else {
                     print!("{}", self.loaded_chunks[self.loading_distance][self.loading_distance]
-                        .borrow().top_at(i as i32, j as i32));
+                        .lock().unwrap().top_at(i as i32, j as i32));
                 }
             }
             println!();
@@ -489,7 +482,7 @@ impl Field {
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
-                for m in self.loaded_chunks[i][j].borrow().get_mobs() {
+                for m in self.loaded_chunks[i][j].lock().unwrap().get_mobs() {
                     if m.get_kind() == &kind {
                         res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
                     }
@@ -505,7 +498,7 @@ impl Field {
         }
         res
     }
-    
+
     /// Player-relative positions of close mobs and their hp shares.
     pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(RelativePos, f32)> {
         // doesnt account for stray mobs
@@ -514,7 +507,7 @@ impl Field {
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
-                for m in self.loaded_chunks[i][j].borrow().get_mobs() {
+                for m in self.loaded_chunks[i][j].lock().unwrap().get_mobs() {
                     res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_hp_share()));
                 }
             }
@@ -623,8 +616,8 @@ impl Field {
     pub fn pick_tile(&mut self) -> (i32, i32) {
         let min = self.min_loaded_idx();
         let max = self.max_loaded_idx();
-        let x = self.rng.gen_range(min.0..=max.0);
-        let y = self.rng.gen_range(min.1..=max.1);
+        let x = rand::thread_rng().gen_range(min.0..=max.0);
+        let y = rand::thread_rng().gen_range(min.1..=max.1);
         (x, y)
     }
 }
