@@ -8,10 +8,10 @@ use crate::settings::Settings;
 
 pub mod map_generation;
 pub mod crafting;
-pub mod input_decoding;
 pub mod character;
 pub mod auxiliary;
 pub mod gym_interface;
+pub mod perform_action;
 pub mod settings;
 
 lazy_static! {

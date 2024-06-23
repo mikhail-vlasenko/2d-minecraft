@@ -21,7 +21,7 @@ use crate::graphics::ui::egui_manager::EguiManager;
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, Vertex};
-use game_logic::input_decoding::act;
+use game_logic::perform_action::act;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
 use game_logic::map_generation::field::{absolute_to_relative, AbsolutePos, Field, RelativePos};
 use game_logic::crafting::material::Material;
@@ -34,6 +34,7 @@ use game_logic::map_generation::read_chunk::read_file;
 use game_logic::map_generation::save_load::{load_game, save_game};
 use game_logic::SETTINGS;
 use crate::graphical_config::CONFIG;
+use crate::input_decoding::map_key_to_action;
 
 
 /// The main class of the application.
@@ -242,12 +243,18 @@ impl<'a> State<'a> {
         if virtual_keycode == &KeyCode::Escape ||
             (self.player.get_hp() > 0 && !*self.egui_manager.main_menu_open.borrow()) {
             self.player.message = String::new();
-            // different actions take different time, so sometimes mobs are not allowed to step
-            let passed_time = act(virtual_keycode,
-                                  &mut self.player, &mut self.field,
-                                  &self.egui_manager.craft_menu_open,
-                                  &self.egui_manager.main_menu_open
-            );
+            let action = map_key_to_action(virtual_keycode, &self.player);
+            let passed_time = if action.is_some() {
+                // different actions take different time, so sometimes mobs are not allowed to step
+                act(
+                    action.unwrap(),
+                    &mut self.player, &mut self.field,
+                    &self.egui_manager.craft_menu_open,
+                    &self.egui_manager.main_menu_open
+                )
+            } else { 
+                0.0
+            };
             self.field.step_time(passed_time, &mut self.player);
             self.animation_manager.absorb_buffer(&mut self.field.animations_buffer);
             self.animation_manager.absorb_buffer(&mut self.player.animations_buffer);
