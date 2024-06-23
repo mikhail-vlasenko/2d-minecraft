@@ -50,15 +50,3 @@ impl Default for TextureMaterial {
         Unknown
     }
 }
-
-impl Into<i32> for TextureMaterial {
-    fn into(self) -> i32 {
-        match self {
-            Unknown => 0,
-            RobotTL => 1,
-            RobotTR => 2,
-            RobotBL => 3,
-            RobotBR => 4,
-        }
-    }
-}

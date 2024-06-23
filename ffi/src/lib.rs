@@ -23,6 +23,12 @@ pub extern "C" fn reset() {
 }
 
 #[no_mangle]
+pub extern "C" fn step(action: i32) {
+    let mut state = STATE.lock().unwrap();
+    state.step_i32(action);
+}
+
+#[no_mangle]
 pub extern "C" fn get_observation() -> observation::Observation {
     let state = STATE.lock().unwrap();
     state.get_observation()

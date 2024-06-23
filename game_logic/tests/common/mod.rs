@@ -40,7 +40,7 @@ impl Data {
     }
 
     pub fn act(&mut self, action: Action) -> f32 {
-        act(action, &mut self.player, &mut self.field,
+        act(&action, &mut self.player, &mut self.field,
             &RefCell::new(false), &RefCell::new(false))
     }
 

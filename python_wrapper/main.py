@@ -1,7 +1,7 @@
 import ctypes
 import numpy as np
 
-from python_wrapper.observation import Observation, OBSERVATION_GRID_SIZE
+from python_wrapper.observation import CObservation, Observation
 
 # Load the shared library
 lib = ctypes.CDLL('./target/debug/ffi.dll')  # Replace with the actual path to your DLL
@@ -9,7 +9,7 @@ lib = ctypes.CDLL('./target/debug/ffi.dll')  # Replace with the actual path to y
 # Define function prototypes
 lib.hello_from_rust.restype = None
 lib.reset.restype = None
-lib.get_observation.restype = Observation
+lib.get_observation.restype = CObservation
 
 # Call the Rust function `hello_from_rust`
 lib.hello_from_rust()
@@ -18,15 +18,17 @@ lib.hello_from_rust()
 lib.reset()
 
 # Call the Rust function `get_observation` and get the result
-observation = lib.get_observation()
+c_observation = lib.get_observation()
+observation = Observation.from_c_observation(c_observation)
+print(observation)
 
-# Convert the Observation structure to NumPy arrays for easier manipulation
-top_materials = np.ctypeslib.as_array(observation.top_materials).reshape((OBSERVATION_GRID_SIZE, OBSERVATION_GRID_SIZE))
-tile_depths = np.ctypeslib.as_array(observation.tile_depths).reshape((OBSERVATION_GRID_SIZE, OBSERVATION_GRID_SIZE))
+lib.step(0)
+c_observation = lib.get_observation()
+observation = Observation.from_c_observation(c_observation)
+print(observation)
 
-# Print the results
-print("Top Materials:")
-print(top_materials)
+lib.step(6)
+c_observation = lib.get_observation()
+observation = Observation.from_c_observation(c_observation)
+print(observation)
 
-print("Tile Depths:")
-print(tile_depths)

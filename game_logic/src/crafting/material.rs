@@ -130,19 +130,3 @@ impl Into<Storable> for Material {
         M(self)
     }
 }
-
-impl Into<i32> for Material {
-    fn into(self) -> i32 {
-        match self {
-            Dirt => 0,
-            TreeLog => 1,
-            Plank => 2,
-            Stone => 3,
-            Bedrock => 4,
-            IronOre => 5,
-            CraftTable => 6,
-            Diamond => 7,
-            Texture(t) => t as i32 + 8,
-        }
-    }
-}
