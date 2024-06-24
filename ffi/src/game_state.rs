@@ -61,7 +61,7 @@ impl GameState {
             [pos.0, pos.1, 
                 mob_kinds.iter().position(| kind | { kind == mob.get_kind() }).unwrap() as i32, 
                 (mob.get_hp_share() * 100.0) as i32]
-        });
+        }, &self.player);
 
         // Sorting the mobs by manhattan distance from the player
         mobs.sort_by(|a, b| {

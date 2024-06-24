@@ -478,42 +478,40 @@ impl Field {
     /// Positions are centered on the player.
     /// Checks stray mobs, so can be used during mob turns.
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(RelativePos, u32)> {
-        let mut res= Vec::new();
-        // selects a square of chunks around the player that are close enough to have some tiles in view
-        let (min_idx, max_idx) = self.get_close_chunk_indices();
-
-        for i in min_idx..=max_idx {
-            for j in min_idx..=max_idx {
-                for m in self.loaded_chunks[i][j].lock().unwrap().get_mobs() {
-                    if m.get_kind() == &kind {
-                        res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
-                    }
-                }
-            }
-        }
+        let mut res= self.conditional_close_mob_info(|m| {
+            ((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation())
+        }, player, |m: &Mob| { m.get_kind() == &kind });
+        
         for m in &self.stray_mobs {
-            if m.get_kind() == &kind &&
-                (m.pos.x - player.x).abs() <= self.render_distance as i32 &&
-                (m.pos.y - player.y).abs() <= self.render_distance as i32 {
+            if m.get_kind() == &kind && self.is_position_visible(player, (m.pos.x, m.pos.y)) {
                 res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
             }
         }
         res
     }
 
+    /// Makes a list of infos for mobs that are close enough to be visible.
     /// Can't be used during mob turns, as it doesn't account for stray mobs
-    pub fn close_mob_info<F: Fn(&Mob) -> T, T>(&self, info_extractor: F) -> Vec<T> {
+    pub fn conditional_close_mob_info<F: Fn(&Mob) -> T, T, C: Fn(&Mob) -> bool>(&self, info_extractor: F, player: &Player, condition: C) -> Vec<T> {
         let mut res= Vec::new();
+        
+        // selects a square of chunks around the player that are close enough to have some tiles in view
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
                 for m in self.loaded_chunks[i][j].lock().unwrap().get_mobs() {
-                    res.push(info_extractor(m));
+                    if self.is_position_visible(player, (m.pos.x, m.pos.y)) && condition(m) {
+                        res.push(info_extractor(m));
+                    }
                 }
             }
         }
         res
+    }
+    
+    pub fn close_mob_info<F: Fn(&Mob) -> T, T>(&self, info_extractor: F, player: &Player) -> Vec<T> {
+        self.conditional_close_mob_info(info_extractor, player, |_| { true })
     }
 
     /// Index boundaries of chunks that are close to the player.
@@ -526,6 +524,11 @@ impl Field {
         let min_idx = middle_idx - chunk_distance;
         let max_idx = middle_idx + chunk_distance;
         (min_idx, max_idx)
+    }
+    
+    fn is_position_visible(&self, player: &Player, pos: AbsolutePos) -> bool {
+        (pos.0 - player.x).abs() <= self.render_distance as i32 &&
+            (pos.1 - player.y).abs() <= self.render_distance as i32
     }
 }
 

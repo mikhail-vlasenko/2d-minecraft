@@ -290,7 +290,7 @@ impl<'a> State<'a> {
         let mob_positions_and_hp = self.field.close_mob_info(|mob| {
                 let pos = absolute_to_relative((mob.pos.x, mob.pos.y), &self.player);
                 (pos, mob.get_hp_share())
-            });
+            }, &self.player);
 
         self.buffers.hp_bar_vertex_buffer = vec![];
         for mob_info in &mob_positions_and_hp {
