@@ -3,7 +3,7 @@ from typing import Tuple, List
 
 import numpy as np
 
-from python_wrapper.ffi_elements import Observation, get_observation, action_name
+from python_wrapper.ffi_elements import Observation, get_one_observation, action_name
 
 OBSERVATION_GRID_SIZE = 17
 
@@ -55,8 +55,8 @@ class ProcessedObservation:
         return ProcessedObservation(top_materials, tile_heights, player_pos, player_rot, hp, time, inventory_state, mobs, message)
 
 
-def get_processed_observation() -> ProcessedObservation:
-    c_observation = get_observation()
+def get_processed_observation(idx: int) -> ProcessedObservation:
+    c_observation = get_one_observation(idx)
     return ProcessedObservation.from_c_observation(c_observation)
 
 

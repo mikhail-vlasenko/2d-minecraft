@@ -10,26 +10,48 @@ def init_lib(path):
     global c_lib
     c_lib = ctypes.cdll.LoadLibrary(path)
 
+    c_lib.set_batch_size.argtypes = [ctypes.c_int32]
     c_lib.reset.argtypes = []
-    c_lib.step.argtypes = [ctypes.c_int32]
-    c_lib.get_observation.argtypes = []
+    c_lib.step_one.argtypes = [ctypes.c_int32, ctypes.c_int32]
+    c_lib.get_one_observation.argtypes = [ctypes.c_int32]
     c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
 
-    c_lib.get_observation.restype = Observation
+    c_lib.get_one_observation.restype = Observation
     c_lib.num_actions.restype = ctypes.c_int32
     c_lib.action_name.restype = ctypes.POINTER(ctypes.c_int8)
 
 
 
+def set_batch_size(new_batch_size: int):
+    """ Does a reset on all game states"""
+    return c_lib.set_batch_size(new_batch_size)
+
 def reset():
+    """ Resets all game states.
+ Not advised. Especially since game states initialize ready to be stepped."""
     return c_lib.reset()
 
-def step(action: int):
-    return c_lib.step(action)
+def step_one(action: int, index: int):
+    """ Steps the game state at the specified index with the given action.
 
-def get_observation() -> Observation:
-    return c_lib.get_observation()
+ # Arguments
+
+ * `action` - The action to apply as an integer.
+ * `index` - The index of the game state to step."""
+    return c_lib.step_one(action, index)
+
+def get_one_observation(index: int) -> Observation:
+    """ Gets the observation for the game state at the specified index.
+
+ # Arguments
+
+ * `index` - The index of the game state to observe.
+
+ # Returns
+
+ * `observation::Observation` - The observation of the game state."""
+    return c_lib.get_one_observation(index)
 
 def num_actions() -> int:
     return c_lib.num_actions()
