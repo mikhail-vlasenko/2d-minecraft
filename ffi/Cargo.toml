@@ -1,0 +1,15 @@
+[package]
+name = "ffi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+game_logic = { path = "../game_logic" }
+lazy_static = "1.4.0"
+strum = "0.24"
+strum_macros = "0.24"
+interoptopus = "0.14.25"
+interoptopus_backend_cpython = "0.14.25"
+
+[lib]
+crate-type = ["cdylib"]

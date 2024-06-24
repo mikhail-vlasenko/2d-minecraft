@@ -1,8 +1,7 @@
 window:
   width: 1600
   height: 1600
-  # requires build to apply changes
-  tiles_per_row: 17
+  render_distance: 8
 
 field:
   chunk_size: 16
