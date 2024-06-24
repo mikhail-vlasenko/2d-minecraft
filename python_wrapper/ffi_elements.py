@@ -13,8 +13,12 @@ def init_lib(path):
     c_lib.reset.argtypes = []
     c_lib.step.argtypes = [ctypes.c_int32]
     c_lib.get_observation.argtypes = []
+    c_lib.num_actions.argtypes = []
+    c_lib.action_name.argtypes = [ctypes.c_int32]
 
     c_lib.get_observation.restype = Observation
+    c_lib.num_actions.restype = ctypes.c_int32
+    c_lib.action_name.restype = ctypes.POINTER(ctypes.c_int8)
 
 
 
@@ -26,6 +30,12 @@ def step(action: int):
 
 def get_observation() -> Observation:
     return c_lib.get_observation()
+
+def num_actions() -> int:
+    return c_lib.num_actions()
+
+def action_name(action: int) -> ctypes.POINTER(ctypes.c_int8):
+    return c_lib.action_name(action)
 
 
 
@@ -78,7 +88,7 @@ class Observation(ctypes.Structure):
         ("player_rot", ctypes.c_int32),
         ("hp", ctypes.c_int32),
         ("time", ctypes.c_float),
-        ("inventory_state", ctypes.c_int32 * 128),
+        ("inventory_state", ctypes.c_int32 * 26),
         ("mobs", ctypes.c_int32 * 4 * 16),
         ("message", ctypes.POINTER(ctypes.c_int8)),
     ]

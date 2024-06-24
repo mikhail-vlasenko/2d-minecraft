@@ -287,15 +287,18 @@ impl<'a> State<'a> {
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
         }
 
-        let mob_positions = self.field.all_mob_positions_and_hp(&self.player);
+        let mob_positions_and_hp = self.field.close_mob_info(|mob| {
+                let pos = absolute_to_relative((mob.pos.x, mob.pos.y), &self.player);
+                (pos, mob.get_hp_share())
+            });
 
         self.buffers.hp_bar_vertex_buffer = vec![];
-        for mob_info in &mob_positions {
+        for mob_info in &mob_positions_and_hp {
             self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(1.));
             self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(mob_info.1));
         }
         let mut hp_bar_instances = vec![];
-        for mob_info in &mob_positions {
+        for mob_info in &mob_positions_and_hp {
             hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
             hp_bar_instances.push(self.hp_bar_position_instance(mob_info.0));
         }

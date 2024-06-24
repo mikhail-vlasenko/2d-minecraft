@@ -3,61 +3,64 @@ use crate::auxiliary::actions::Action;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::InteractableKind;
 use crate::crafting::material::Material;
+use crate::crafting::storable::Storable;
 use crate::crafting::texture_material::TextureMaterial;
 
 
 /// These conversions are used primarily for the FFI.
 
-impl From<i32> for Action {
-    fn from(i: i32) -> Self {
+impl TryFrom<i32> for Action {
+    type Error = &'static str;
+    fn try_from(i: i32) -> Result<Self, Self::Error> {
         use crate::auxiliary::actions::Action::*;
         match i {
-            0 => WalkNorth,
-            1 => WalkWest,
-            2 => WalkSouth,
-            3 => WalkEast,
-            4 => TurnLeft,
-            5 => TurnRight,
-            6 => Mine,
-            7 => Place,
-            8 => Craft,
-            9 => Consume,
-            10 => Shoot,
-            11 => CloseInteractableMenu,
-            12 => ToggleMap,
-            13 => ToggleCraftMenu,
-            14 => ToggleMainMenu,
+            0 => Ok(WalkNorth),
+            1 => Ok(WalkWest),
+            2 => Ok(WalkSouth),
+            3 => Ok(WalkEast),
+            4 => Ok(TurnLeft),
+            5 => Ok(TurnRight),
+            6 => Ok(Mine),
+            7 => Ok(Place),
+            8 => Ok(Craft),
+            9 => Ok(Consume),
+            10 => Ok(Shoot),
+            11 => Ok(CloseInteractableMenu),
+            12 => Ok(ToggleMap),
+            13 => Ok(ToggleCraftMenu),
+            14 => Ok(ToggleMainMenu),
             _ => {
                 let i = i as usize - 15;
                 let mut materials = Material::iter();
                 if i < materials.len() {
                     let material = materials
-                        .nth(i)
-                        .expect("Material index out of bounds");
-                    return PlaceSpecificMaterial(material)
+                        .nth(i).unwrap();
+                    return Ok(PlaceSpecificMaterial(material))
                 }
                 
                 let i = i - materials.len();
                 let mut interactables = InteractableKind::iter();
                 if i < interactables.len() {
                     let interactable = interactables
-                        .nth(i)
-                        .expect("Interactable index out of bounds");
-                    return PlaceSpecificInteractable(interactable)
+                        .nth(i).unwrap();
+                    return Ok(PlaceSpecificInteractable(interactable))
                 }
                 
                 let i = i - interactables.len();
+                let craftables = Storable::craftables();
+                if i < craftables.len() {
+                    let craftable = craftables[i];
+                    return Ok(CraftSpecific(craftable))
+                }
                 
-                // todo Craftables for crafting
-                
+                let i = i - craftables.len();
                 let mut consumables = Consumable::iter();
                 if i < consumables.len() {
                     let consumable = consumables
-                        .nth(i)
-                        .expect("Consumable index out of bounds");
-                    return ConsumeSpecific(consumable)
+                        .nth(i).unwrap();
+                    return Ok(ConsumeSpecific(consumable))
                 }
-                unreachable!()
+                Err("unknown action")
             },
         }
     }

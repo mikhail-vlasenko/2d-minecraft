@@ -1,31 +1,28 @@
 import ctypes
 import numpy as np
+import random
 
-from python_wrapper.ffi_elements import init_lib, Observation, reset, step, get_observation
-from python_wrapper.observation import ProcessedObservation
+from python_wrapper.ffi_elements import init_lib, reset, step, num_actions
+from python_wrapper.observation import ProcessedObservation, get_processed_observation, get_action_name
 
 
-lib = init_lib('./target/debug/ffi.dll')
+init_lib('./target/debug/ffi.dll')
 
+
+num_actions = num_actions()
+print(f'Total number of available actions: {num_actions}')
 
 reset()
-
-# Call the Rust function `get_observation` and get the result
-c_observation = get_observation()
-observation = ProcessedObservation.from_c_observation(c_observation)
-print(observation)
+print(get_processed_observation())
 
 step(0)
-c_observation = get_observation()
-observation = ProcessedObservation.from_c_observation(c_observation)
-print(observation)
+print(get_processed_observation())
 
 step(6)
-c_observation = get_observation()
-observation = ProcessedObservation.from_c_observation(c_observation)
-print(observation)
+print(get_processed_observation())
 
-step(20)
-c_observation = get_observation()
-observation = ProcessedObservation.from_c_observation(c_observation)
-print(observation)
+for i in range(3):
+    action = random.randint(0, num_actions - 1)
+    print(f'Performing action: {get_action_name(action)}')
+    step(action)
+    print(get_processed_observation())

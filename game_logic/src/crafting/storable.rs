@@ -1,6 +1,8 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use lazy_static::lazy_static;
 use serde::{Serialize, Deserialize};
+use strum::IntoEnumIterator;
 use Storable::*;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
@@ -8,6 +10,7 @@ use crate::crafting::material::Material;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use strum_macros::EnumIter;
 use crate::crafting::interactable::InteractableKind;
+use crate::crafting::texture_material::TextureMaterial;
 
 
 /// Represents anything that can be stored in the inventory.
@@ -126,5 +129,40 @@ impl Default for Storable {
     }
 }
 
-// todo: vector of all storables
-// todo: vector of all craftables
+lazy_static!{
+    pub static ref ALL_STORABLES: Vec<Storable> = {
+        let mut all = Vec::new();
+        // only includes the 
+        for mat in Material::iter() {
+            match mat {
+                Material::Texture(_) => continue,
+                _ => all.push(M(mat))
+            }
+        }
+        for texture in TextureMaterial::iter() {
+            all.push(M(Material::Texture(texture)));
+        }
+        for item in Item::iter() {
+            all.push(I(item));
+        }
+        for cons in Consumable::iter() {
+            all.push(C(cons));
+        }
+        for rw in RangedWeapon::iter() {
+            all.push(RW(rw));
+        }
+        for inter in InteractableKind::iter() {
+            all.push(IN(inter));
+        }
+        all
+    };
+}
+
+impl Storable {
+    pub fn all() -> Vec<Storable> {
+        ALL_STORABLES.clone()
+    }
+    pub fn craftables() -> Vec<Storable> {
+        ALL_STORABLES.iter().filter(|s| s.is_craftable()).cloned().collect()
+    }
+}

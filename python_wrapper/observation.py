@@ -3,7 +3,7 @@ from typing import Tuple, List
 
 import numpy as np
 
-from python_wrapper.ffi_elements import Observation
+from python_wrapper.ffi_elements import Observation, get_observation, action_name
 
 OBSERVATION_GRID_SIZE = 17
 
@@ -53,3 +53,13 @@ class ProcessedObservation:
         mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((16, 4)).tolist()
         message = ctypes.cast(c_observation.message, ctypes.c_char_p).value.decode('utf-8') if c_observation.message else ""
         return ProcessedObservation(top_materials, tile_heights, player_pos, player_rot, hp, time, inventory_state, mobs, message)
+
+
+def get_processed_observation() -> ProcessedObservation:
+    c_observation = get_observation()
+    return ProcessedObservation.from_c_observation(c_observation)
+
+
+def get_action_name(action: int) -> str:
+    name = action_name(action)
+    return ctypes.cast(name, ctypes.c_char_p).value.decode('utf-8') if name else ""

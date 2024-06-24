@@ -476,6 +476,7 @@ impl Field {
 
     /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
     /// Positions are centered on the player.
+    /// Checks stray mobs, so can be used during mob turns.
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(RelativePos, u32)> {
         let mut res= Vec::new();
         // selects a square of chunks around the player that are close enough to have some tiles in view
@@ -500,16 +501,15 @@ impl Field {
         res
     }
 
-    /// Player-relative positions of close mobs and their hp shares.
-    pub fn all_mob_positions_and_hp(&self, player: &Player) -> Vec<(RelativePos, f32)> {
-        // doesnt account for stray mobs
-        let mut res: Vec<(RelativePos, f32)> = Vec::new();
+    /// Can't be used during mob turns, as it doesn't account for stray mobs
+    pub fn close_mob_info<F: Fn(&Mob) -> T, T>(&self, info_extractor: F) -> Vec<T> {
+        let mut res= Vec::new();
         let (min_idx, max_idx) = self.get_close_chunk_indices();
 
         for i in min_idx..=max_idx {
             for j in min_idx..=max_idx {
                 for m in self.loaded_chunks[i][j].lock().unwrap().get_mobs() {
-                    res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_hp_share()));
+                    res.push(info_extractor(m));
                 }
             }
         }
