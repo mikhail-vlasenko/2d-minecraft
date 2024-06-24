@@ -1,11 +1,9 @@
-import random
 import time
 from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size
-from python_wrapper.observation import ProcessedObservation, get_processed_observation, get_action_name
 
 
-def measure_ticks_per_second(duration_seconds=0.8):
-    batch_size = 512
+def measure_ticks_per_second(duration_seconds=3):
+    batch_size = 32
     set_batch_size(batch_size)
 
     start_time = time.time()
@@ -20,9 +18,6 @@ def measure_ticks_per_second(duration_seconds=0.8):
             step_one(2, b)
         tick_count += 2 * batch_size
 
-    per_game_count = tick_count / batch_size
-    if per_game_count > 50:
-        raise RuntimeError(f'Too many ticks per game. Some could have finished. ({per_game_count})')
     elapsed_time = time.time() - start_time
     ticks_per_second = tick_count / elapsed_time
     return ticks_per_second

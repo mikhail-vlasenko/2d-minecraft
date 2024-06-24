@@ -34,6 +34,9 @@ def reset():
 
 def step_one(action: int, index: int):
     """ Steps the game state at the specified index with the given action.
+ Checking for Done is at the start of the function. 
+ An action that was sent to a game that was already done, will be ignored, 
+ so that a starting observation can be obtained. 
 
  # Arguments
 
@@ -113,9 +116,10 @@ class Observation(ctypes.Structure):
         ("inventory_state", ctypes.c_int32 * 26),
         ("mobs", ctypes.c_int32 * 4 * 16),
         ("message", ctypes.POINTER(ctypes.c_int8)),
+        ("done", ctypes.c_bool),
     ]
 
-    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, message: ctypes.POINTER(ctypes.c_int8) = None):
+    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
         if top_materials is not None:
             self.top_materials = top_materials
         if tile_heights is not None:
@@ -134,6 +138,8 @@ class Observation(ctypes.Structure):
             self.mobs = mobs
         if message is not None:
             self.message = message
+        if done is not None:
+            self.done = done
 
     @property
     def top_materials(self):
@@ -206,6 +212,14 @@ class Observation(ctypes.Structure):
     @message.setter
     def message(self, value: ctypes.POINTER(ctypes.c_int8)):
         return ctypes.Structure.__set__(self, "message", value)
+
+    @property
+    def done(self) -> bool:
+        return ctypes.Structure.__get__(self, "done")
+
+    @done.setter
+    def done(self, value: bool):
+        return ctypes.Structure.__set__(self, "done", value)
 
 
 

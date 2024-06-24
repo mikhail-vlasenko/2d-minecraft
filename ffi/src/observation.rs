@@ -4,6 +4,7 @@ use std::os::raw::c_char;
 use interoptopus::ffi_type;
 use game_logic::character::player::Player;
 use game_logic::crafting::storable::{ALL_STORABLES, Storable};
+use game_logic::is_game_over;
 use game_logic::map_generation::field::Field;
 use game_logic::settings::DEFAULT_SETTINGS;
 
@@ -26,6 +27,7 @@ pub struct Observation {
     // player-relative x, player-relative y, type, health. for the 16 closest mobs that are visible. mob type -1 is no mob
     pub mobs: [[i32; MOB_INFO_SIZE]; MAX_MOBS],
     pub message: *mut c_char,
+    pub done: bool,
 }
 
 impl Observation {
@@ -59,6 +61,7 @@ impl Observation {
             }
         }
         let message = CString::new(player.message.clone()).unwrap().into_raw();
+        let done = is_game_over(player);
         Self {
             top_materials,
             tile_heights,
@@ -69,6 +72,7 @@ impl Observation {
             inventory_state,
             mobs,
             message,
+            done,
         }
     }
 }
@@ -85,6 +89,7 @@ impl Default for Observation {
             inventory_state: [0; INVENTORY_SIZE],
             mobs: [[-1; MOB_INFO_SIZE]; MAX_MOBS],
             message: CString::new(String::from("")).unwrap().into_raw(),
+            done: false,
         }
     }
 }

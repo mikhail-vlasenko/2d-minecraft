@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use strum::IntoEnumIterator;
 use game_logic::auxiliary::actions::Action;
 use game_logic::character::player::Player;
-use game_logic::handle_action;
+use game_logic::{handle_action, is_game_over};
 use game_logic::map_generation::field::{absolute_to_relative, Field};
 use game_logic::map_generation::field::AbsolutePos;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
@@ -71,5 +71,15 @@ impl GameState {
         });
         
         mobs
+    }
+    
+    pub fn is_done(&self) -> bool {
+        is_game_over(&self.player)
+    }
+    
+    pub fn reset(&mut self) {
+        let (field, player) = game_logic::init_field_player();
+        self.field = field;
+        self.player = player;
     }
 }

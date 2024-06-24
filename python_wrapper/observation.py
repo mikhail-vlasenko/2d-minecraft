@@ -18,7 +18,8 @@ class ProcessedObservation:
                  time: float,
                  inventory_state: List[int],
                  mobs: List[List[int]],
-                 message: str):
+                 message: str,
+                 done: bool = False):
         self.top_materials = top_materials
         self.tile_heights = tile_heights
         self.player_pos = player_pos
@@ -28,6 +29,7 @@ class ProcessedObservation:
         self.inventory_state = inventory_state
         self.mobs = mobs
         self.message = message
+        self.done = done
 
     def __str__(self) -> str:
         return (f"Observation:\n"
@@ -39,7 +41,8 @@ class ProcessedObservation:
                 f"Mobs: {self.mobs}\n"
                 f"Message: {self.message}\n"
                 f"Top Materials:\n{self.top_materials}\n"
-                f"Tile Heights:\n{self.tile_heights}\n")
+                f"Tile Heights:\n{self.tile_heights}\n"
+                f"Done: {self.done}")
 
     @staticmethod
     def from_c_observation(c_observation: Observation) -> 'ProcessedObservation':
@@ -52,7 +55,8 @@ class ProcessedObservation:
         inventory_state = np.ctypeslib.as_array(c_observation.inventory_state).tolist()
         mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((16, 4)).tolist()
         message = ctypes.cast(c_observation.message, ctypes.c_char_p).value.decode('utf-8') if c_observation.message else ""
-        return ProcessedObservation(top_materials, tile_heights, player_pos, player_rot, hp, time, inventory_state, mobs, message)
+        done = c_observation.done
+        return ProcessedObservation(top_materials, tile_heights, player_pos, player_rot, hp, time, inventory_state, mobs, message, done)
 
 
 def get_processed_observation(idx: int) -> ProcessedObservation:

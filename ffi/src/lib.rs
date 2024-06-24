@@ -44,6 +44,9 @@ pub extern "C" fn reset() {
 }
 
 /// Steps the game state at the specified index with the given action.
+/// Checking for Done is at the start of the function. 
+/// An action that was sent to a game that was already done, will be ignored, 
+/// so that a starting observation can be obtained. 
 ///
 /// # Arguments
 ///
@@ -54,7 +57,11 @@ pub extern "C" fn reset() {
 pub extern "C" fn step_one(action: i32, index: i32) {
     let mut state = STATE.lock().unwrap();
     if let Some(game_state) = state.get_mut(index as usize) {
-        game_state.step_i32(action);
+        if !game_state.is_done() {
+            game_state.step_i32(action);
+        } else { 
+            game_state.reset();
+        }
     } else {
         panic!("Index {} out of bounds for batch size {}", index, state.len());
     }

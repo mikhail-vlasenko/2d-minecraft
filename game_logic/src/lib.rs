@@ -52,7 +52,7 @@ pub fn init_field_player() -> (Field, Player) {
 pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player, 
                      main_menu_open: &RefCell<bool>, craft_menu_open: &RefCell<bool>, 
                      animation_manager: Option<& mut AnimationManager>) {
-    if action == &Action::ToggleMainMenu || (player.get_hp() > 0 && !*main_menu_open.borrow()) {
+    if action == &Action::ToggleMainMenu || (!is_game_over(player) && !*main_menu_open.borrow()) {
         player.message = String::new();
         // different actions take different time, so sometimes mobs are not allowed to step
         let passed_time = act(
@@ -70,4 +70,8 @@ pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player,
             player.animations_buffer.clear();
         }
     }
+}
+
+pub fn is_game_over(player: &Player) -> bool {
+    player.get_hp() <= 0
 }
