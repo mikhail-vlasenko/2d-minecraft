@@ -22,6 +22,7 @@ pub struct TextureBindGroups {
     zombie: BindGroup,
     zergling: BindGroup,
     baneling: BindGroup,
+    gelatinous_cube: BindGroup,
     cow: BindGroup,
     night: BindGroup,
     red_moon: BindGroup,
@@ -105,6 +106,7 @@ impl TextureBindGroups {
         let zombie = make_bind_group_from_texture!("../../res/mobs/zombie.png");
         let zergling = make_bind_group_from_texture!("../../res/mobs/zergling.png");
         let baneling = make_bind_group_from_texture!("../../res/mobs/baneling.png");
+        let gelatinous_cube = make_bind_group_from_texture!("../../res/mobs/gelatinous_cube.png");
         let cow = make_bind_group_from_texture!("../../res/mobs/mc_cow.png");
         let night = make_bind_group_from_texture!("../../res/transparent gradient.png");
         let red_moon = make_bind_group_from_texture!("../../res/red_moon_grad.png");
@@ -113,7 +115,7 @@ impl TextureBindGroups {
         let crossbow_turret = make_bind_group_from_texture!("../../res/interactables/fat_string_crossbow.png");
         let red_hp_bar = make_bind_group_from_texture!("../../res/red_hp_bar.png");
         let green_hp_bar = make_bind_group_from_texture!("../../res/green_hp_bar.png");
-        let player = make_bind_group_from_texture!("../../res/tiles/player_top_view.png");
+        let player = make_bind_group_from_texture!("../../res/player_top_view.png");
         
         let yellow_hit = make_bind_group_from_texture!("../../res/animations/unrolled_yellow_hit.png");
         let red_hit = make_bind_group_from_texture!("../../res/animations/unrolled_red_hit_center_crop.png");
@@ -137,6 +139,7 @@ impl TextureBindGroups {
             zombie,
             zergling,
             baneling,
+            gelatinous_cube,
             cow,
             night,
             red_moon,
