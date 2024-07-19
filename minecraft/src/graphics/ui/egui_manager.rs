@@ -75,7 +75,7 @@ impl EguiManager {
                 }
 
                 if player.get_hp() <= 0 {
-                    self.render_game_over(context);
+                    self.render_game_over(context, player);
                 }
             },
         )
@@ -222,17 +222,22 @@ impl EguiManager {
                 ui.label(format!("Effects: {:?}", player.get_status_effects()));
                 ui.label(format!("Time: {}", time));
                 ui.label(time_to_weekday(time));
+                ui.label(format!("Score: {}", player.get_score()));
                 ui.label(format!("{}", player.message));
             });
     }
 
-    fn render_game_over(&self, context: &Context) {
+    fn render_game_over(&self, context: &Context, player: &Player) {
         egui::Window::new("").anchor(Align2::CENTER_CENTER, [0., 0.])
             .show(context, |ui| {
                 ui.add(Label::new(RichText::new("Game Over!")
                     .font(FontId::proportional(80.0))
                     .color(Color32::RED)
                     .strong()
+                ).wrap(false));
+                ui.add(Label::new(RichText::new(format!("Your score: {}", player.get_score()))
+                                      .font(FontId::proportional(60.0))
+                                      .strong()
                 ).wrap(false));
             });
     }

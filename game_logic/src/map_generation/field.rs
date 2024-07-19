@@ -125,6 +125,7 @@ impl Field {
             self.step_mobs(player);
             self.accumulated_time -= 1.;
             self.time += 1.;
+            player.score_passed_time(1., self.get_time());
         }
     }
 
@@ -610,7 +611,6 @@ impl Field {
                         self.add_loot_at(self.stray_mobs[i].get_kind().loot(),
                                          (self.stray_mobs[i].pos.x, self.stray_mobs[i].pos.y));
                         self.stray_mobs.remove(i);
-                        println!("stray mob removed");
                         true
                     } else {
                         false
@@ -619,6 +619,14 @@ impl Field {
             }
         }
         self.get_chunk(xy.0, xy.1).damage_mob(xy.0, xy.1, damage)
+    }
+    pub fn get_mob_kind_at(&self, xy: (i32, i32)) -> Option<MobKind> {
+        for m in &self.stray_mobs {
+            if m.pos.x == xy.0 && m.pos.y == xy.1 {
+                return Some(*m.get_kind());
+            }
+        }
+        self.get_chunk_immut(xy.0, xy.1).get_mob_kind_at(xy.0, xy.1)
     }
     pub fn pick_tile(&mut self) -> (i32, i32) {
         let min = self.min_loaded_idx();

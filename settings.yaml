@@ -44,3 +44,23 @@ player:
   arrow_break_chance: 0.3
 
 save_folder: game_saves
+
+scoring:
+  time:  # survival time
+    turn: 1
+    day: 0
+
+  blocks:
+    mined:
+      diamond: 50
+    crafted:
+      diamond_sword: 50
+      crossbow_turret: 100
+      arrow: 1
+  
+  killed_mobs:
+    zombie: 20
+    zergling: 20
+    baneling: 30
+    gelatinous_cube: 50
+    cow: 10

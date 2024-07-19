@@ -194,6 +194,14 @@ impl Chunk {
         }
         false
     }
+    pub fn get_mob_kind_at(&self, x: i32, y: i32) -> Option<MobKind> {
+        for mob in &self.mobs {
+            if mob.pos.x == x && mob.pos.y == y {
+                return Some(*mob.get_kind());
+            }
+        }
+        None
+    }
 }
 
 /// API for using the chunk's interactables

@@ -11,6 +11,7 @@ pub struct Settings {
     pub pathing: _Config__pathing,
     pub player: _Config__player,
     pub save_folder: Cow<'static, str>,
+    pub scoring: _Config__scoring,
     pub window: _Config__window,
 }
 
@@ -92,6 +93,52 @@ pub struct _Config__player {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[allow(non_camel_case_types)]
+pub struct _Config__scoring {
+    pub blocks: _Config__scoring__blocks,
+    pub killed_mobs: _Config__scoring__killed_mobs,
+    pub time: _Config__scoring__time,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__scoring__blocks {
+    pub crafted: _Config__scoring__blocks__crafted,
+    pub mined: _Config__scoring__blocks__mined,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__scoring__blocks__crafted {
+    pub arrow: i32,
+    pub crossbow_turret: i32,
+    pub diamond_sword: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__scoring__blocks__mined {
+    pub diamond: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__scoring__killed_mobs {
+    pub baneling: i32,
+    pub cow: i32,
+    pub gelatinous_cube: i32,
+    pub zergling: i32,
+    pub zombie: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__scoring__time {
+    pub day: i32,
+    pub turn: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
 pub struct _Config__window {
     pub height: i32,
     pub render_distance: i32,
@@ -144,6 +191,29 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         max_hp: 100,
     },
     save_folder: Cow::Borrowed("game_saves"),
+    scoring: _Config__scoring {
+        blocks: _Config__scoring__blocks {
+            crafted: _Config__scoring__blocks__crafted {
+                arrow: 1,
+                crossbow_turret: 100,
+                diamond_sword: 50,
+            },
+            mined: _Config__scoring__blocks__mined {
+                diamond: 50,
+            },
+        },
+        killed_mobs: _Config__scoring__killed_mobs {
+            baneling: 30,
+            cow: 10,
+            gelatinous_cube: 50,
+            zergling: 20,
+            zombie: 20,
+        },
+        time: _Config__scoring__time {
+            day: 0,
+            turn: 1,
+        },
+    },
     window: _Config__window {
         height: 1600,
         render_distance: 8,

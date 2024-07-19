@@ -83,6 +83,10 @@ impl MainMenu {
 
                     self.second_panel_label(&mut columns[1]);
 
+                    let path_string = settings.save_folder.clone().into_owned();
+                    let path = Path::new(&path_string);
+                    let save_names = get_directories(&path).unwrap_or(vec![]);
+
                     match self.second_panel {
                         SecondPanelState::SaveGame => {
                             columns[1].horizontal(|ui| {
@@ -92,13 +96,14 @@ impl MainMenu {
                             if columns[1].button("Save").clicked() {
                                 self.selected_option = SelectedOption::SaveGame;
                             }
+                            columns[1].label("Existing saves:");
+                            for name in save_names.iter() {
+                                columns[1].label(RichText::new(name).font(FontId::proportional(20.0)));
+                            }
+
                             self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::LoadGame => {
-                            let path_string = settings.save_folder.clone().into_owned();
-                            let path = Path::new(&path_string);
-                            let save_names = get_directories(&path).unwrap_or(vec![]);
-
                             // todo: make into a scroll area
                             for name in save_names.iter() {
                                 if columns[1].button(RichText::new(name)

@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use serde::{Serialize, Deserialize};
+use strum::IntoEnumIterator;
 use crate::auxiliary::animations::ProjectileType;
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::character::player::Player;
@@ -88,9 +89,10 @@ impl Interactable {
 
 impl InteractableKind {
     pub fn get_targeting_data(&self) -> Option<TargetingData> {
+        let hostiles = MobKind::iter().filter(|m| m.hostile()).collect();
         match self {
             CrossbowTurret => Some(TargetingData {
-                target_mobs: vec![MobKind::Zombie, MobKind::Zergling, MobKind::Baneling],
+                target_mobs: hostiles,
                 range: 5,
                 damage: 30,
                 ammo: Arrow,

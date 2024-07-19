@@ -40,6 +40,7 @@ pub struct Player {
     pub viewing_map: bool,
 
     pub message: String,
+    pub score: i32,
     pub animations_buffer: AnimationsBuffer,
 }
 
@@ -60,6 +61,7 @@ impl Player {
             interacting_with: None,
             viewing_map: false,
             message: String::new(),
+            score: 0,
             animations_buffer: AnimationsBuffer::new(),
         };
         player.land(field);
@@ -84,6 +86,7 @@ impl Player {
             0.
         } else {
             self.add_message(&format!("Mined {}", mat));
+            self.score_mined(&mat);
             if mat.drop_item().is_some() {
                 self.pickup(mat.drop_item().unwrap(), 1);
             } else {
@@ -198,7 +201,7 @@ impl Player {
         if field.len_at(new_pos) <= self.z + 1 {
             // fighting
             if field.is_occupied(new_pos) {
-                field.damage_mob(new_pos, self.get_melee_damage());
+                self.damage_mob(field, new_pos, self.get_melee_damage());
                 return self.get_speed_multiplier()
             }
             // movement
@@ -292,6 +295,7 @@ impl Player {
         let craft_yield = item.craft_yield();
         self.inventory.pickup(item, craft_yield);
         self.add_message(&format!("Crafted {} of {}", craft_yield, item));
+        self.score_crafted(&item, craft_yield);
         self.get_speed_multiplier()
     }
 
@@ -335,7 +339,7 @@ impl Player {
                 break;
             }
             if field.is_occupied(curr_tile) {
-                field.damage_mob(curr_tile, weapon.damage());
+                self.damage_mob(field, curr_tile, weapon.damage());
                 break;
             }
         }
@@ -382,6 +386,14 @@ impl Player {
         }
     }
 
+    fn damage_mob(&mut self, field: &mut Field, pos: (i32, i32), dmg: i32) {
+        let mob_kind = field.get_mob_kind_at(pos).unwrap();
+        let died = field.damage_mob(pos, dmg);
+        if died {
+            self.score_killed_mob(&mob_kind);
+        }
+    }
+    
     /// Rotates the Player 90 degrees (counter-)clockwise.
     ///
     /// # Arguments
@@ -460,7 +472,7 @@ impl Player {
         }
         self.message.push_str(new);
     }
-     pub fn reset_message(&mut self) {
+    pub fn reset_message(&mut self) {
          self.message = String::new();
      }
 }
