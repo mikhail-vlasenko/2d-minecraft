@@ -285,6 +285,7 @@ impl<'a> State<'a> {
             self.egui_manager.main_menu_open.replace(false);
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
+            self.animation_manager.clear();
         }
 
         let mob_positions_and_hp = self.field.close_mob_info(|mob| {

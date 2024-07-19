@@ -123,8 +123,8 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
             initial_hostile_per_chunk: 0.2,
             max_mobs_on_chunk: 3,
             probabilities: _Config__mobs__spawning__probabilities {
-                bane: 0.3,
-                gelatinous_cube: 0.15,
+                bane: 0.25,
+                gelatinous_cube: 0.1,
                 ling: 0.2,
             },
         },

@@ -429,7 +429,7 @@ impl Field {
         for i in (player.x - radius)..=(player.x + radius) {
             for j in (player.y - radius)..=(player.y + radius) {
                 if condition((i, j)) {
-                    res.push((i as i32 - player.x, j as i32 - player.y));
+                    res.push((i - player.x, j - player.y));
                 }
             }
         }

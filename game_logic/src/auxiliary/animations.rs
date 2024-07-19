@@ -2,7 +2,7 @@ use std::mem::swap;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use crate::character::player::Player;
-use crate::map_generation::field::AbsolutePos;
+use crate::map_generation::field::{AbsolutePos, Field};
 
 pub trait AnimationInfo {
     fn get_num_frames(&self) -> u32;
@@ -156,6 +156,21 @@ impl AnimationManager {
         self.tile_animations.retain(|animation| {
             !animation.animation_type.continuous()
         });
+    }
+    
+    pub fn add_channeling_animations(&mut self, field: &Field, player: &Player) {
+        for mob_pos in field.conditional_close_mob_info(
+            |mob| { (mob.pos.x, mob.pos.y) },
+            player,
+            |mob| { mob.is_channeling() } 
+        ) {
+            self.add_tile_animation(TileAnimation::new(TileAnimationType::Channelling, mob_pos));
+        }
+    }
+    
+    pub fn clear(&mut self) {
+        self.tile_animations.clear();
+        self.projectile_animations.clear();
     }
 }
 

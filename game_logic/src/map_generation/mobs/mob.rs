@@ -159,6 +159,9 @@ impl Mob {
                 }
             }
         }
+        if field.is_occupied(new_pos) {
+            return;
+        }
         if self.kind == GelatinousCube {
             field.animations_buffer.add_projectile_animation(
                 ProjectileType::GelatinousCube, (self.pos.x, self.pos.y), new_pos
@@ -230,6 +233,13 @@ impl Mob {
     pub fn get_hp_share(&self) -> f32 {
         self.hp as f32 / self.kind.get_max_hp() as f32
     }
+    
+    pub fn is_channeling(&self) -> bool {
+        if let MobState::Channeling(_) = self.state {
+            return true;
+        }
+        false
+    }
 }
 
 impl ActingWithSpeed for Mob {
@@ -246,7 +256,6 @@ impl ActingWithSpeed for Mob {
         if let MobState::Channeling(turns) = self.state {
             if turns != 0 {
                 self.state = MobState::Channeling(turns - 1);
-                field.animations_buffer.add_tile_animation(TileAnimationType::Channelling, (self.pos.x, self.pos.y));
                 // end turn immediately
                 return;
             }
@@ -289,7 +298,6 @@ impl ActingWithSpeed for Mob {
             if self.kind == GelatinousCube && direction == (0, 0) && self.kind.jump_distance() >= dist {
                 // route not found, so jump
                 self.state = MobState::Channeling(2);
-                field.animations_buffer.add_tile_animation(TileAnimationType::Channelling, (self.pos.x, self.pos.y));
                 return;
             }
             if direction != (0, 0) {

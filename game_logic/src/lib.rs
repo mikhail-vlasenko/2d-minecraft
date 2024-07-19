@@ -66,6 +66,7 @@ pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player,
             if passed_time > 0. {
                 // drop continuous animations if player made an action
                 animation_manager.drop_continuous_animations();
+                animation_manager.add_channeling_animations(field, player);
             }
             animation_manager.absorb_buffer(&mut field.animations_buffer);
             animation_manager.absorb_buffer(&mut player.animations_buffer);
