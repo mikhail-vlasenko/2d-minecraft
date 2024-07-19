@@ -124,7 +124,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
             max_mobs_on_chunk: 3,
             probabilities: _Config__mobs__spawning__probabilities {
                 bane: 0.3,
-                gelatinous_cube: 0.1,
+                gelatinous_cube: 0.15,
                 ling: 0.2,
             },
         },

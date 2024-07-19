@@ -1,5 +1,6 @@
 use std::cmp::{max};
 use serde::{Serialize, Deserialize};
+use crate::auxiliary::animations::{ProjectileType, TileAnimationType};
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::map_generation::mobs::a_star::can_step;
 use crate::character::player::Player;
@@ -142,16 +143,14 @@ impl Mob {
     
     fn jump_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+        let mut new_pos = (self.pos.x, self.pos.y);
         if dist <= self.kind.jump_distance() {
             // jump on the player
-            self.pos.x = player.x;
-            self.pos.y = player.y;
-            self.land(field);
+            new_pos = (player.x, player.y);
             player.receive_damage(self.kind.get_melee_damage());
         } else {
             // jump in the direction of the player
             let dir = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
-            let mut new_pos = (self.pos.x, self.pos.y);
             for _ in 0..self.kind.jump_distance() {
                 if rand::random() {
                     new_pos.0 += dir.0;
@@ -159,10 +158,15 @@ impl Mob {
                     new_pos.1 += dir.1;
                 }
             }
-            self.pos.x = new_pos.0;
-            self.pos.y = new_pos.1;
-            self.land(field);
         }
+        if self.kind == GelatinousCube {
+            field.animations_buffer.add_projectile_animation(
+                ProjectileType::GelatinousCube, (self.pos.x, self.pos.y), (player.x, player.y)
+            );
+        }
+        self.pos.x = new_pos.0;
+        self.pos.y = new_pos.1;
+        self.land(field);
     }
 
     pub fn update_state(&mut self, field: &Field, player: &mut Player) {
@@ -242,6 +246,7 @@ impl ActingWithSpeed for Mob {
         if let MobState::Channeling(turns) = self.state {
             if turns != 0 {
                 self.state = MobState::Channeling(turns - 1);
+                field.animations_buffer.add_tile_animation(TileAnimationType::Channelling, (self.pos.x, self.pos.y));
                 // end turn immediately
                 return;
             }
@@ -284,6 +289,7 @@ impl ActingWithSpeed for Mob {
             if self.kind == GelatinousCube && direction == (0, 0) && self.kind.jump_distance() >= dist {
                 // route not found, so jump
                 self.state = MobState::Channeling(2);
+                field.animations_buffer.add_tile_animation(TileAnimationType::Channelling, (self.pos.x, self.pos.y));
                 return;
             }
             if direction != (0, 0) {

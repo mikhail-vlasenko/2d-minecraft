@@ -33,6 +33,13 @@ pub const VERTICES: &[Vertex] = &[
     Vertex { position: [0.0, 1.0, 0.0], tex_coords: [0.0, 0.0], },
 ];
 
+pub const CENTERED_SQUARE_VERTICES: &[Vertex] = &[
+    Vertex { position: [-0.5, -0.5, 0.0], tex_coords: [0.0, 1.0], },
+    Vertex { position: [0.5, -0.5, 0.0], tex_coords: [1.0, 1.0], },
+    Vertex { position: [0.5, 0.5, 0.0], tex_coords: [1.0, 0.0], },
+    Vertex { position: [-0.5, 0.5, 0.0], tex_coords: [0.0, 0.0], },
+];
+
 pub const INDICES: &[u16] = &[
     0, 1, 2,
     2, 3, 0,
@@ -81,7 +88,7 @@ pub fn make_animation_vertices(frame_number: u32, total_frames: u32) -> [Vertex;
 // only for the arrow, as there are no other projectiles (yet)
 const PROJECTILE_VERTICES_SCALING_COEF: f32 = 1.0 / 8.0;
 
-pub const PROJECTILE_VERTICES: &[Vertex] = &[
+pub const PROJECTILE_ARROW_VERTICES: &[Vertex] = &[
     Vertex { position: [-PROJECTILE_VERTICES_SCALING_COEF, -0.5, 0.0], tex_coords: [0.0, 1.0], },
     Vertex { position: [PROJECTILE_VERTICES_SCALING_COEF, -0.5, 0.0], tex_coords: [1.0, 1.0], },
     Vertex { position: [PROJECTILE_VERTICES_SCALING_COEF, 0.5, 0.0], tex_coords: [1.0, 0.0], },

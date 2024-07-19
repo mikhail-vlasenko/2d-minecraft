@@ -3,7 +3,7 @@ use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
 use crate::graphical_config::CONFIG;
 use crate::graphics::instance::{Instance, InstanceRaw};
-use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, PROJECTILE_VERTICES, VERTICES};
+use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, PROJECTILE_ARROW_VERTICES, VERTICES};
 
 
 /// Creates and stores wgpu buffers
@@ -16,10 +16,10 @@ pub struct Buffers {
     pub night_vertex_buffer: Buffer,
     pub night_instance_buffer: Buffer,
     pub map_instance_buffer: Buffer,
-    pub hp_bar_vertex_buffer: Vec<Buffer>,
+    pub hp_bar_vertex_buffers: Vec<Buffer>,
     pub hp_bar_instance_buffer: Buffer,
-    pub animation_vertex_buffer: Vec<Buffer>,
-    pub projectile_vertex_buffer: Buffer,
+    pub animation_vertex_buffers: Vec<Buffer>,
+    pub projectile_vertex_buffers: Vec<Buffer>,
     pub projectile_instance_buffer: Buffer,
 }
 
@@ -162,7 +162,7 @@ impl Buffers {
             }
         );
 
-        let hp_bar_vertex_buffer = vec![];
+        let hp_bar_vertex_buffers = vec![];
         let hp_bar_instance_data: Vec<InstanceRaw> = vec![];
         let hp_bar_instance_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -172,15 +172,8 @@ impl Buffers {
             }
         );
         
-        let animation_vertex_buffer: Vec<Buffer> = vec![];
-        
-        let projectile_vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Projectile Buffer"),
-                contents: bytemuck::cast_slice(PROJECTILE_VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
+        let animation_vertex_buffers: Vec<Buffer> = vec![];
+        let projectile_vertex_buffers: Vec<Buffer> = vec![];
         let projectile_instance_data: Vec<InstanceRaw> = vec![];
         let projectile_instance_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -199,10 +192,10 @@ impl Buffers {
             night_vertex_buffer,
             night_instance_buffer,
             map_instance_buffer,
-            hp_bar_vertex_buffer,
+            hp_bar_vertex_buffers,
             hp_bar_instance_buffer,
-            animation_vertex_buffer,
-            projectile_vertex_buffer,
+            animation_vertex_buffers,
+            projectile_vertex_buffers,
             projectile_instance_buffer,
         }
     }

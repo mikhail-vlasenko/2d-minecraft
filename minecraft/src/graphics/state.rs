@@ -20,13 +20,13 @@ use crate::graphics::buffers::Buffers;
 use crate::graphics::ui::egui_manager::EguiManager;
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
-use crate::graphics::vertex::{HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, Vertex};
+use crate::graphics::vertex::{CENTERED_SQUARE_VERTICES, HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, PROJECTILE_ARROW_VERTICES, Vertex, VERTICES};
 use game_logic::perform_action::act;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
 use game_logic::map_generation::field::{absolute_to_relative, AbsolutePos, Field, RelativePos};
 use game_logic::crafting::material::Material;
 use game_logic::crafting::storable::Storable;
-use game_logic::auxiliary::animations::AnimationManager;
+use game_logic::auxiliary::animations::{AnimationManager, ProjectileType};
 use crate::graphics::ui::egui_renderer::EguiRenderer;
 use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use game_logic::map_generation::chunk::Chunk;
@@ -292,10 +292,10 @@ impl<'a> State<'a> {
                 (pos, mob.get_hp_share())
             }, &self.player);
 
-        self.buffers.hp_bar_vertex_buffer = vec![];
+        self.buffers.hp_bar_vertex_buffers = vec![];
         for mob_info in &mob_positions_and_hp {
-            self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(1.));
-            self.buffers.hp_bar_vertex_buffer.push(self.hp_bar_vertices(mob_info.1));
+            self.buffers.hp_bar_vertex_buffers.push(self.hp_bar_vertices(1.));
+            self.buffers.hp_bar_vertex_buffers.push(self.hp_bar_vertices(mob_info.1));
         }
         let mut hp_bar_instances = vec![];
         for mob_info in &mob_positions_and_hp {
@@ -311,33 +311,7 @@ impl<'a> State<'a> {
             }
         );
 
-        // update before writing vertices. new animations will not change
-        self.animation_manager.update();
-        self.buffers.animation_vertex_buffer = vec![];
-        for tile_animation in self.animation_manager.get_tile_animations() {
-            self.buffers.animation_vertex_buffer.push(self.device.create_buffer_init(
-                &wgpu::util::BufferInitDescriptor {
-                    label: Some("Animation Vertex Buffer"),
-                    contents: bytemuck::cast_slice(
-                        &make_animation_vertices(tile_animation.get_frame(), 
-                                                 tile_animation.get_num_frames())),
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                }
-            ));
-        }
-        let mut projectile_instances = vec![];
-        for projectile_animation in self.animation_manager.get_projectile_animations() {
-            projectile_instances.push(self.projectile_instance(
-                projectile_animation.get_relative_position(&self.player), projectile_animation.get_rotation()));
-        }
-        let projectile_instance_data = projectile_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
-        self.buffers.projectile_instance_buffer = self.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: bytemuck::cast_slice(&projectile_instance_data),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }
-        );
+        self.update_animations();
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -557,9 +531,9 @@ impl<'a> State<'a> {
     fn render_hp_bars(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(1, self.buffers.hp_bar_instance_buffer.slice(..));
 
-        for i in 0..self.buffers.hp_bar_vertex_buffer.len() {
+        for i in 0..self.buffers.hp_bar_vertex_buffers.len() {
             let red = i % 2 == 0;
-            render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffer[i].slice(..));
+            render_pass.set_vertex_buffer(0, self.buffers.hp_bar_vertex_buffers[i].slice(..));
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_hp_bar(red), &[]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, i as u32..(i+1) as u32);
         }
@@ -567,20 +541,22 @@ impl<'a> State<'a> {
 
     fn render_animations(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
-        for i in 0..self.buffers.animation_vertex_buffer.len() {
-            render_pass.set_vertex_buffer(0, self.buffers.animation_vertex_buffer[i].slice(..));
-            let animation_type = self.animation_manager.get_tile_animations()[i].get_animation_type();
-            let animation_pos = self.animation_manager.get_tile_animations()[i].get_pos();
-            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_animation(*animation_type), &[]);
-            let mut rel_animation_positions = vec![absolute_to_relative(*animation_pos, &self.player)];
+        for i in 0..self.buffers.animation_vertex_buffers.len() {
+            let animation = self.animation_manager.get_tile_animations()[i];
+            render_pass.set_vertex_buffer(0, self.buffers.animation_vertex_buffers[i].slice(..));
+            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_animation(*animation.get_animation_type()), &[]);
+            let mut rel_animation_positions = vec![absolute_to_relative(*animation.get_pos(), &self.player)];
             rel_animation_positions = self.filter_out_of_view_tiles(rel_animation_positions);
             self.draw_at_grid_positions(&rel_animation_positions, render_pass, None);
         }
-        
-        render_pass.set_vertex_buffer(0, self.buffers.projectile_vertex_buffer.slice(..));
+
         render_pass.set_vertex_buffer(1, self.buffers.projectile_instance_buffer.slice(..));
-        render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_vertical_arrow(), &[]);
-        render_pass.draw_indexed(0..INDICES.len() as u32, 0, 0..self.animation_manager.get_projectile_animations().len() as u32);
+        for i in 0..self.buffers.projectile_vertex_buffers.len() {
+            let animation = self.animation_manager.get_projectile_animations()[i];
+            render_pass.set_vertex_buffer(0, self.buffers.projectile_vertex_buffers[i].slice(..));
+            render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_projectile(*animation.get_projectile_type()), &[]);
+            render_pass.draw_indexed(0..INDICES.len() as u32, 0, i as u32..(i+1) as u32);
+        }
     }
 
     fn render_night(&'a self, render_pass: &mut RenderPass<'a>) {
@@ -594,6 +570,54 @@ impl<'a> State<'a> {
             render_pass.set_vertex_buffer(1, self.buffers.night_instance_buffer.slice(..));
             render_pass.draw_indexed(0..6, 0, 0..1);
         }
+    }
+    
+    fn update_animations(&mut self) {
+        // update before writing vertices. new animations will not change
+        self.animation_manager.update();
+        // tile animations are animated by moving texture coordinates, so a separate vertex buffer is needed per animation
+        self.buffers.animation_vertex_buffers = vec![];
+        for tile_animation in self.animation_manager.get_tile_animations() {
+            self.buffers.animation_vertex_buffers.push(self.device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: Some("Animation Vertex Buffer"),
+                    contents: bytemuck::cast_slice(
+                        &make_animation_vertices(tile_animation.get_frame(),
+                                                 tile_animation.get_num_frames())),
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                }
+            ));
+        }
+        // projectile animations are animated by moving the projectile position, not strictly over grid tiles,
+        // so it needs an instance per animation,
+        // and also a separate vertex buffer per animation as projectile animations come in different shapes
+        self.buffers.projectile_vertex_buffers = vec![];
+        for projectile_animation in self.animation_manager.get_projectile_animations() {
+            let vertices = match projectile_animation.get_projectile_type() {
+                ProjectileType::Arrow => PROJECTILE_ARROW_VERTICES,
+                ProjectileType::GelatinousCube => CENTERED_SQUARE_VERTICES,
+            };
+            self.buffers.projectile_vertex_buffers.push(self.device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: Some("Projectile Vertex Buffer"),
+                    contents: bytemuck::cast_slice(vertices),
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                }
+            ));
+        }
+        let mut projectile_instances = vec![];
+        for projectile_animation in self.animation_manager.get_projectile_animations() {
+            projectile_instances.push(self.projectile_instance(
+                projectile_animation.get_relative_position(&self.player), projectile_animation.get_rotation()));
+        }
+        let projectile_instance_data = projectile_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        self.buffers.projectile_instance_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: bytemuck::cast_slice(&projectile_instance_data),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
     }
 
     fn convert_map_view_index(&self, x: i32, y: i32) -> u32 {

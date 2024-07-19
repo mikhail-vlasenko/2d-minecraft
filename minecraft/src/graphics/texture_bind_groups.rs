@@ -1,5 +1,5 @@
 use wgpu::{BindGroup, BindGroupLayout, Device};
-use game_logic::auxiliary::animations::TileAnimationType;
+use game_logic::auxiliary::animations::{ProjectileType, TileAnimationType};
 use game_logic::crafting::interactable::InteractableKind;
 use game_logic::crafting::material::Material;
 use game_logic::crafting::texture_material::TextureMaterial;
@@ -33,6 +33,7 @@ pub struct TextureBindGroups {
     green_hp_bar: BindGroup,
     yellow_hit: BindGroup,
     red_hit: BindGroup,
+    channeling: BindGroup,
     vertical_arrow: BindGroup,
     texture_materials: TextureMaterials,
     pub bind_group_layout: BindGroupLayout,
@@ -119,6 +120,7 @@ impl TextureBindGroups {
         
         let yellow_hit = make_bind_group_from_texture!("../../res/animations/unrolled_yellow_hit.png");
         let red_hit = make_bind_group_from_texture!("../../res/animations/unrolled_red_hit_center_crop.png");
+        let channeling = make_bind_group_from_texture!("../../res/animations/blue_channeling.png");
         let vertical_arrow = make_bind_group_from_texture!("../../res/animations/fat_arrow_vertical.png");
 
         let depth_indicators = Self::init_depth_groups(device, queue, &bind_group_layout);
@@ -150,6 +152,7 @@ impl TextureBindGroups {
             green_hp_bar,
             yellow_hit,
             red_hit,
+            channeling,
             vertical_arrow,
             texture_materials,
             bind_group_layout,
@@ -250,11 +253,16 @@ impl TextureBindGroups {
         match tile_animation_type {
             YellowHit => &self.yellow_hit,
             RedHit => &self.red_hit,
+            Channelling => &self.channeling,
         }
     }
     
-    pub fn get_bind_group_vertical_arrow(&self) -> &BindGroup {
-        &self.vertical_arrow
+    pub fn get_bind_group_projectile(&self, projectile_type: ProjectileType) -> &BindGroup {
+        use ProjectileType::*;
+        match projectile_type {
+            Arrow => &self.vertical_arrow,
+            GelatinousCube => &self.gelatinous_cube,
+        }
     }
 }
 

@@ -14,6 +14,7 @@ pub trait AnimationInfo {
 pub enum TileAnimationType {
     RedHit,
     YellowHit,
+    Channelling,
 }
 
 impl AnimationInfo for TileAnimationType {
@@ -21,6 +22,7 @@ impl AnimationInfo for TileAnimationType {
         match self {
             TileAnimationType::RedHit => 14,
             TileAnimationType::YellowHit => 14,
+            TileAnimationType::Channelling => 10,
         }
     }
     
@@ -28,6 +30,7 @@ impl AnimationInfo for TileAnimationType {
         match self {
             TileAnimationType::RedHit => 3,
             TileAnimationType::YellowHit => 1,
+            TileAnimationType::Channelling => 5,
         }
     }
 }
@@ -139,12 +142,14 @@ impl AnimationManager {
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Serialize, Deserialize, Debug)]
 pub enum ProjectileType {
     Arrow,
+    GelatinousCube,
 }
 
 impl ProjectileType {
     pub fn get_speed(&self) -> f32 {
         match self {
             ProjectileType::Arrow => 0.1,
+            ProjectileType::GelatinousCube => 0.05,
         }
     }
 }
@@ -193,6 +198,10 @@ impl ProjectileAnimation {
         let dx = -(target.0 - source.0);
         let dy = target.1 - source.1;
         -dy.atan2(dx)
+    }
+    
+    pub fn get_projectile_type(&self) -> &ProjectileType {
+        &self.projectile_type
     }
 }
 
