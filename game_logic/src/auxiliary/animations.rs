@@ -8,6 +8,8 @@ pub trait AnimationInfo {
     fn get_num_frames(&self) -> u32;
     /// How many updates should pass before the frame is switched
     fn updates_per_frame(&self) -> u32;
+    /// A continuous animation runs in a loop and gets dropped when player makes a turn
+    fn continuous(&self) -> bool;
 }
 
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Serialize, Deserialize, Debug)]
@@ -31,6 +33,14 @@ impl AnimationInfo for TileAnimationType {
             TileAnimationType::RedHit => 3,
             TileAnimationType::YellowHit => 1,
             TileAnimationType::Channelling => 5,
+        }
+    }
+    
+    fn continuous(&self) -> bool {
+        match self {
+            TileAnimationType::RedHit => false,
+            TileAnimationType::YellowHit => false,
+            TileAnimationType::Channelling => true,
         }
     }
 }
@@ -124,6 +134,10 @@ impl AnimationManager {
                 animation.unapplied_updates = 0;
                 animation.frame += 1;
             }
+            // loop continuous animations
+            if animation.frame == animation.animation_type.get_num_frames() && animation.animation_type.continuous() {
+                animation.frame = 0;
+            }
         }
         // remove ones with frame == num_frames
         self.tile_animations.retain(|animation| {
@@ -135,6 +149,12 @@ impl AnimationManager {
         }
         self.projectile_animations.retain(|animation| {
             animation.progress <= animation.get_distance()
+        });
+    }
+    
+    pub fn drop_continuous_animations(&mut self) {
+        self.tile_animations.retain(|animation| {
+            !animation.animation_type.continuous()
         });
     }
 }

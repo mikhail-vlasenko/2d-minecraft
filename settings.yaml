@@ -33,9 +33,9 @@ mobs:
     max_mobs_on_chunk: 3
     hard_mobs_since: 3  # in days. hard mobs don't spawn before this
     probabilities:
-      bane: 0.3
+      bane: 0.25
       ling: 0.2
-      gelatinous_cube: 0.15
+      gelatinous_cube: 0.1
       # the rest is zombie
 
 player:

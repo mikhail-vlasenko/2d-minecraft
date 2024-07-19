@@ -1,6 +1,7 @@
 use strum_macros::EnumIter;
 use serde::{Serialize, Deserialize};
 use crate::crafting::consumable::Consumable::{RawMeat, SpeedPotion};
+use crate::crafting::items::Item::IronIngot;
 use crate::crafting::storable::Storable;
 use crate::map_generation::mobs::mob_kind::MobKind::*;
 
@@ -62,7 +63,12 @@ impl MobKind {
                 loot
             }
             Baneling => vec![],
-            GelatinousCube => vec![],
+            GelatinousCube => {
+                let mut loot = Vec::new();
+                loot.push(IronIngot.into());
+                add_loot_with_probability(&mut loot, IronIngot.into(), 0.5);
+                loot
+            },
             Cow => vec![Storable::C(RawMeat)],
         }
     }

@@ -161,7 +161,7 @@ impl Mob {
         }
         if self.kind == GelatinousCube {
             field.animations_buffer.add_projectile_animation(
-                ProjectileType::GelatinousCube, (self.pos.x, self.pos.y), (player.x, player.y)
+                ProjectileType::GelatinousCube, (self.pos.x, self.pos.y), new_pos
             );
         }
         self.pos.x = new_pos.0;
