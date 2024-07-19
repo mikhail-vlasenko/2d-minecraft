@@ -58,7 +58,11 @@ impl Interactable {
                 }
                 // found a valid target to shoot
                 if let Some(mob_pos) = mob_pos {
-                    field.damage_mob(mob_pos, targeting.damage);
+                    let mob_kind = field.get_mob_kind_at(mob_pos).unwrap();
+                    let died = field.damage_mob(mob_pos, targeting.damage);
+                    if died {
+                        player.score_killed_mob(&mob_kind);
+                    }
                     // put the arrow on the field
                     if targeting.ammo == Arrow {
                         let rng: f32 = rand::random();
