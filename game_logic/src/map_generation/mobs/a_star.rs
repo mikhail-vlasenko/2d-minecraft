@@ -55,7 +55,6 @@ impl AStar {
             if current_tile == destination {
                 // restore path
                 if current_tile == source {
-                    println!("destination reached");
                     return ((0, 0), 0);
                 }
 
@@ -82,7 +81,6 @@ impl AStar {
                 }
             }
         }
-        println!("no route found");
         ((0, 0), 0)
     }
 
@@ -112,7 +110,6 @@ impl AStar {
     }
 
     fn get_neighbours(&self, field: &Field, tile: (i32, i32)) -> Vec<(i32, i32)> {
-        let this_height = field.len_at(tile);
         let mut res = Vec::new();
 
         for d in &DIRECTIONS {
@@ -120,7 +117,7 @@ impl AStar {
             // in bounds, not too high, has no mob, and not visited
             if self.min_loaded.0 <= new_pos.0 && new_pos.0 <= self.max_loaded.0 &&
                 self.min_loaded.1 <= new_pos.1 && new_pos.1 <= self.max_loaded.1 &&
-                can_step(field, tile, new_pos, this_height) {
+                can_step(field, tile, new_pos) {
                 let idx = self.convert_idx(new_pos);
                 if !self.visited[idx.0][idx.1] {
                     res.push(new_pos);
@@ -154,9 +151,16 @@ impl AStar {
     }
 }
 
-pub fn can_step(field: &Field, source: (i32, i32), destination: (i32, i32), current_height: usize) -> bool {
-    field.len_at(destination) <= current_height + 1 &&
+pub fn can_step(field: &Field, source: (i32, i32), destination: (i32, i32)) -> bool {
+    field.len_at(destination) <= field.len_at(source) + 1 &&
         !field.is_occupied(destination)
+}
+
+pub fn can_step_towards(field: &Field, source: (i32, i32), destination: (i32, i32)) -> bool {
+    let diff = (destination.0 - source.0, destination.1 - source.1);
+    let can1 = diff.0 != 0 && can_step(field, source, (source.0 + diff.0, source.1));
+    let can2 = diff.1 != 0 && can_step(field, source, (source.0, source.1 + diff.1));
+    can1 || can2
 }
 
 fn estimate_remaining(tile: (i32, i32), destination: (i32, i32)) -> i32 {

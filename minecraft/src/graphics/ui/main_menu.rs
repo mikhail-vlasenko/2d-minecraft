@@ -186,6 +186,8 @@ impl MainMenu {
             .text("Baneling"));
         ui.add(Slider::new(&mut settings.mobs.spawning.probabilities.ling, 0.0..=1.0)
             .text("Zerging"));
+        ui.add(Slider::new(&mut settings.mobs.spawning.probabilities.gelatinous_cube, 0.0..=1.0)
+            .text("Gelatinous Cube"));
 
         ui.label("Field Generation:");
         ui.add(Slider::new(&mut settings.field.generation.rock_proba, 0.0..=1.0)

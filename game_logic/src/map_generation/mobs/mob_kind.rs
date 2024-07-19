@@ -9,6 +9,7 @@ pub enum MobKind {
     Zombie,
     Zergling,
     Baneling,
+    GelatinousCube,
     Cow,
 }
 
@@ -18,6 +19,7 @@ impl MobKind {
             Zombie => 40,
             Zergling => 20,
             Baneling => 20,
+            GelatinousCube => 100,
             Cow => 20,
         }
     }
@@ -26,6 +28,7 @@ impl MobKind {
             Zombie => 10,
             Zergling => 10,
             Baneling => 0,
+            GelatinousCube => 15,
             Cow => 5,
         }
     }
@@ -37,6 +40,7 @@ impl MobKind {
             Zombie => 0.5,
             Zergling => 1.5,
             Baneling => 0.75,
+            GelatinousCube => 0.5,
             Cow => 0.75,
         }
     }
@@ -58,7 +62,15 @@ impl MobKind {
                 loot
             }
             Baneling => vec![],
+            GelatinousCube => vec![],
             Cow => vec![Storable::C(RawMeat)],
+        }
+    }
+    
+    pub fn jump_distance(&self) -> i32 {
+        match self {
+            GelatinousCube => 5,
+            _ => 0,
         }
     }
 }
@@ -74,6 +86,7 @@ fn add_loot_with_probability(loot: &mut Vec<Storable>, item: Storable, probabili
 pub enum MobState {
     Searching,
     Attacking,
+    Channeling(u32),  // the number is amount of turns remaining. GelatinousCube preparing for a jump, for example
 }
 
 impl Default for MobState {

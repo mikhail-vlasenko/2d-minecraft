@@ -51,6 +51,7 @@ pub struct _Config__mobs {
 pub struct _Config__mobs__spawning {
     pub base_day_amount: i32,
     pub base_night_amount: i32,
+    pub hard_mobs_since: i32,
     pub increase_amount_every: i32,
     pub initial_hostile_per_chunk: f32,
     pub max_mobs_on_chunk: i32,
@@ -61,6 +62,7 @@ pub struct _Config__mobs__spawning {
 #[allow(non_camel_case_types)]
 pub struct _Config__mobs__spawning__probabilities {
     pub bane: f32,
+    pub gelatinous_cube: f32,
     pub ling: f32,
 }
 
@@ -116,11 +118,13 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         spawning: _Config__mobs__spawning {
             base_day_amount: 2,
             base_night_amount: 5,
+            hard_mobs_since: 3,
             increase_amount_every: 3,
             initial_hostile_per_chunk: 0.2,
             max_mobs_on_chunk: 3,
             probabilities: _Config__mobs__spawning__probabilities {
                 bane: 0.3,
+                gelatinous_cube: 0.1,
                 ling: 0.2,
             },
         },

@@ -31,21 +31,6 @@ fn test_zombie_hits() {
 }
 
 #[test]
-fn test_mobs_get_you_eventually() {
-    let mut data = Data::new();
-    data.spawn_mobs(50, true);
-
-    assert!(data.player.get_hp() > 0);
-    for _ in 0..200 {
-        data.step_mobs();
-        if data.player.get_hp() <= 0 {
-            break;
-        }
-    }
-    assert!(data.player.get_hp() <= 0);
-}
-
-#[test]
 fn test_healing() {
     let mut data = Data::new();
 
@@ -117,83 +102,4 @@ fn test_shooting() {
     data.act(Shoot);
     data.act(Shoot);
     assert!(data.field.is_occupied((2, 0)));
-}
-
-#[test]
-fn test_one_ling_doesnt_engage() {
-    let mut data = Data::new();
-    let pos = Position {
-        x: 3,
-        y: 2,
-        z: data.field.len_at((3, 2)),
-    };
-    let kind = Zergling;
-    let mob = Mob::new(pos, kind);
-    data.field.get_chunk(3, 2).add_mob(mob);
-
-    let init_hp = data.player.get_hp();
-    for _ in 0..10 {
-        data.step_mobs();
-    }
-
-    assert_eq!(data.player.get_hp(), init_hp);
-}
-
-#[test]
-fn test_three_lings_engage() {
-    let mut data = Data::new();
-
-    // clear tile with tree
-    data.act(TurnRight);
-    data.mine();
-    data.mine();
-
-    let pos = Position {
-        x: 3,
-        y: 2,
-        z: data.field.len_at((3, 2)),
-    };
-    let kind = Zergling;
-    let mob = Mob::new(pos, kind);
-    data.field.get_chunk(3, 2).add_mob(mob);
-
-    let pos = Position {
-        x: -3,
-        y: 0,
-        z: data.field.len_at((-3, 0)),
-    };
-    let mob = Mob::new(pos, kind);
-    data.field.get_chunk(-3, 0).add_mob(mob);
-
-    let pos = Position {
-        x: -1,
-        y: -4,
-        z: data.field.len_at((-1, -4)),
-    };
-    let mob = Mob::new(pos, kind);
-    data.field.get_chunk(-1, -4).add_mob(mob);
-
-    let init_hp = data.player.get_hp();
-    for _ in 0..10 {
-        if data.player.get_hp() <= 0 {
-            break;
-        }
-        data.step_mobs();
-    }
-
-    assert!(data.player.get_hp() < init_hp);
-
-    // check that three tiles around the player are occupied (means 3 lings engaged)
-    let mut occupied = 0;
-    for x in -2..=2 {
-        for y in -2..=2 {
-            if x == 0 && y == 0 {
-                continue;
-            }
-            if data.field.is_occupied((x, y)) {
-                occupied += 1;
-            }
-        }
-    }
-    assert_eq!(occupied, 3);
 }

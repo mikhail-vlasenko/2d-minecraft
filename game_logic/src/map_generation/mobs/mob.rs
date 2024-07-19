@@ -1,12 +1,12 @@
 use std::cmp::{max};
 use serde::{Serialize, Deserialize};
 use crate::character::acting_with_speed::ActingWithSpeed;
-use crate::map_generation::mobs::a_star::{can_step};
+use crate::map_generation::mobs::a_star::can_step;
 use crate::character::player::Player;
 use crate::map_generation::field::{Field, RelativePos};
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind, MobState, ZERGLING_ATTACK_RANGE};
-use crate::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
+use crate::map_generation::mobs::mob_kind::MobKind::{Baneling, GelatinousCube, Zergling};
 use crate::SETTINGS;
 
 
@@ -52,7 +52,7 @@ impl Mob {
 
         if min_loaded.0 <= new_pos.0 && new_pos.0 <= max_loaded.0 &&
             min_loaded.1 <= new_pos.1 && new_pos.1 <= max_loaded.1 &&
-            can_step(field, (self.pos.x, self.pos.y), new_pos, self.pos.z) {
+            can_step(field, (self.pos.x, self.pos.y), new_pos) {
 
             self.set_rotation(Self::coords_to_rotation(delta));
             if player.x == new_pos.0 && player.y == new_pos.1 {
@@ -91,7 +91,7 @@ impl Mob {
         let mut good = Vec::new();
         for dir in DIRECTIONS {
             if can_step(field, (self.pos.x, self.pos.y),
-                        (self.pos.x + dir.0, self.pos.y + dir.1), self.pos.z) {
+                        (self.pos.x + dir.0, self.pos.y + dir.1)) {
                 possible.push(dir);
                 if (dir.0 == directions.0 && dir.0 != 0) || (dir.1 == directions.1 && dir.1 != 0) {
                     good.push(dir);
@@ -106,7 +106,7 @@ impl Mob {
         }
     }
 
-    fn baneling_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    fn check_baneling_explosion(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         let directions = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
 
         // baneling will explode if the shortest path to player is blocked, or it is next to the player
@@ -137,6 +137,31 @@ impl Mob {
                 self.receive_damage(self.kind.get_max_hp());
                 return;
             }
+        }
+    }
+    
+    fn jump_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+        let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+        if dist <= self.kind.jump_distance() {
+            // jump on the player
+            self.pos.x = player.x;
+            self.pos.y = player.y;
+            self.land(field);
+            player.receive_damage(self.kind.get_melee_damage());
+        } else {
+            // jump in the direction of the player
+            let dir = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
+            let mut new_pos = (self.pos.x, self.pos.y);
+            for _ in 0..self.kind.jump_distance() {
+                if rand::random() {
+                    new_pos.0 += dir.0;
+                } else {
+                    new_pos.1 += dir.1;
+                }
+            }
+            self.pos.x = new_pos.0;
+            self.pos.y = new_pos.1;
+            self.land(field);
         }
     }
 
@@ -214,12 +239,31 @@ impl ActingWithSpeed for Mob {
     /// * `max_loaded` - the maximum loaded coordinate
     fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
         self.update_state(field, player);
+        if let MobState::Channeling(turns) = self.state {
+            if turns != 0 {
+                self.state = MobState::Channeling(turns - 1);
+                // end turn immediately
+                return;
+            }
+            if self.kind == GelatinousCube {
+                // cube jumps
+                self.state = MobState::default();
+                self.jump_step(field, player, min_loaded, max_loaded);
+                return;
+            }
+        }
 
         let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
 
+        if dist == 0 {
+            // deal damage because mob stands on the player
+            player.receive_damage(self.kind.get_melee_damage());
+            return;
+        }
+
         if dist <= field.get_towards_player_radius() && self.kind == Baneling {
-            // a bane can explode if the path is blocked, so it has a special step function
-            self.baneling_step(field, player, min_loaded, max_loaded);
+            // a bane can explode if the path is blocked
+            self.check_baneling_explosion(field, player, min_loaded, max_loaded);
         }
 
         // hostile mobs within smaller range use optimal pathing. Banelings always go head on
@@ -237,6 +281,11 @@ impl ActingWithSpeed for Mob {
                 (player.x, player.y),
                 None
             );
+            if self.kind == GelatinousCube && direction == (0, 0) && self.kind.jump_distance() >= dist {
+                // route not found, so jump
+                self.state = MobState::Channeling(2);
+                return;
+            }
             if direction != (0, 0) {
                 self.step(field, player, direction, min_loaded, max_loaded);
                 return;

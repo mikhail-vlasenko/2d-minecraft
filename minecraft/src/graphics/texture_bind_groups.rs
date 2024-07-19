@@ -195,6 +195,7 @@ impl TextureBindGroups {
             Zombie => &self.zombie,
             Zergling => &self.zergling,
             Baneling => &self.baneling,
+            GelatinousCube => &self.gelatinous_cube,
             Cow => &self.cow,
         }
     }
