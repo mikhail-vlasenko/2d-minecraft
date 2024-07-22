@@ -196,7 +196,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         arrow_break_chance: 0.3,
         max_hp: 100,
         start_inventory: _Config__player__start_inventory {
-            cheating_start: true,
+            cheating_start: false,
             loadout: Cow::Borrowed("fighter"),
         },
     },
