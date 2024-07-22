@@ -18,6 +18,7 @@ class ProcessedObservation:
                  time: float,
                  inventory_state: List[int],
                  mobs: List[List[int]],
+                 score: int,
                  message: str,
                  done: bool = False):
         self.top_materials = top_materials
@@ -28,6 +29,7 @@ class ProcessedObservation:
         self.time = time
         self.inventory_state = inventory_state
         self.mobs = mobs
+        self.score = score
         self.message = message
         self.done = done
 
@@ -42,6 +44,7 @@ class ProcessedObservation:
                 f"Message: {self.message}\n"
                 f"Top Materials:\n{self.top_materials}\n"
                 f"Tile Heights:\n{self.tile_heights}\n"
+                f"Score: {self.score}\n"
                 f"Done: {self.done}")
 
     @staticmethod
@@ -54,9 +57,10 @@ class ProcessedObservation:
         time = c_observation.time
         inventory_state = np.ctypeslib.as_array(c_observation.inventory_state).tolist()
         mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((16, 4)).tolist()
+        score = c_observation.score
         message = ctypes.cast(c_observation.message, ctypes.c_char_p).value.decode('utf-8') if c_observation.message else ""
         done = c_observation.done
-        return ProcessedObservation(top_materials, tile_heights, player_pos, player_rot, hp, time, inventory_state, mobs, message, done)
+        return ProcessedObservation(top_materials, tile_heights, player_pos, player_rot, hp, time, inventory_state, mobs, score, message, done)
 
 
 def get_processed_observation(idx: int) -> ProcessedObservation:

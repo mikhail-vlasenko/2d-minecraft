@@ -140,11 +140,12 @@ class Observation(ctypes.Structure):
         ("time", ctypes.c_float),
         ("inventory_state", ctypes.c_int32 * 26),
         ("mobs", ctypes.c_int32 * 4 * 16),
+        ("score", ctypes.c_int32),
         ("message", ctypes.POINTER(ctypes.c_int8)),
         ("done", ctypes.c_bool),
     ]
 
-    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
+    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, score: int = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
         if top_materials is not None:
             self.top_materials = top_materials
         if tile_heights is not None:
@@ -161,6 +162,8 @@ class Observation(ctypes.Structure):
             self.inventory_state = inventory_state
         if mobs is not None:
             self.mobs = mobs
+        if score is not None:
+            self.score = score
         if message is not None:
             self.message = message
         if done is not None:
@@ -229,6 +232,14 @@ class Observation(ctypes.Structure):
     @mobs.setter
     def mobs(self, value):
         return ctypes.Structure.__set__(self, "mobs", value)
+
+    @property
+    def score(self) -> int:
+        return ctypes.Structure.__get__(self, "score")
+
+    @score.setter
+    def score(self, value: int):
+        return ctypes.Structure.__set__(self, "score", value)
 
     @property
     def message(self) -> ctypes.POINTER(ctypes.c_int8):

@@ -30,6 +30,7 @@ pub struct Observation {
     pub inventory_state: [i32; INVENTORY_SIZE],  // amount of storables of i-th type
     // player-relative x, player-relative y, type, health. for the 16 closest mobs that are visible. mob type -1 is no mob
     pub mobs: [[i32; MOB_INFO_SIZE]; MAX_MOBS],
+    pub score: i32,
     pub message: *mut c_char,
     pub done: bool,
 }
@@ -64,6 +65,7 @@ impl Observation {
                 mobs[i][j] = close_mobs[i][j];
             }
         }
+        let score = player.get_score();
         let message = CString::new(player.message.clone()).unwrap().into_raw();
         let done = is_game_over(player);
         Self {
@@ -75,6 +77,7 @@ impl Observation {
             time,
             inventory_state,
             mobs,
+            score,
             message,
             done,
         }
@@ -92,6 +95,7 @@ impl Default for Observation {
             time: 0.0,
             inventory_state: [0; INVENTORY_SIZE],
             mobs: [[-1; MOB_INFO_SIZE]; MAX_MOBS],
+            score: 0,
             message: CString::new(String::from("")).unwrap().into_raw(),
             done: false,
         }
