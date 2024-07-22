@@ -151,21 +151,24 @@ impl MainMenu {
         ui.label("Difficulty Preset:");
         ui.horizontal(|ui| {
             if ui.button(RichText::new("Easy").color(Color32::GREEN)).clicked() {
-                settings.player.cheating_start = true;
+                settings.player.start_inventory.cheating_start = true;
+                settings.player.start_inventory.loadout = "empty".into();
                 settings.player.arrow_break_chance = 0.1;
                 settings.mobs.spawning.initial_hostile_per_chunk = 0.1;
                 settings.mobs.spawning.base_night_amount = 3;
                 settings.mobs.spawning.max_mobs_on_chunk = 2;
             }
             if ui.button(RichText::new("Medium").color(Color32::YELLOW)).clicked() {
-                settings.player.cheating_start = false;
+                settings.player.start_inventory.cheating_start = false;
+                settings.player.start_inventory.loadout = "fighter".into();
                 settings.player.arrow_break_chance = 0.3;
                 settings.mobs.spawning.initial_hostile_per_chunk = 0.2;
                 settings.mobs.spawning.base_night_amount = 5;
                 settings.mobs.spawning.max_mobs_on_chunk = 3;
             }
             if ui.button(RichText::new("Hard").color(Color32::RED)).clicked() {
-                settings.player.cheating_start = false;
+                settings.player.start_inventory.cheating_start = false;
+                settings.player.start_inventory.loadout = "apples".into();
                 settings.player.arrow_break_chance = 0.5;
                 settings.mobs.spawning.initial_hostile_per_chunk = 0.3;
                 settings.mobs.spawning.base_night_amount = 7;
@@ -208,7 +211,7 @@ impl MainMenu {
         ui.checkbox(&mut settings.field.from_test_chunk, "Start with Test Chunk");
 
         ui.label("Player:");
-        ui.checkbox(&mut settings.player.cheating_start, "Cheating Start");
+        ui.checkbox(&mut settings.player.start_inventory.cheating_start, "Cheating Start");
         ui.add(Slider::new(&mut settings.player.arrow_break_chance, 0.0..=1.0)
             .text("Arrow Break Chance"));
     }

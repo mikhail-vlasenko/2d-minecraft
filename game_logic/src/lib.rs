@@ -8,6 +8,7 @@ use lazy_static::lazy_static;
 use crate::auxiliary::actions::Action;
 use crate::auxiliary::animations::AnimationManager;
 use crate::character::player::Player;
+use crate::character::start_loadouts::apply_loadout;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::storable::Storable;
 use crate::map_generation::chunk::Chunk;
@@ -35,10 +36,7 @@ pub fn init_field_player() -> (Field, Player) {
     };
     let mut field = Field::new(SETTINGS.read().unwrap().window.render_distance as usize, start_chunk);
     let mut player = Player::new(&field);
-    player.pickup(Storable::C(Consumable::Apple), 2);
-    if SETTINGS.read().unwrap().player.cheating_start {
-        player.receive_cheat_package();
-    }
+    apply_loadout(&mut player);
 
     // spawn some initial mobs
     let amount = (SETTINGS.read().unwrap().mobs.spawning.initial_hostile_per_chunk *

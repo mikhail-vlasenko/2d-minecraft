@@ -87,8 +87,15 @@ pub struct _Config__pathing__towards_player_radius {
 #[allow(non_camel_case_types)]
 pub struct _Config__player {
     pub arrow_break_chance: f32,
-    pub cheating_start: bool,
     pub max_hp: i32,
+    pub start_inventory: _Config__player__start_inventory,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__player__start_inventory {
+    pub cheating_start: bool,
+    pub loadout: Cow<'static, str>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -187,8 +194,11 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     },
     player: _Config__player {
         arrow_break_chance: 0.3,
-        cheating_start: true,
         max_hp: 100,
+        start_inventory: _Config__player__start_inventory {
+            cheating_start: true,
+            loadout: Cow::Borrowed("fighter"),
+        },
     },
     save_folder: Cow::Borrowed("game_saves"),
     scoring: _Config__scoring {

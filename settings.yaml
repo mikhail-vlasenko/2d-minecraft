@@ -40,8 +40,10 @@ mobs:
 
 player:
   max_hp: 100
-  cheating_start: true
   arrow_break_chance: 0.3
+  start_inventory:
+    cheating_start: true  # gives the player practically everything
+    loadout: fighter  # empty, apples, fighter, archer
 
 save_folder: game_saves
 

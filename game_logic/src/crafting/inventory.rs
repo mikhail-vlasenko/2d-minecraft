@@ -54,10 +54,7 @@ impl Inventory {
     }
 
     pub fn count(&self, storable: &Storable) -> u32 {
-        match self.get(storable) {
-            Some(value) => value,
-            None => 0
-        }
+        self.get(storable).unwrap_or_else(|| 0)
     }
 
     /// Returns whether the drop was successful
