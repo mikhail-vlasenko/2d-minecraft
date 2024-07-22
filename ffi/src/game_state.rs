@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use strum::IntoEnumIterator;
-use game_logic::auxiliary::actions::Action;
+use game_logic::auxiliary::actions::{Action, can_take_action};
 use game_logic::character::player::Player;
 use game_logic::{handle_action, is_game_over};
 use game_logic::map_generation::field::{absolute_to_relative, Field};
@@ -81,5 +81,10 @@ impl GameState {
         let (field, player) = game_logic::init_field_player();
         self.field = field;
         self.player = player;
+    }
+    
+    pub fn can_take_action(&self, action: i32) -> bool {
+        let action = Action::try_from(action).expect(format!("Invalid action with index {}", action).as_str());
+        can_take_action(&action, &self.player, &self.field)
     }
 }

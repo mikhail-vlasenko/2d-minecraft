@@ -14,10 +14,12 @@ def init_lib(path):
     c_lib.reset.argtypes = []
     c_lib.step_one.argtypes = [ctypes.c_int32, ctypes.c_int32]
     c_lib.get_one_observation.argtypes = [ctypes.c_int32]
+    c_lib.valid_actions_mask.argtypes = [ctypes.c_int32]
     c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
 
     c_lib.get_one_observation.restype = Observation
+    c_lib.valid_actions_mask.restype = ActionMask
     c_lib.num_actions.restype = ctypes.c_int32
     c_lib.action_name.restype = ctypes.POINTER(ctypes.c_int8)
 
@@ -55,6 +57,9 @@ def get_one_observation(index: int) -> Observation:
 
  * `observation::Observation` - The observation of the game state."""
     return c_lib.get_one_observation(index)
+
+def valid_actions_mask(index: int) -> ActionMask:
+    return c_lib.valid_actions_mask(index)
 
 def num_actions() -> int:
     return c_lib.num_actions()
@@ -101,6 +106,26 @@ class _Iter(object):
         rval = self.target[self.i]
         self.i += 1
         return rval
+
+
+class ActionMask(ctypes.Structure):
+
+    # These fields represent the underlying C data layout
+    _fields_ = [
+        ("mask", ctypes.c_int32 * 39),
+    ]
+
+    def __init__(self, mask = None):
+        if mask is not None:
+            self.mask = mask
+
+    @property
+    def mask(self):
+        return ctypes.Structure.__get__(self, "mask")
+
+    @mask.setter
+    def mask(self, value):
+        return ctypes.Structure.__set__(self, "mask", value)
 
 
 class Observation(ctypes.Structure):

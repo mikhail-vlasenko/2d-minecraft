@@ -7,12 +7,16 @@ use game_logic::crafting::storable::{ALL_STORABLES, Storable};
 use game_logic::is_game_over;
 use game_logic::map_generation::field::Field;
 use game_logic::settings::DEFAULT_SETTINGS;
+use crate::game_state::GameState;
 
 
+// use constants for array sizes to avoid dynamically sized arrays that may leak memory during FFI
 pub const OBSERVATION_GRID_SIZE: usize = ((DEFAULT_SETTINGS.window.render_distance * 2) + 1) as usize;
 pub const INVENTORY_SIZE: usize = 26;
+pub const NUM_ACTIONS: usize = 39;
 pub const MOB_INFO_SIZE: usize = 4;
 pub const MAX_MOBS: usize = 16;
+
 
 #[ffi_type]
 #[repr(C)]
@@ -97,4 +101,24 @@ impl Default for Observation {
 
 fn storable_to_inv_index(storable: &Storable) -> usize {
     ALL_STORABLES.iter().position(|s| s == storable).unwrap()
+}
+
+#[ffi_type]
+#[repr(C)]
+pub struct ActionMask {
+    pub mask: [i32; NUM_ACTIONS],
+}
+
+impl ActionMask {
+    pub fn new(game_state: &GameState) -> Self {
+        let mut mask = [0; NUM_ACTIONS];
+        if !game_state.is_done() {
+            for i in 0..NUM_ACTIONS {
+                if game_state.can_take_action(i as i32) {
+                    mask[i] = 1;
+                }
+            }
+        }
+        Self { mask }
+    }
 }

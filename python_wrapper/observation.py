@@ -3,7 +3,7 @@ from typing import Tuple, List
 
 import numpy as np
 
-from python_wrapper.ffi_elements import Observation, get_one_observation, action_name
+from python_wrapper.ffi_elements import Observation, get_one_observation, action_name, valid_actions_mask
 
 OBSERVATION_GRID_SIZE = 17
 
@@ -67,3 +67,8 @@ def get_processed_observation(idx: int) -> ProcessedObservation:
 def get_action_name(action: int) -> str:
     name = action_name(action)
     return ctypes.cast(name, ctypes.c_char_p).value.decode('utf-8') if name else ""
+
+
+def get_actions_mask(idx: int) -> np.ndarray:
+    c_action_mask = valid_actions_mask(idx)
+    return np.ctypeslib.as_array(c_action_mask.mask).tolist()

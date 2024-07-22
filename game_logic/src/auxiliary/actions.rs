@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
+use crate::character::player::Player;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::InteractableKind;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
+use crate::crafting::storable::Storable::{C, I, IN, M, RW};
+use crate::map_generation::field::Field;
 
 #[derive(PartialEq, Copy, Clone, Hash, EnumIter, Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -27,4 +30,44 @@ pub enum Action {
     PlaceSpecificInteractable(InteractableKind),
     CraftSpecific(Storable),
     ConsumeSpecific(Consumable),
+}
+
+/// Returns whether the player can take the action.
+/// Built for FFI, so actions like place and craft are unavailable in favour of PlaceSpecificMaterial and CraftSpecific.
+/// Menu action are thus also disabled.
+pub fn can_take_action(action: &Action, player: &Player, field: &Field) -> bool {
+    use Action::*;
+    match action {
+        WalkNorth | WalkWest | WalkSouth | WalkEast => {
+            let delta = player.walk_delta(action);
+            let new_pos = (player.x + delta.0, player.y + delta.1);
+            field.len_at(new_pos) <= player.z + 1
+        } 
+        TurnLeft | TurnRight => true, 
+        Mine => {
+            let mat = field.top_material_at(player.coords_infront());
+            mat.required_mining_power() <= player.get_mining_power()
+        }  
+        Place | Craft | Consume=> {
+            false
+        }
+        Shoot => {
+            player.has(&RW(player.ranged_weapon)) && player.has(&I(*player.ranged_weapon.ammo()))
+        } 
+        CloseInteractableMenu | ToggleMap | ToggleCraftMenu | ToggleMainMenu=> {
+            false
+        } 
+        PlaceSpecificMaterial(material) => {
+            player.has(&M(*material))
+        } 
+        PlaceSpecificInteractable(interactable) => {
+            player.has(&IN(*interactable))
+        }
+        CraftSpecific(storable) => {
+            player.can_craft(storable, field).is_ok()
+        } 
+        ConsumeSpecific(consumable) => {
+            player.has(&C(*consumable))
+        },
+    }
 }

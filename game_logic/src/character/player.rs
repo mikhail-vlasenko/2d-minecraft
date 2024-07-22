@@ -1,6 +1,7 @@
 use std::cmp::min;
 use std::f32::consts::PI;
 use serde::{Serialize, Deserialize};
+use crate::auxiliary::actions::Action;
 use crate::auxiliary::animations::{AnimationsBuffer, ProjectileType};
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
@@ -99,10 +100,7 @@ impl Player {
 
     /// Mines a block in front of the player.
     pub fn mine_infront(&mut self, field: &mut Field) -> f32 {
-        let (delta_x, delta_y) = self.coords_from_rotation();
-        let x = self.x + delta_x;
-        let y = self.y + delta_y;
-        self.mine(field, (x, y))
+        self.mine(field, self.coords_infront())
     }
 
     pub fn get_mining_power(&self) -> i32 {
@@ -155,8 +153,7 @@ impl Player {
     /// If there is an interactable in front of the player, interact with it instead.
     /// Returns how much action was spent.
     pub fn place_current(&mut self, field: &mut Field) -> f32 {
-        let (delta_x, delta_y) = self.coords_from_rotation();
-        let placement_pos = (self.x + delta_x,  self.y + delta_y);
+        let placement_pos = self.coords_infront();
         if field.get_interactable_kind_at(placement_pos).is_some() {
             self.interact(field, placement_pos);
             0.
@@ -169,19 +166,24 @@ impl Player {
                 Storable::IN(interactable) => {
                     self.place_interactable(field, placement_pos, interactable)
                 },
-                _ => panic!("Can't place {}", self.placement_storable),
+                _ => unreachable!("Can't place {}", self.placement_storable),
             }
         }
     }
 
-    pub fn walk(&mut self, direction: &str, field: &mut Field) -> f32 {
-        match direction {
-            "w" => self.step(field, -1, 0),
-            "a" => self.step(field, 0, -1),
-            "s" => self.step(field, 1, 0),
-            "d" => self.step(field, 0, 1),
-            _ => { println!("unknown direction"); 0. },
+    pub fn walk_delta(&self, walk_action: &Action) -> (i32, i32) {
+        match walk_action {
+            Action::WalkNorth => (-1, 0),
+            Action::WalkWest => (0, -1),
+            Action::WalkSouth => (1, 0),
+            Action::WalkEast => (0, 1),
+            _ => unreachable!()
         }
+    }
+    
+    pub fn walk(&mut self, walk_action: &Action, field: &mut Field) -> f32 {
+        let delta = self.walk_delta(walk_action);
+        self.step(field, delta)
     }
 
     /// Moves the Player by (delta_x, delta_y), checking for height conditions.
@@ -189,15 +191,14 @@ impl Player {
     /// # Arguments
     ///
     /// * `field`: the playing field
-    /// * `delta_x`:
-    /// * `delta_y`:
+    /// * `delta`:
     ///
     /// returns: how much action was spent.
-    fn step(&mut self, field: &mut Field, delta_x: i32, delta_y: i32) -> f32 {
+    fn step(&mut self, field: &mut Field, delta: (i32, i32)) -> f32 {
         if self.interacting_with.is_some() {
             self.interacting_with = None;
         }
-        let new_pos = (self.x + delta_x, self.y + delta_y);
+        let new_pos = (self.x + delta.0, self.y + delta.1);
         if field.len_at(new_pos) <= self.z + 1 {
             // fighting
             if field.is_occupied(new_pos) {
@@ -205,8 +206,8 @@ impl Player {
                 return self.get_speed_multiplier()
             }
             // movement
-            self.x += delta_x;
-            self.y += delta_y;
+            self.x += delta.0;
+            self.y += delta.1;
             self.land(field);
 
             // loot
@@ -248,12 +249,12 @@ impl Player {
         return false;
     }
 
-    /// Returns true if the player can craft the item right now.
-    pub fn can_craft(&mut self, item: &Storable, field: &Field) -> bool {
+    /// Returns Ok if the player can craft the item, 
+    /// else returns an error with message about why the item can not be crafted.
+    pub fn can_craft(&self, item: &Storable, field: &Field) -> Result<bool, String> {
         for (req, amount) in item.craft_requirements() {
             if self.inventory.count(&req) < *amount {
-                self.add_message(&format!("Need {} of {}, have {}", amount, req, self.inventory.count(&req)));
-                return false;
+                return Err(format!("Need {} of {}, have {}", amount, req, self.inventory.count(&req)));
             }
         }
 
@@ -263,10 +264,10 @@ impl Player {
                 self.exists_around(field, crafter.unwrap())
             };
         if !crafter_near {
-            self.add_message(&format!("There is no {} nearby", crafter.unwrap()));
+            return Err(format!("There is no {} nearby", crafter.unwrap()));
         }
 
-        item.is_craftable() && crafter_near
+        Ok(true)
     }
 
     /// Returns true if the player has all the ingredients to craft the item,
@@ -286,7 +287,8 @@ impl Player {
     /// If crafting the given item is possible, subtracts the ingredients and adds the item to the inventory.
     /// Else does nothing.
     pub fn craft(&mut self, item: Storable, field: &Field) -> f32 {
-        if !self.can_craft(&item, field){
+        if let Err(message) = self.can_craft(&item, field) {
+            self.add_message(&message);
             return 0.
         }
         for (req, amount) in item.craft_requirements() {
@@ -421,6 +423,11 @@ impl Player {
         } else {
             (modulus + 4) as u32
         }
+    }
+    
+    pub fn coords_infront(&self) -> (i32, i32) {
+        let (delta_x, delta_y) = self.coords_from_rotation();
+        (self.x + delta_x, self.y + delta_y)
     }
 
     pub fn add_status_effect(&mut self, effect: StatusEffect, duration: i32) {
