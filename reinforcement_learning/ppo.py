@@ -14,28 +14,22 @@ device = CONFIG.device
 
 
 class PPO(nn.Module):
-    def __init__(self, state_shape, in_channels=6, n_actions=9):
+    def __init__(self, state_shape, n_actions):
         super(PPO, self).__init__()
 
         self.state_shape = state_shape
-        self.simple_architecture = CONFIG.ppo.simple_architecture
 
-        if self.simple_architecture:
-            self.l1 = nn.Linear(state_shape, CONFIG.ppo.dimensions[0])
-            self.l2 = nn.Linear(CONFIG.ppo.dimensions[0], CONFIG.ppo.dimensions[1])
-            self.l3 = nn.Linear(CONFIG.ppo.dimensions[1], CONFIG.ppo.dimensions[2])
-            self.actor_out = nn.Linear(CONFIG.ppo.dimensions[2], n_actions)
-            self.critic_out = nn.Linear(CONFIG.ppo.dimensions[2], 1)
-        else:
-            self.in_channels = in_channels
+        self.l1 = nn.Linear(state_shape, CONFIG.ppo.dimensions[0])
 
-            # Network Layers
-            self.l1 = nn.Conv2d(in_channels=self.in_channels, out_channels=64, kernel_size=2)
-            self.l2 = nn.Conv2d(in_channels=64, out_channels=256, kernel_size=2)
-            self.actor_l3 = nn.Conv2d(in_channels=256, out_channels=32, kernel_size=2)
-            self.critic_l3 = nn.Conv2d(in_channels=256, out_channels=32, kernel_size=2)
-            self.actor_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), n_actions)
-            self.critic_out = nn.Linear(32*(state_shape[0]-3)*(state_shape[1]-3), 1)
+        self.l2_actor = nn.Linear(CONFIG.ppo.dimensions[0], CONFIG.ppo.dimensions[1])
+        self.l3_actor = nn.Linear(CONFIG.ppo.dimensions[1], CONFIG.ppo.dimensions[2])
+        self.l4_actor = nn.Linear(CONFIG.ppo.dimensions[2], CONFIG.ppo.dimensions[3])
+        self.actor_out = nn.Linear(CONFIG.ppo.dimensions[3], n_actions)
+
+        self.l2_critic = nn.Linear(CONFIG.ppo.dimensions[0], CONFIG.ppo.dimensions[1])
+        self.l3_critic = nn.Linear(CONFIG.ppo.dimensions[1], CONFIG.ppo.dimensions[2])
+        self.l4_critic = nn.Linear(CONFIG.ppo.dimensions[2], CONFIG.ppo.dimensions[3])
+        self.critic_out = nn.Linear(CONFIG.ppo.dimensions[3], 1)
 
         if CONFIG.ppo.nonlinear == 'tanh':
             self.non_linear = nn.Tanh()
@@ -46,23 +40,15 @@ class PPO(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x) -> (torch.Tensor, torch.Tensor):
-        if self.simple_architecture:
-            x = self.non_linear(self.l1(x))
-            x = self.non_linear(self.l2(x))
-            x = self.non_linear(self.l3(x))
-            x_actor = self.softmax(self.actor_out(x))
-            x_critic = self.critic_out(x)
-
-            return x_actor, x_critic
-
-        x = x.view(-1, self.in_channels, self.state_shape[0], self.state_shape[1])
         x = self.non_linear(self.l1(x))
-        x = self.non_linear(self.l2(x))
-        x_actor = self.non_linear(self.actor_l3(x))
-        x_actor = x_actor.view(x_actor.shape[0], -1)
-        x_critic = self.non_linear(self.critic_l3(x))
-        x_critic = x_critic.view(x_critic.shape[0], -1)
+        x_actor = self.non_linear(self.l2_actor(x))
+        x_actor = self.non_linear(self.l3_actor(x_actor))
+        x_actor = self.non_linear(self.l4_actor(x_actor))
         x_actor = self.softmax(self.actor_out(x_actor))
+
+        x_critic = self.non_linear(self.l2_critic(x))
+        x_critic = self.non_linear(self.l3_critic(x_critic))
+        x_critic = self.non_linear(self.l4_critic(x_critic))
         x_critic = self.critic_out(x_critic)
 
         return x_actor, x_critic

@@ -12,9 +12,9 @@ class EnvConfig:
 
 @dataclass
 class PPOTrainConfig:
-    env_steps: int = 3000000
-    # load_from: str = None
-    load_from: str = f'reinforcement_learning/saved_models/one_hot_top_materials.pt'
+    env_steps: int = 10000000
+    load_from: str = None
+    # load_from: str = f'reinforcement_learning/saved_models/one_hot_top_materials.pt'
     save_to: str = f'reinforcement_learning/saved_models/one_hot_top_materials.pt'
     save_every: int = env_steps // 10
 
@@ -33,9 +33,8 @@ class PPOConfig:
     gamma: float = 0.99
     epsilon: float = 0.1
     update_epochs: int = 5
-    nonlinear: str = 'relu'  # tanh, relu
-    dimensions: List[int] = field(default_factory=lambda: [265, 128, 128])
-    simple_architecture: bool = True
+    nonlinear: str = 'tanh'  # tanh, relu
+    dimensions: List[int] = field(default_factory=lambda: [1024, 512, 256, 128])
 
 
 @dataclass
