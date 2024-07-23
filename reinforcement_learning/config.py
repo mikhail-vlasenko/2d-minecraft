@@ -35,9 +35,6 @@ class Config:
     env: EnvConfig = field(default_factory=EnvConfig)
     ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
     ppo: PPOConfig = field(default_factory=PPOConfig)
-
-    # if True, will train AIRL with curriculum in experiment_setup. Otherwise, will train ppo
-    curriculum_for_airl: bool = True
     device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     def as_dict(self):
