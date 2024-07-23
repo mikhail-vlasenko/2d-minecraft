@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::character::player::Player;
 use crate::crafting::material::Material;
 use crate::map_generation::field::{AbsolutePos, Field};
+use crate::map_generation::field_observation::get_tile_observation;
 use crate::map_generation::mobs::mob::Mob;
 use crate::SETTINGS;
 
@@ -73,28 +74,11 @@ impl Replay {
         Self::from_binary_string(&data)
     }
     
-    // pub fn apply_state(&self, field: &mut Field, player: &mut Player) {
-    //     let state = &self.states[self.current_step];
-    //     field.set_top_materials(state.top_materials.clone());
-    //     field.set_tile_heights(state.tile_heights.clone());
-    //     field.set_mobs(state.mobs.clone());
-    //     player = &state.player;
-    // }
-}
-
-pub fn get_tile_observation(field: &Field, player: &Player) -> (Vec<Vec<Material>>, Vec<Vec<i32>>) {
-    let render_distance = SETTINGS.read().unwrap().window.render_distance;
-    let observation_grid_size = render_distance as usize * 2 + 1;
-    let mut top_materials = vec![vec![Material::default(); observation_grid_size]; observation_grid_size];
-    let mut tile_heights = vec![vec![0; observation_grid_size]; observation_grid_size];
-    for i in (player.x - render_distance)..=(player.x + render_distance) {
-        for j in (player.y - render_distance)..=(player.y + render_distance) {
-            let pos: AbsolutePos = (i, j);
-            let idx = ((i - player.x + render_distance) as usize,
-                       (j - player.y + render_distance) as usize);
-            top_materials[idx.0][idx.1] = field.top_material_at(pos);
-            tile_heights[idx.0][idx.1] = field.len_at(pos) as i32;
-        }
+    pub fn apply_state(&mut self, field: &mut Field, player: &mut Player) {
+        let state = &self.states[self.current_step];
+        player.clone_from(&state.player);
+        field.set_time(state.time);
+        field.set_visible_tiles(&state.top_materials, &state.tile_heights, (player.x, player.y));
+        self.current_step += 1;
     }
-    (top_materials, tile_heights)
 }

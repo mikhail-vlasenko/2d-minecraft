@@ -493,12 +493,30 @@ impl Field {
         self.time = time;
     }
     
-    pub (crate) fn set_visible_tiles(&mut self, top_materials: Vec<Vec<Material>>, tile_heights: Vec<Vec<usize>>, player_pos: AbsolutePos) {
+    pub (crate) fn set_visible_tiles(&mut self, top_materials: &Vec<Vec<Material>>, tile_heights: &Vec<Vec<i32>>, player_pos: AbsolutePos) {
+        // assuming square vectors of equal shape
+        let center = (top_materials.len() - 1) / 2;
+        let to_absolute_pos = |i: usize, j: usize| -> AbsolutePos {
+            let relative_pos = (i as i32 - center as i32, j as i32 - center as i32);
+            (relative_pos.0 + player_pos.0, relative_pos.1 + player_pos.1)
+        };
         let curr_chunk: AbsoluteChunkPos = (self.chunk_pos(player_pos.0), self.chunk_pos(player_pos.1));
         self.load(curr_chunk.0, curr_chunk.1);
 
-        
-        
+        for i in 0..top_materials.len() {
+            for j in 0..top_materials[0].len() {
+                // because setting a full tile is not an allowed operation, we pop and push materials to get the desired result
+                let xy = to_absolute_pos(i, j);
+                // fix len
+                while self.len_at(xy) >= tile_heights[i][j] as usize {
+                    self.pop_at(xy);
+                }
+                // put correct top material
+                while self.len_at(xy) < tile_heights[i][j] as usize {
+                    self.push_at(Block::new(top_materials[i][j]), xy);
+                }
+            }
+        }
     }
 }
 

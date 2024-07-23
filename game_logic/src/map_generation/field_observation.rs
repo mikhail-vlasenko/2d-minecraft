@@ -157,3 +157,20 @@ impl Field {
             (pos.1 - player.y).abs() <= self.get_render_distance() as i32
     }
 }
+
+pub fn get_tile_observation(field: &Field, player: &Player) -> (Vec<Vec<Material>>, Vec<Vec<i32>>) {
+    let render_distance = field.get_render_distance() as i32;
+    let observation_grid_size = render_distance as usize * 2 + 1;
+    let mut top_materials = vec![vec![Material::default(); observation_grid_size]; observation_grid_size];
+    let mut tile_heights = vec![vec![0; observation_grid_size]; observation_grid_size];
+    for i in (player.x - render_distance)..=(player.x + render_distance) {
+        for j in (player.y - render_distance)..=(player.y + render_distance) {
+            let pos: AbsolutePos = (i, j);
+            let idx = ((i - player.x + render_distance) as usize,
+                       (j - player.y + render_distance) as usize);
+            top_materials[idx.0][idx.1] = field.top_material_at(pos);
+            tile_heights[idx.0][idx.1] = field.len_at(pos) as i32;
+        }
+    }
+    (top_materials, tile_heights)
+}
