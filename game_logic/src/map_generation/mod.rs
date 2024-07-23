@@ -7,3 +7,4 @@ pub mod mobs;
 pub mod read_chunk;
 pub mod structures;
 pub mod save_load;
+pub mod field_observation;

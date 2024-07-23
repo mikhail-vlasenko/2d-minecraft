@@ -36,8 +36,7 @@ pub struct Field {
     loaded_chunks: Vec<Vec<Arc<Mutex<Chunk>>>>,
     /// position of the center of the currently loaded chunks. (usually the player's chunk)
     central_chunk: AbsoluteChunkPos,
-    chunk_size: usize,
-    /// how far from the player's chunk the chunks are loaded
+    /// how far from the player's chunk the chunks are loaded, in chunks
     loading_distance: usize,
     /// what the player sees, in tiles
     render_distance: usize,
@@ -59,15 +58,15 @@ impl Field {
     pub fn new(render_distance: usize, starting_chunk: Option<Chunk>) -> Self {
         // in chunks
         let loading_distance = SETTINGS.read().unwrap().field.loading_distance as usize;
-        // in tiles
-        let chunk_size = SETTINGS.read().unwrap().field.chunk_size as usize;
-        let map_render_distance = max(SETTINGS.read().unwrap().field.map_radius as usize, loading_distance * chunk_size);
 
         let chunk_loader = if starting_chunk.is_some() {
             ChunkLoader::with_starting_chunk(loading_distance, starting_chunk.unwrap())
         } else {
             ChunkLoader::new(loading_distance)
         };
+        
+        let map_render_distance = max(SETTINGS.read().unwrap().field.map_radius as usize, loading_distance * chunk_loader.get_chunk_size());
+
         let loaded_chunks = Vec::new();
         let central_chunk = (0, 0);
         let stray_mobs = Vec::new();
@@ -82,7 +81,6 @@ impl Field {
             chunk_loader,
             loaded_chunks,
             central_chunk,
-            chunk_size,
             loading_distance,
             render_distance,
             map_render_distance,
@@ -129,18 +127,6 @@ impl Field {
         }
     }
 
-    pub fn is_night(&self) -> bool {
-        (self.time as i32 % 100) >= 50 || self.is_red_moon()
-    }
-
-    pub fn is_red_moon(&self) -> bool {
-        (self.time as i32 % 700) >= 550
-    }
-
-    pub fn get_time(&self) -> f32 {
-        self.time + self.accumulated_time
-    }
-
     pub fn step_mobs(&mut self, player: &mut Player) {
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
@@ -150,7 +136,6 @@ impl Field {
         for _ in 0..self.stray_mobs.len() {
             let optional_mob = self.stray_mobs.pop();
             if optional_mob.is_none() {
-                println!("amount of mobs decreased during their turn");
                 break;
             }
             let mut m = optional_mob.unwrap();
@@ -213,20 +198,6 @@ impl Field {
         }
     }
 
-    pub fn get_mob_spawn_amount(&self) -> i32 {
-        let settings = SETTINGS.read().unwrap();
-        if !self.is_night() {
-            settings.mobs.spawning.base_day_amount
-        } else {
-            let mut amount = settings.mobs.spawning.base_night_amount;
-            if self.is_red_moon() {
-                amount += settings.mobs.spawning.base_night_amount / 2;
-            }
-            amount += self.time as i32 / 100 * settings.mobs.spawning.increase_amount_every;
-            amount
-        }
-    }
-
     /// Removes top layer of the tiles in the radius.
     ///
     /// # Arguments
@@ -279,7 +250,45 @@ impl Field {
         swap(&mut secondary_a_star, &mut self.a_star);
         res
     }
+}
 
+/// Getters
+impl Field {
+    /// Absolute index of the current central chunk
+    pub fn get_central_chunk(&self) -> AbsoluteChunkPos {
+        self.central_chunk
+    }
+    
+    pub fn get_chunk_size(&self) -> usize {
+        self.chunk_loader.get_chunk_size()
+    }
+    
+    pub fn is_night(&self) -> bool {
+        (self.time as i32 % 100) >= 50 || self.is_red_moon()
+    }
+
+    pub fn is_red_moon(&self) -> bool {
+        (self.time as i32 % 700) >= 550
+    }
+
+    pub fn get_time(&self) -> f32 {
+        self.time + self.accumulated_time
+    }
+    
+    pub fn get_mob_spawn_amount(&self) -> i32 {
+        let settings = SETTINGS.read().unwrap();
+        if !self.is_night() {
+            settings.mobs.spawning.base_day_amount
+        } else {
+            let mut amount = settings.mobs.spawning.base_night_amount;
+            if self.is_red_moon() {
+                amount += settings.mobs.spawning.base_night_amount / 2;
+            }
+            amount += self.time as i32 / 100 * settings.mobs.spawning.increase_amount_every;
+            amount
+        }
+    }
+    
     /// From how many tiles away do mobs start to use full a pathing algorithm
     pub fn get_a_star_radius(&self) -> i32 {
         self.a_star.get_radius()
@@ -295,7 +304,11 @@ impl Field {
             SETTINGS.read().unwrap().pathing.towards_player_radius.usual
         }
     }
-
+    
+    pub fn get_stray_mobs(&self) -> &Vec<Mob> {
+        &self.stray_mobs
+    }
+    
     /// How far from the player's chunk the chunks are loaded
     pub fn get_loading_distance(&self) -> usize {
         self.loading_distance
@@ -355,7 +368,8 @@ impl Field {
     }
 
     /// Chunk's index for this absolute map coordinate
-    /// /// # Arguments
+    /// 
+    /// # Arguments
     ///
     /// * `coord`: absolute x or y position on the map
     ///
@@ -363,173 +377,9 @@ impl Field {
     pub fn chunk_pos(&self, coord: i32) -> i32 {
         let mut new_coord = coord;
         if new_coord < 0 {
-            new_coord -= self.chunk_size as i32 - 1;
+            new_coord -= self.chunk_loader.get_chunk_size() as i32 - 1;
         }
-        new_coord / self.chunk_size as i32
-    }
-
-    /// Absolute index of the current central chunk
-    pub fn get_central_chunk(&self) -> AbsoluteChunkPos {
-        self.central_chunk
-    }
-}
-
-/// Rendering-related
-impl Field {
-    pub fn min_loaded_idx(&self) -> AbsolutePos {
-        let x = (self.central_chunk.0 - self.loading_distance as i32) * self.chunk_size as i32;
-        let y = (self.central_chunk.1 - self.loading_distance as i32) * self.chunk_size as i32;
-        (x, y)
-    }
-
-    pub fn max_loaded_idx(&self) -> AbsolutePos {
-        let x = (self.central_chunk.0 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
-        let y = (self.central_chunk.1 + self.loading_distance as i32 + 1) * self.chunk_size as i32 - 1;
-        (x, y)
-    }
-
-    pub fn loaded_tiles_size(&self) -> usize {
-        ((2 * self.loading_distance) + 1) * self.chunk_size
-    }
-
-    /// Display as glyphs
-    pub fn render(&self, player: &Player) {
-        for i in 0..self.chunk_size {
-            for j in 0..self.chunk_size {
-                if i as i32 == player.x && j as i32 == player.y {
-                    print!("P");
-                } else {
-                    print!("{}", self.loaded_chunks[self.loading_distance][self.loading_distance]
-                        .lock().unwrap().top_at(i as i32, j as i32));
-                }
-            }
-            println!();
-        }
-    }
-
-    /// Makes a list of positions of blocks of given material around the player.
-    /// Useful for rendering if blocks of same type are rendered simultaneously.
-    /// Positions are centered on the player.
-    /// [positive, positive] is bottom right.
-    /// first coord is vertical.
-    ///
-    /// # Arguments
-    ///
-    /// * `player`: the player
-    /// * `material`: index only blocks of this material
-    /// * `radius`: how far field from player is included
-    ///
-    /// returns: (2d Vector: the list of positions)
-    pub fn texture_indices(&self, player: &Player, material: Material, radius: i32) -> Vec<RelativePos> {
-        let cond = |(i, j)| { self.top_material_at((i, j)) == material };
-        self.indices_around_player(player, cond, radius)
-    }
-
-    fn indices_around_player<F: Fn(AbsolutePos) -> bool>(&self, player: &Player, condition: F, radius: i32) -> Vec<RelativePos> {
-        let mut res = Vec::new();
-        for i in (player.x - radius)..=(player.x + radius) {
-            for j in (player.y - radius)..=(player.y + radius) {
-                if condition((i, j)) {
-                    res.push((i - player.x, j - player.y));
-                }
-            }
-        }
-        res
-    }
-
-    /// Makes a list of player-centered positions of blocks of given height around the player.
-    pub fn depth_indices(&self, player: &Player, height: usize) -> Vec<RelativePos> {
-        let cond = |(i, j)| { self.len_at((i, j)) == height };
-        self.indices_around_player(player, cond, self.render_distance as i32)
-    }
-
-    /// Makes a list of positions of blocks that have loot on them.
-    /// Does not count arrows as loot.
-    pub fn loot_indices(&self, player: &Player) -> Vec<RelativePos> {
-        let cond = |(i, j)| {
-            let chunk = self.get_chunk_immut(i, j);
-            let loot = chunk.get_loot_at(i, j);
-            for l in loot {
-                if l != &Storable::I(Arrow) {
-                    return true;
-                }
-            }
-            false
-        };
-        self.indices_around_player(player, cond, self.render_distance as i32)
-    }
-
-    /// Makes a list of positions of blocks that have loot on them
-    pub fn arrow_indices(&self, player: &Player) -> Vec<RelativePos> {
-        let cond = |(i, j)| {
-            self.get_chunk_immut(i, j).get_loot_at(i, j).contains(&Storable::I(Arrow))
-        };
-        self.indices_around_player(player, cond, self.render_distance as i32)
-    }
-
-    pub fn interactable_indices(&self, player: &Player, interactable: InteractableKind) -> Vec<RelativePos> {
-        // todo: can rewrite like mob_indices for speed
-        let cond = |(i, j)| {
-            self.get_interactable_kind_at((i, j)) == Some(interactable)
-        };
-        self.indices_around_player(player, cond, self.render_distance as i32)
-    }
-
-    /// Makes a list of positions with mobs of this kind on them, and their corresponding rotations.
-    /// Positions are centered on the player.
-    /// Checks stray mobs, so can be used during mob turns.
-    pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(RelativePos, u32)> {
-        let mut res= self.conditional_close_mob_info(|m| {
-            ((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation())
-        }, player, |m: &Mob| { m.get_kind() == &kind });
-        
-        for m in &self.stray_mobs {
-            if m.get_kind() == &kind && self.is_position_visible(player, (m.pos.x, m.pos.y)) {
-                res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
-            }
-        }
-        res
-    }
-
-    /// Makes a list of infos for mobs that are close enough to be visible.
-    /// Can't be used during mob turns, as it doesn't account for stray mobs
-    pub fn conditional_close_mob_info<F: Fn(&Mob) -> T, T, C: Fn(&Mob) -> bool>(&self, info_extractor: F, player: &Player, condition: C) -> Vec<T> {
-        let mut res= Vec::new();
-        
-        // selects a square of chunks around the player that are close enough to have some tiles in view
-        let (min_idx, max_idx) = self.get_close_chunk_indices();
-
-        for i in min_idx..=max_idx {
-            for j in min_idx..=max_idx {
-                for m in self.loaded_chunks[i][j].lock().unwrap().get_mobs() {
-                    if self.is_position_visible(player, (m.pos.x, m.pos.y)) && condition(m) {
-                        res.push(info_extractor(m));
-                    }
-                }
-            }
-        }
-        res
-    }
-    
-    pub fn close_mob_info<F: Fn(&Mob) -> T, T>(&self, info_extractor: F, player: &Player) -> Vec<T> {
-        self.conditional_close_mob_info(info_extractor, player, |_| { true })
-    }
-
-    /// Index boundaries of chunks that are close to the player.
-    fn get_close_chunk_indices(&self) -> (usize, usize) {
-        // self.loaded_chunks is centered on the player, so loaded_chunks[loading_distance][loading_distance] is the player's chunk
-        // the loaded_chunks also are square, so the returned indices are the same for both dimensions
-        let middle_idx = self.loading_distance;
-        // how many chunks are in the render distance
-        let chunk_distance = (self.render_distance as f32 / self.chunk_size as f32).ceil() as usize;
-        let min_idx = middle_idx - chunk_distance;
-        let max_idx = middle_idx + chunk_distance;
-        (min_idx, max_idx)
-    }
-    
-    fn is_position_visible(&self, player: &Player, pos: AbsolutePos) -> bool {
-        (pos.0 - player.x).abs() <= self.render_distance as i32 &&
-            (pos.1 - player.y).abs() <= self.render_distance as i32
+        new_coord / self.chunk_loader.get_chunk_size() as i32
     }
 }
 
@@ -634,6 +484,21 @@ impl Field {
         let x = rand::thread_rng().gen_range(min.0..=max.0);
         let y = rand::thread_rng().gen_range(min.1..=max.1);
         (x, y)
+    }
+}
+
+/// Replays
+impl Field {
+    pub (crate) fn set_time(&mut self, time: f32) {
+        self.time = time;
+    }
+    
+    pub (crate) fn set_visible_tiles(&mut self, top_materials: Vec<Vec<Material>>, tile_heights: Vec<Vec<usize>>, player_pos: AbsolutePos) {
+        let curr_chunk: AbsoluteChunkPos = (self.chunk_pos(player_pos.0), self.chunk_pos(player_pos.1));
+        self.load(curr_chunk.0, curr_chunk.1);
+
+        
+        
     }
 }
 

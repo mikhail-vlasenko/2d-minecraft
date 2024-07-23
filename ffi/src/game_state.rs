@@ -3,6 +3,7 @@ use strum::IntoEnumIterator;
 use game_logic::auxiliary::actions::{Action, can_take_action};
 use game_logic::character::player::Player;
 use game_logic::{handle_action, is_game_over};
+use game_logic::auxiliary::replay::get_tile_observation;
 use game_logic::map_generation::field::{absolute_to_relative, Field};
 use game_logic::map_generation::field::AbsolutePos;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
@@ -35,17 +36,8 @@ impl GameState {
     }
 
     pub fn get_observation(&self) -> Observation {
-        let mut top_materials = vec![vec![0; CONFIG.observation_grid_size]; CONFIG.observation_grid_size];
-        let mut tile_heights = vec![vec![0; CONFIG.observation_grid_size]; CONFIG.observation_grid_size];
-        for i in (self.player.x - CONFIG.render_distance as i32)..=(self.player.x + CONFIG.render_distance as i32) {
-            for j in (self.player.y - CONFIG.render_distance as i32)..=(self.player.y + CONFIG.render_distance as i32) {
-                let pos: AbsolutePos = (i, j);
-                let idx = ((i - self.player.x + CONFIG.render_distance as i32) as usize,
-                                       (j - self.player.y + CONFIG.render_distance as i32) as usize);
-                top_materials[idx.0][idx.1] = self.field.top_material_at(pos).into();
-                tile_heights[idx.0][idx.1] = self.field.len_at(pos) as i32;
-            }
-        }
+        let (top_materials, tile_heights) = get_tile_observation(&self.field, &self.player);
+        let top_materials = top_materials.iter().map(|row| row.iter().map(|mat| (*mat).into()).collect()).collect();
         Observation::new(top_materials, tile_heights, &self.field, &self.player, self.get_closest_mobs())
     }
 
