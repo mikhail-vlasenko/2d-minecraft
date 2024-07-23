@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::fmt::format;
 use egui::{Align2, Color32, FontId, Label, RichText, Context};
 use egui_wgpu::ScreenDescriptor;
 use egui_wgpu::wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
@@ -24,6 +25,8 @@ pub struct EguiManager {
     pub interactables_menu: InteractablesMenu,
     pub main_menu: MainMenu,
     pub main_menu_open: RefCell<bool>,
+    pub save_replay_clicked: bool,
+    pub replay_save_name: Option<String>,
 }
 
 impl EguiManager {
@@ -33,6 +36,8 @@ impl EguiManager {
             interactables_menu: InteractablesMenu::new(),
             main_menu: MainMenu::new(),
             main_menu_open: RefCell::new(true),
+            save_replay_clicked: false,
+            replay_save_name: None,
         }
     }
 
@@ -227,7 +232,7 @@ impl EguiManager {
             });
     }
 
-    fn render_game_over(&self, context: &Context, player: &Player) {
+    fn render_game_over(&mut self, context: &Context, player: &Player) {
         egui::Window::new("").anchor(Align2::CENTER_CENTER, [0., 0.])
             .show(context, |ui| {
                 ui.add(Label::new(RichText::new("Game Over!")
@@ -239,6 +244,16 @@ impl EguiManager {
                                       .font(FontId::proportional(60.0))
                                       .strong()
                 ).wrap(false));
+                if ui.button(RichText::new("Save Replay")
+                    .font(FontId::proportional(60.0))).clicked() {
+                    self.save_replay_clicked = true;
+                }
+                if self.replay_save_name.is_some() {
+                    ui.add(Label::new(RichText::new(
+                        format!("Replay saved as: {}", self.replay_save_name.as_ref().unwrap()))
+                                          .font(FontId::proportional(20.0))
+                    ));
+                }
             });
     }
 }

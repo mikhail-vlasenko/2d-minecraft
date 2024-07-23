@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use strum::IntoEnumIterator;
 use game_logic::auxiliary::actions::{Action, can_take_action};
 use game_logic::character::player::Player;
-use game_logic::{handle_action, is_game_over};
+use game_logic::{handle_action, is_game_over, SETTINGS};
+use game_logic::auxiliary::replay::Replay;
 use game_logic::map_generation::field::{absolute_to_relative, Field};
 use game_logic::map_generation::field::AbsolutePos;
 use game_logic::map_generation::field_observation::get_tile_observation;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
-use crate::ffi_config::CONFIG;
 use crate::observation::Observation;
 
 
@@ -15,19 +15,23 @@ use crate::observation::Observation;
 pub struct GameState {
     field: Field,
     player: Player,
+    replay: Replay
 }
 
 impl GameState {
     pub fn new() -> Self {
         let (field, player) = game_logic::init_field_player();
+        // will not be recorded if record_replays is disabled in settings
+        let replay = Replay::new();
         Self {
             field,
             player,
+            replay,
         }
     }
 
     pub fn step(&mut self, action: &Action) {
-        handle_action(action, &mut self.field, &mut self.player, &RefCell::new(false), &RefCell::new(false), None);
+        handle_action(action, &mut self.field, &mut self.player, &RefCell::new(false), &RefCell::new(false), None, &mut self.replay);
     }
 
     pub fn step_i32(&mut self, action: i32) {

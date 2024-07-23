@@ -7,6 +7,7 @@ use std::sync::RwLock;
 use lazy_static::lazy_static;
 use crate::auxiliary::actions::Action;
 use crate::auxiliary::animations::AnimationManager;
+use crate::auxiliary::replay::Replay;
 use crate::character::player::Player;
 use crate::character::start_loadouts::apply_loadout;
 use crate::crafting::consumable::Consumable;
@@ -49,7 +50,7 @@ pub fn init_field_player() -> (Field, Player) {
 
 pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player, 
                      main_menu_open: &RefCell<bool>, craft_menu_open: &RefCell<bool>, 
-                     animation_manager: Option<& mut AnimationManager>) {
+                     animation_manager: Option<& mut AnimationManager>, replay: &mut Replay) {
     if action == &Action::ToggleMainMenu || (!is_game_over(player) && !*main_menu_open.borrow()) {
         player.message = String::new();
         // different actions take different time, so sometimes mobs are not allowed to step
@@ -71,6 +72,9 @@ pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player,
         } else { 
             field.animations_buffer.clear();
             player.animations_buffer.clear();
+        }
+        if SETTINGS.read().unwrap().record_replays {
+            replay.record_state(field, player);
         }
     }
 }
