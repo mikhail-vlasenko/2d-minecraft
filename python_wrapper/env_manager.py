@@ -3,16 +3,17 @@ import ctypes
 import numpy as np
 from typing import List
 
-from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size
+from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size, set_record_replays
 from python_wrapper.observation import ProcessedObservation, get_processed_observation, get_action_name
 
 
 class EnvManager:
-    def __init__(self, lib_path='./target/release/ffi.dll', batch_size=2):
+    def __init__(self, lib_path='./target/release/ffi.dll', batch_size=2, record_replays=False):
         # Initialize the FFI library
         init_lib(lib_path)
 
-        # Set the batch size
+        set_record_replays(record_replays)
+
         self.batch_size = batch_size
         set_batch_size(self.batch_size)
 
@@ -74,6 +75,13 @@ class EnvManager:
     def close(self):
         self.batch_size = 0
         set_batch_size(0)
+
+    def set_batch_size(self, new_batch_size: int):
+        self.batch_size = new_batch_size
+        set_batch_size(new_batch_size)
+
+    def set_record_replays(self, record_replays: bool):
+        set_record_replays(record_replays)
 
 
 if __name__ == "__main__":

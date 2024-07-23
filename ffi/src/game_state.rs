@@ -6,7 +6,6 @@ use game_logic::character::player::Player;
 use game_logic::{handle_action, is_game_over, SETTINGS};
 use game_logic::auxiliary::replay::Replay;
 use game_logic::map_generation::field::{absolute_to_relative, Field};
-use game_logic::map_generation::field::AbsolutePos;
 use game_logic::map_generation::field_observation::get_tile_observation;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
 use crate::observation::Observation;
@@ -40,7 +39,9 @@ impl GameState {
 
     pub fn step_i32(&mut self, action: i32) {
         let action = Action::try_from(action).expect(format!("Invalid action with index {}", action).as_str());
-        self.step(&action);
+        if !action.ffi_disabled() {
+            self.step(&action);
+        }
     }
 
     pub fn get_observation(&self) -> Observation {

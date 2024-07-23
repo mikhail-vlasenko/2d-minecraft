@@ -23,8 +23,9 @@ class PPO(nn.Module):
         if self.simple_architecture:
             self.l1 = nn.Linear(state_shape, CONFIG.ppo.dimensions[0])
             self.l2 = nn.Linear(CONFIG.ppo.dimensions[0], CONFIG.ppo.dimensions[1])
-            self.actor_out = nn.Linear(CONFIG.ppo.dimensions[1], n_actions)
-            self.critic_out = nn.Linear(CONFIG.ppo.dimensions[1], 1)
+            self.l3 = nn.Linear(CONFIG.ppo.dimensions[1], CONFIG.ppo.dimensions[2])
+            self.actor_out = nn.Linear(CONFIG.ppo.dimensions[2], n_actions)
+            self.critic_out = nn.Linear(CONFIG.ppo.dimensions[2], 1)
         else:
             self.in_channels = in_channels
 
@@ -48,6 +49,7 @@ class PPO(nn.Module):
         if self.simple_architecture:
             x = self.non_linear(self.l1(x))
             x = self.non_linear(self.l2(x))
+            x = self.non_linear(self.l3(x))
             x_actor = self.softmax(self.actor_out(x))
             x_critic = self.critic_out(x)
 

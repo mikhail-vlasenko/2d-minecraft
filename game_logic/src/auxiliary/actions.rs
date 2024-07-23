@@ -32,6 +32,17 @@ pub enum Action {
     ConsumeSpecific(Consumable),
 }
 
+impl Action {
+    pub fn ffi_disabled(&self) -> bool {
+        use Action::*;
+        match self {
+            CloseInteractableMenu | ToggleMap | ToggleCraftMenu | ToggleMainMenu => true,
+            _ => false,
+        }
+    
+    }
+}
+
 /// Returns whether the player can take the action.
 /// Built for FFI, so actions like place and craft are unavailable in favour of PlaceSpecificMaterial and CraftSpecific.
 /// Menu action are thus also disabled.
