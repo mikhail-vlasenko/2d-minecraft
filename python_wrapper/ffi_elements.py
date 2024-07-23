@@ -15,6 +15,7 @@ def init_lib(path):
     c_lib.step_one.argtypes = [ctypes.c_int32, ctypes.c_int32]
     c_lib.get_one_observation.argtypes = [ctypes.c_int32]
     c_lib.valid_actions_mask.argtypes = [ctypes.c_int32]
+    c_lib.set_record_replays.argtypes = [ctypes.c_bool]
     c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
 
@@ -59,7 +60,29 @@ def get_one_observation(index: int) -> Observation:
     return c_lib.get_one_observation(index)
 
 def valid_actions_mask(index: int) -> ActionMask:
+    """ Gets the actions mask for the game state at the specified index.
+ The mask is an array of integers where 1 means the action will lead to something happening with the games state,
+ and 0 means taking the action will yield the same observation.
+ 
+ # Arguments
+ 
+ * `index` - The index of the game state to get the actions mask for.
+ 
+ # Returns
+ 
+ * `ActionMask` - The actions mask for the game state."""
     return c_lib.valid_actions_mask(index)
+
+def set_record_replays(value: bool):
+    """ Sets the record_replays setting to the given value.
+ Training is better done with record_replays set to false, as it saves memory and time.
+ For evaluation and assessment one can consider setting it to true.
+ Should be applied with a reset, as otherwise will produce incomplete replays for the currently running game states.
+ 
+ # Arguments
+ 
+ * `value` - The value to set record_replays to."""
+    return c_lib.set_record_replays(value)
 
 def num_actions() -> int:
     return c_lib.num_actions()

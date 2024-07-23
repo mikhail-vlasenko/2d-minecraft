@@ -223,7 +223,12 @@ impl<'a> State<'a> {
 
     fn handle_action(&mut self, virtual_keycode: &KeyCode) {
         match virtual_keycode { 
-            KeyCode::F1 => { }
+            KeyCode::F1 => {
+                if self.active_replay.is_some() {
+                    let replay = self.active_replay.as_mut().unwrap();
+                    replay.step_back(&mut self.field, &mut self.player)
+                }
+            }
             KeyCode::F2 => { 
                 if self.active_replay.is_some() {
                     let replay = self.active_replay.as_mut().unwrap();

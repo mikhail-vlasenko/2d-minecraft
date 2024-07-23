@@ -89,11 +89,26 @@ impl Replay {
         player.clone_from(&state.player);
         field.set_time(state.time);
         field.set_visible_tiles(&state.top_materials, &state.tile_heights, (player.x, player.y));
+        field.set_mobs(state.mobs.clone());
         field.animations_buffer.clear();
         self.current_step += 1;
     }
     
+    pub fn step_back(&mut self, field: &mut Field, player: &mut Player) {
+        if self.current_step > 0 {
+            self.current_step -= 1;
+            if self.current_step > 0 {
+                self.current_step -= 1;
+            }
+            self.apply_state(field, player);
+        }
+    }
+    
     pub fn finished(&self) -> bool {
         self.current_step >= self.states.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.states.is_empty()
     }
 }

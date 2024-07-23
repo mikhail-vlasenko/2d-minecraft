@@ -126,25 +126,28 @@ impl Field {
             player.score_passed_time(1., self.get_time());
         }
     }
-
-    pub fn step_mobs(&mut self, player: &mut Player) {
+    
+    fn detach_mobs(&mut self) {
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
                 self.stray_mobs.extend(self.loaded_chunks[i][j].lock().unwrap().transfer_mobs());
             }
         }
+    }
+
+    pub fn step_mobs(&mut self, player: &mut Player) {
+        self.detach_mobs();
         for _ in 0..self.stray_mobs.len() {
             let optional_mob = self.stray_mobs.pop();
             if optional_mob.is_none() {
                 break;
             }
-            let mut m = optional_mob.unwrap();
-            m.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
-            let (x_chunk, y_chunk) = self.chunk_idx_from_pos(m.pos.x, m.pos.y);
+            let mut mob = optional_mob.unwrap();
+            mob.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
 
-            if m.is_alive() {
+            if mob.is_alive() {
                 // mobs can self-destruct, dont add them in that case.
-                self.loaded_chunks[x_chunk][y_chunk].lock().unwrap().add_mob(m);
+                self.place_mob(mob);
             }
         }
     }
@@ -435,6 +438,10 @@ impl Field {
     pub fn break_interactable_at(&mut self, xy: (i32, i32)) -> InteractableKind {
         self.get_chunk(xy.0, xy.1).break_interactable_at(xy.0, xy.1)
     }
+    pub fn place_mob(&mut self, mob: Mob) {
+        let xy = (mob.pos.x, mob.pos.y);
+        self.get_chunk(xy.0, xy.1).add_mob(mob)
+    }
     /// This function needs to take stray mobs into account,
     /// as it gets called during the mob movement stage,
     /// when (some of) the mobs are extracted from chunks
@@ -516,6 +523,16 @@ impl Field {
                     self.push_at(Block::new(top_materials[i][j]), xy);
                 }
             }
+        }
+    }
+    
+    pub (crate) fn set_mobs(&mut self, mobs: Vec<Mob>) {
+        // destroy all mobs
+        self.detach_mobs();
+        self.stray_mobs.clear();
+        
+        for mob in mobs {
+            self.place_mob(mob);
         }
     }
 }
