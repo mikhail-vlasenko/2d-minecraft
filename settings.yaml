@@ -46,6 +46,8 @@ player:
     loadout: fighter  # empty, apples, fighter, archer
 
 save_folder: game_saves
+replay_folder: replays
+record_replays: true
 
 scoring:
   time:  # survival time

@@ -9,6 +9,13 @@ pub struct Block {
     pub material: Material,
 }
 
+impl Block {
+    pub fn new(material: Material) -> Self {
+        Self {
+            material,
+        }
+    }
+}
 
 impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

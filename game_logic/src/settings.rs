@@ -10,6 +10,8 @@ pub struct Settings {
     pub mobs: _Config__mobs,
     pub pathing: _Config__pathing,
     pub player: _Config__player,
+    pub record_replays: bool,
+    pub replay_folder: Cow<'static, str>,
     pub save_folder: Cow<'static, str>,
     pub scoring: _Config__scoring,
     pub window: _Config__window,
@@ -200,6 +202,8 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
             loadout: Cow::Borrowed("fighter"),
         },
     },
+    record_replays: true,
+    replay_folder: Cow::Borrowed("replays"),
     save_folder: Cow::Borrowed("game_saves"),
     scoring: _Config__scoring {
         blocks: _Config__scoring__blocks {

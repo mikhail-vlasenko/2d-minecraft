@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::Path;
 use std::process::exit;
 use egui::{Slider};
@@ -13,6 +14,7 @@ pub struct MainMenu {
     /// The second panel is the panel that appears on the right side of the main menu.
     pub second_panel: SecondPanelState,
     pub save_name: String,
+    pub replay_name: String,
 }
 
 impl MainMenu {
@@ -21,6 +23,7 @@ impl MainMenu {
             selected_option: SelectedOption::Nothing,
             second_panel: SecondPanelState::About,
             save_name: String::from("default_save"),
+            replay_name: String::from("default_replay"),
         }
     }
 
@@ -58,6 +61,12 @@ impl MainMenu {
                             .strong()
                         ).clicked() {
                             self.second_panel = SecondPanelState::LoadGame;
+                        }
+                        if ui.button(RichText::new("Watch Replay")
+                            .font(FontId::proportional(30.0))
+                            .strong()
+                        ).clicked() {
+                            self.second_panel = SecondPanelState::Replays;
                         }
                         if ui.button(RichText::new("Settings")
                             .font(FontId::proportional(30.0))
@@ -115,10 +124,36 @@ impl MainMenu {
 
                             self.back_button(&mut columns[1]);
                         }
+                        SecondPanelState::Replays => {
+                            let path_string = settings.replay_folder.clone().into_owned();
+                            let path = Path::new(&path_string);
+                            let replay_names = fs::read_dir(path).unwrap()
+                                .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+                                .collect::<Vec<String>>();
+                            for name in replay_names.iter() {
+                                if columns[1].button(RichText::new(name)
+                                    .font(FontId::proportional(20.0))).clicked() {
+                                    self.replay_name = name.clone();
+                                    self.selected_option = SelectedOption::WatchReplay;
+                                }
+                            }
+                            
+                            self.back_button(&mut columns[1]);
+                        }
                         SecondPanelState::Settings => {
                             Self::render_difficulty_buttons(&mut columns[1], &mut settings);
                             columns[1].add_space(10.0);
                             Self::render_settings_sliders(&mut columns[1], &mut settings);
+                            columns[1].add_space(10.0);
+                            
+                            columns[1].label("Replays:");
+                            columns[1].checkbox(&mut settings.record_replays, "Save Replays");
+                            let mut replay_folder = settings.replay_folder.clone().into_owned();
+                            columns[1].horizontal(|ui| {
+                                ui.label("Replay Folder:");
+                                ui.text_edit_singleline(&mut replay_folder);
+                            });
+                            settings.replay_folder = replay_folder.into();
                             columns[1].add_space(10.0);
 
                             let mut save_folder = settings.save_folder.clone().into_owned();
@@ -229,6 +264,8 @@ impl MainMenu {
             ("M", "Toggle map view"),
             ("Space", "Toggle craft menu"),
             ("Escape", "Toggle main menu"),
+            ("F1", "Replay: step back"),
+            ("F2", "Replay: step forward"),
         ];
 
         for (key, action) in &controls {
@@ -241,6 +278,7 @@ impl MainMenu {
             SecondPanelState::About => "",
             SecondPanelState::SaveGame => "Save Game",
             SecondPanelState::LoadGame => "Load Game",
+            SecondPanelState::Replays => "Replays",
             SecondPanelState::Settings => "Settings",
             SecondPanelState::Controls => "Controls",
         }.to_string();
@@ -264,6 +302,7 @@ pub enum SelectedOption {
     NewGame,
     SaveGame,
     LoadGame,
+    WatchReplay,
 }
 
 #[derive(PartialEq)]
@@ -271,6 +310,7 @@ pub enum SecondPanelState {
     About,
     SaveGame,
     LoadGame,
+    Replays,
     Settings,
     Controls,
 }

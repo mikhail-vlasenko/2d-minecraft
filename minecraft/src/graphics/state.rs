@@ -33,6 +33,7 @@ use game_logic::map_generation::chunk::Chunk;
 use game_logic::map_generation::read_chunk::read_file;
 use game_logic::map_generation::save_load::{load_game, save_game};
 use game_logic::{handle_action, init_field_player, SETTINGS};
+use game_logic::auxiliary::replay::Replay;
 use crate::graphical_config::CONFIG;
 use crate::input_decoding::map_key_to_action;
 
@@ -58,6 +59,8 @@ pub struct State<'a> {
     pub egui_renderer: EguiRenderer,
     egui_manager: EguiManager,
     animation_manager: AnimationManager,
+    recorded_replay: Replay,
+    active_replay: Option<Replay>,
     field: Field,
     player: Player,
 }
@@ -167,6 +170,9 @@ impl<'a> State<'a> {
         let egui_manager = EguiManager::new();
 
         let animation_manager = AnimationManager::new();
+        
+        let recorded_replay = Replay::new();
+        let active_replay = None;
 
         let (field, player) = init_field_player();
 
@@ -185,6 +191,8 @@ impl<'a> State<'a> {
             egui_renderer,
             egui_manager,
             animation_manager,
+            recorded_replay,
+            active_replay,
             field,
             player,
         }
@@ -214,15 +222,34 @@ impl<'a> State<'a> {
     }
 
     fn handle_action(&mut self, virtual_keycode: &KeyCode) {
-        let action = map_key_to_action(virtual_keycode, &self.player);
-        if action.is_some() {
-            handle_action(
-                &action.unwrap(),
-                &mut self.field, &mut self.player,
-                &self.egui_manager.main_menu_open,
-                &self.egui_manager.craft_menu_open,
-                Some(&mut self.animation_manager),
-            );
+        match virtual_keycode { 
+            KeyCode::F1 => {
+                if self.active_replay.is_some() {
+                    let replay = self.active_replay.as_mut().unwrap();
+                    replay.step_back(&mut self.field, &mut self.player)
+                }
+            }
+            KeyCode::F2 => { 
+                if self.active_replay.is_some() {
+                    let replay = self.active_replay.as_mut().unwrap();
+                    if !replay.finished() {
+                        replay.apply_state(&mut self.field, &mut self.player);
+                    }
+                }
+            }
+            _ => {
+                let action = map_key_to_action(virtual_keycode, &self.player);
+                if action.is_some() {
+                    handle_action(
+                        &action.unwrap(),
+                        &mut self.field, &mut self.player,
+                        &self.egui_manager.main_menu_open,
+                        &self.egui_manager.craft_menu_open,
+                        Some(&mut self.animation_manager),
+                        &mut self.recorded_replay,
+                    );
+                }
+            }
         }
     }
 
@@ -286,6 +313,27 @@ impl<'a> State<'a> {
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
             self.animation_manager.clear();
+        }
+        
+        if self.egui_manager.main_menu.selected_option == SelectedOption::WatchReplay {
+            let mut path = PathBuf::from(SETTINGS.read().unwrap().replay_folder.clone().into_owned());
+            path.push(self.egui_manager.main_menu.replay_name.clone());
+            self.active_replay = Some(Replay::load(path.as_path()));
+            self.egui_manager.main_menu_open.replace(false);
+            self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
+            self.egui_manager.main_menu.second_panel = SecondPanelState::About;
+            self.animation_manager.clear();
+            // start the replay
+            self.handle_action(&KeyCode::F2);
+        }
+        
+        if self.egui_manager.save_replay_clicked {
+            let path = PathBuf::from(SETTINGS.read().unwrap().replay_folder.clone().into_owned());
+            let name = self.recorded_replay.make_save_name();
+            let path = path.join(name.clone());
+            self.recorded_replay.save(path.as_path());
+            self.egui_manager.save_replay_clicked = false;
+            self.egui_manager.replay_save_name = Some(name);
         }
 
         let mob_positions_and_hp = self.field.close_mob_info(|mob| {

@@ -69,6 +69,10 @@ impl ChunkLoader {
         let high = (y as i64) << 32;
         low + high
     }
+    
+    pub fn get_chunk_size(&self) -> usize {
+        self.chunk_size
+    }
 }
 
 impl PartialEq for ChunkLoader {

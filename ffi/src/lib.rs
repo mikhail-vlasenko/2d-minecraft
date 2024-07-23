@@ -4,6 +4,7 @@ use interoptopus::{ffi_function, Inventory, InventoryBuilder, function};
 use interoptopus::{Error, Interop};
 use lazy_static::lazy_static;
 use game_logic::auxiliary::actions::Action;
+use game_logic::SETTINGS;
 
 use crate::game_state::GameState;
 use crate::observation::{ActionMask, NUM_ACTIONS, Observation};
@@ -88,6 +89,17 @@ pub extern "C" fn get_one_observation(index: i32) -> Observation {
     }
 }
 
+/// Gets the actions mask for the game state at the specified index.
+/// The mask is an array of integers where 1 means the action will lead to something happening with the games state,
+/// and 0 means taking the action will yield the same observation.
+/// 
+/// # Arguments
+/// 
+/// * `index` - The index of the game state to get the actions mask for.
+/// 
+/// # Returns
+/// 
+/// * `ActionMask` - The actions mask for the game state.
 #[ffi_function]
 #[no_mangle]
 pub extern "C" fn valid_actions_mask(index: i32) -> ActionMask {
@@ -97,6 +109,20 @@ pub extern "C" fn valid_actions_mask(index: i32) -> ActionMask {
     } else {
         panic!("Index {} out of bounds for batch size {}", index, state.len());
     }
+}
+
+/// Sets the record_replays setting to the given value.
+/// Training is better done with record_replays set to false, as it saves memory and time.
+/// For evaluation and assessment one can consider setting it to true.
+/// Should be applied with a reset, as otherwise will produce incomplete replays for the currently running game states.
+/// 
+/// # Arguments
+/// 
+/// * `value` - The value to set record_replays to.
+#[ffi_function]
+#[no_mangle]
+pub extern "C" fn set_record_replays(value: bool) {
+    SETTINGS.write().unwrap().record_replays = value;
 }
 
 #[ffi_function]
@@ -121,6 +147,7 @@ pub fn ffi_inventory() -> Inventory {
         .register(function!(step_one))
         .register(function!(get_one_observation))
         .register(function!(valid_actions_mask))
+        .register(function!(set_record_replays))
         .register(function!(num_actions))
         .register(function!(action_name))
         .inventory()
