@@ -1,98 +1,91 @@
-import random
-import ctypes
+from typing import Type, List, Any
+
+import gymnasium as gym
 import numpy as np
-from typing import List
+from stable_baselines3.common.vec_env import VecEnv
+from stable_baselines3.common.vec_env.base_vec_env import VecEnvIndices
 
 from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size, set_record_replays
-from python_wrapper.observation import ProcessedObservation, get_processed_observation, get_action_name
+from python_wrapper.observation import get_processed_observation
 
 
-class EnvManager:
-    def __init__(self, lib_path='./target/release/ffi.dll', batch_size=2, record_replays=False):
-        # Initialize the FFI library
+def flatted_obs(obs):
+    top_materials_flat = obs.top_materials.flatten()
+    top_materials_one_hot = np.eye(13)[top_materials_flat].flatten()
+    tile_heights_flat = obs.tile_heights.flatten()
+    player_pos_flat = np.array(obs.player_pos)
+    player_rot = np.array([obs.player_rot])
+    hp = np.array([obs.hp])
+    time = np.array([obs.time])
+    inventory_state = np.array(obs.inventory_state)
+    mobs_flat = np.array(obs.mobs).flatten()
+    return np.concatenate(
+        [top_materials_one_hot, tile_heights_flat, player_pos_flat, player_rot, hp, time, inventory_state, mobs_flat])
+
+
+class Minecraft2dEnv(VecEnv):
+    def __init__(self, num_envs=1, lib_path='./target/release/ffi.dll', record_replays=False):
         init_lib(lib_path)
-
         set_record_replays(record_replays)
+        obs = flatted_obs(get_processed_observation(0))  # Obtain an example observation for space definition
 
-        self.batch_size = batch_size
-        set_batch_size(self.batch_size)
+        super().__init__(
+            num_envs=num_envs,
+            observation_space=gym.spaces.Box(low=-np.inf, high=np.inf, shape=obs.shape, dtype=np.float32),
+            action_space=gym.spaces.Discrete(num_actions())
+        )
+        self.num_envs = num_envs
+        set_batch_size(num_envs)
+        self.current_scores = np.zeros(num_envs)
 
-        # Get the number of actions
-        self.num_actions = num_actions()
+    def step_async(self, actions):
+        self.actions = actions
 
-        self.current_scores = np.zeros(self.batch_size)
-
-    def reset(self):
-        """Resets all environments."""
-        reset()
-        return self.get_all_observations()[0]
-
-    def step(self, actions: List[int]) -> tuple[list[ProcessedObservation], list[int], list[bool]]:
-        """Performs a step in each environment with the given actions.
-
-        Args:
-            actions (List[int]): A list of actions for each environment in the batch.
-
-        Returns:
-            List[ProcessedObservation]: A list of observations after performing the actions.
-        """
-        for i, action in enumerate(actions):
-            step_one(action, i)
-        return self.get_all_observations()
-
-    def get_all_observations(self) -> tuple[list[ProcessedObservation], list[int], list[bool]]:
-        """Gets the current observations from all environments.
-
-        Returns:
-            tuple[list[ProcessedObservation], list[int]]: A tuple containing a list of observations and a list of rewards
-        """
+    def step_wait(self):
         observations = []
         rewards = []
         dones = []
-        for i in range(self.batch_size):
+        infos = [{} for _ in range(self.num_envs)]
+
+        for i, action in enumerate(self.actions):
+            step_one(action, i)
             obs = get_processed_observation(i)
             if obs.score == 0:
                 # ensure a negative reward from transitioning from a previous game can't happen
-                rewards.append(0)
+                reward = 0
             else:
-                rewards.append(obs.score - self.current_scores[i])
+                reward = obs.score - self.current_scores[i]
             self.current_scores[i] = obs.score
-            observations.append(obs)
-            dones.append(obs.done)
-        return observations, rewards, dones
+            done = obs.done
+            observations.append(flatted_obs(obs))
+            rewards.append(reward)
+            dones.append(done)
 
-    def get_action_name(self, action: int) -> str:
-        """Gets the name of an action.
+        return np.array(observations), np.array(rewards), np.array(dones), infos
 
-        Args:
-            action (int): The action index.
-
-        Returns:
-            str: The name of the action.
-        """
-        return get_action_name(action)
+    def reset(self):
+        reset()
+        observations = [flatted_obs(get_processed_observation(i)) for i in range(self.num_envs)]
+        return np.array(observations)
 
     def close(self):
-        self.batch_size = 0
         set_batch_size(0)
 
-    def set_batch_size(self, new_batch_size: int):
-        self.batch_size = new_batch_size
-        set_batch_size(new_batch_size)
+    def render(self, mode='human'):
+        raise NotImplementedError("Render not implemented here. "
+                                  "Use the 2D-Minecraft binary to watch the replay, if it was saved.")
 
-    def set_record_replays(self, record_replays: bool):
-        set_record_replays(record_replays)
+    def seed(self, seed=None):
+        raise NotImplementedError("Seeding not implemented for this environment.")
 
+    def get_attr(self, attr_name: str, indices: VecEnvIndices = None) -> List[Any]:
+        return [getattr(self, attr_name) for _ in range(self.num_envs)]
 
-if __name__ == "__main__":
-    manager = EnvManager()
-    observations = manager.reset()
-    for obs in observations:
-        print(obs)
+    def set_attr(self, attr_name: str, value: Any, indices: VecEnvIndices = None) -> None:
+        setattr(self, attr_name, value)
 
-    while True:
-        actions = [random.randint(0, manager.num_actions - 1) for _ in range(manager.batch_size)]
-        print(f'Performing actions: {[manager.get_action_name(action) for action in actions]}')
-        observations, rewards, dones = manager.step(actions)
-        for obs in observations:
-            print(obs)
+    def env_method(self, method_name: str, *method_args, indices: VecEnvIndices = None, **method_kwargs) -> List[Any]:
+        return [getattr(self, method_name)(*method_args, **method_kwargs) for _ in range(self.num_envs)]
+
+    def env_is_wrapped(self, wrapper_class: Type[gym.Wrapper], indices: VecEnvIndices = None) -> List[bool]:
+        return [False for _ in range(self.num_envs)]

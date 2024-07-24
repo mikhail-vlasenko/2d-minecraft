@@ -1,102 +1,92 @@
-import random
-import torch
-from tqdm import tqdm
-import wandb
 import numpy as np
+from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import CallbackList, BaseCallback, CheckpointCallback
+import wandb
 
-from config import CONFIG
-from python_wrapper.env_manager import EnvManager
-from ppo import PPO, TrajectoryDataset, update_policy, device
-
-
-def preprocess_observation(obs):
-    # One-hot encode top_materials
-    top_materials_flat = obs.top_materials.flatten()
-    top_materials_one_hot = np.eye(13)[top_materials_flat].flatten()
-
-    tile_heights_flat = obs.tile_heights.flatten()
-    player_pos_flat = np.array(obs.player_pos)
-    player_rot = np.array([obs.player_rot])
-    hp = np.array([obs.hp])
-    time = np.array([obs.time])
-    inventory_state = np.array(obs.inventory_state)
-    mobs_flat = np.array(obs.mobs).flatten()
-
-    return np.concatenate(
-        [top_materials_one_hot, tile_heights_flat, player_pos_flat, player_rot, hp, time, inventory_state, mobs_flat]
-    )
+from python_wrapper.env_manager import Minecraft2dEnv
+from reinforcement_learning.config import CONFIG
 
 
-def save_model(ppo, optimizer, path):
-    torch.save({
-        'model_state_dict': ppo.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict()
-    }, path)
-    print(f'Saved PPO to: {CONFIG.ppo_train.save_to}')
+class LoggingCallback(BaseCallback):
+    def __init__(self, verbose=0):
+        super(LoggingCallback, self).__init__(verbose)
+        self.episode_rewards = np.zeros(CONFIG.env.num_envs)
+        self.episode_lengths = np.zeros(CONFIG.env.num_envs, dtype=int)
+        self.total_rewards = []
+        self.total_lengths = []
+
+    def _on_step(self) -> bool:
+        rewards = self.locals["rewards"]
+        dones = self.locals["dones"]
+
+        # Update the rewards and lengths
+        self.episode_rewards += rewards
+        self.episode_lengths += 1
+
+        # Check for completed episodes
+        for i in range(len(dones)):
+            if dones[i]:
+                # Log completed episodes
+                self.total_rewards.append(self.episode_rewards[i])
+                self.total_lengths.append(self.episode_lengths[i])
+
+                # Reset the counters for completed episodes
+                self.episode_rewards[i] = 0
+                self.episode_lengths[i] = 0
+
+        return True
+
+    def _on_rollout_end(self):
+        # Calculate average reward and length of completed episodes
+        if self.total_rewards:
+            average_reward = np.mean(self.total_rewards)
+            average_length = np.mean(self.total_lengths)
+            print(f"Average episode reward: {average_reward:.2f} over {len(self.total_rewards)} episodes")
+            print(f"Average episode length: {average_length:.2f}")
+            wandb.log({
+                'Average Reward': average_reward,
+                'Average Length': average_length,
+                'Episodes': len(self.total_rewards)
+            })
+
+            # Reset the lists for the next set of episodes
+            self.total_rewards = []
+            self.total_lengths = []
 
 
-def load_model(ppo, optimizer, path):
-    checkpoint = torch.load(path)
-    ppo.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    print(f'Loaded PPO from: {path}')
+def main():
+    run = wandb.init(entity="mvlasenko", project='minecraft-rl', config=CONFIG.as_dict())
 
+    env = Minecraft2dEnv(num_envs=CONFIG.env.num_envs, lib_path=CONFIG.env.lib_path)
 
-def tensor_observations(observations):
-    return torch.tensor(np.array([preprocess_observation(obs) for obs in observations])).float().to(device)
-
-
-def main(logging_start_step=0):
-    env_manager = EnvManager(CONFIG.env.lib_path, CONFIG.env.batch_size)
-
-    observations = env_manager.reset()
-    sample_obs = preprocess_observation(observations[0])
-    obs_shape = sample_obs.shape
-    print('Observation shape:', obs_shape)
-    n_actions = env_manager.num_actions
-
-    ppo = PPO(state_shape=obs_shape[0], n_actions=n_actions).to(device)
-    optimizer = torch.optim.Adam(ppo.parameters(), lr=CONFIG.ppo.lr)
+    model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}",
+                learning_rate=CONFIG.ppo.lr, n_steps=1024,
+                n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
 
     if CONFIG.ppo_train.load_from is not None:
-        load_model(ppo, optimizer, CONFIG.ppo_train.load_from)
+        model.load(CONFIG.ppo_train.load_from)
 
-    dataset = TrajectoryDataset(batch_size=CONFIG.ppo.batch_size, n_workers=env_manager.batch_size)
+    checkpoint_callback = CheckpointCallback(
+        save_freq=CONFIG.ppo_train.save_every,
+        save_path="./reinforcement_learning/saved_models/"
+    )
 
-    states = tensor_observations(observations)
+    callback_list = CallbackList([checkpoint_callback, LoggingCallback()])
 
-    step = 0
-    num_saved = 1
-    for t in tqdm(range(int(CONFIG.ppo_train.env_steps / env_manager.batch_size))):
-        actions, log_probs = ppo.act(states)
-        observations, rewards, dones = env_manager.step(actions)
+    model.learn(
+        total_timesteps=CONFIG.ppo_train.env_steps,
+        callback=callback_list,
+        progress_bar=True,
+    )
 
-        train_ready = dataset.write_tuple(states, actions, rewards, dones, log_probs)
+    model.save(CONFIG.ppo_train.save_to)
+    # model_art = wandb.Artifact('sb3_ppo_model', type='model')
+    # model_art.add_file(CONFIG.ppo_train.save_to)
+    # run.log_artifact(model_art)
 
-        states = tensor_observations(observations)
-
-        if train_ready:
-            step = t * env_manager.batch_size + logging_start_step
-            wandb.log({'Returns': dataset.log_returns().mean(), 'Lengths': dataset.log_lengths().mean()}, step=step)
-
-            if step > num_saved * CONFIG.ppo_train.save_every:
-                save_model(ppo, optimizer, CONFIG.ppo_train.save_to)
-                num_saved += 1
-
-            update_policy(ppo, dataset, optimizer, CONFIG.ppo.gamma, CONFIG.ppo.epsilon, CONFIG.ppo.update_epochs,
-                          entropy_reg=CONFIG.ppo.entropy_reg)
-
-            dataset.reset_trajectories()
-
-    save_model(ppo, optimizer, CONFIG.ppo_train.save_to)
-    model_art = wandb.Artifact('ppo_model_and_optim', type='model')
-    model_art.add_file(CONFIG.ppo_train.save_to)
-    wandb.log_artifact(model_art)
-
-    env_manager.close()
-    return step
+    env.close()
+    run.finish()
 
 
 if __name__ == '__main__':
-    wandb.init(entity="mvlasenko", project='minecraft-rl', config=CONFIG.as_dict())
     main()

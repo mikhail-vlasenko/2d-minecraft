@@ -6,13 +6,13 @@ import torch
 
 @dataclass
 class EnvConfig:
-    batch_size: int = 32
+    num_envs: int = 32
     lib_path: str = './target/release/ffi.dll'
 
 
 @dataclass
 class PPOTrainConfig:
-    env_steps: int = 10000000
+    env_steps: int = 2000000
     load_from: str = None
     # load_from: str = f'reinforcement_learning/saved_models/one_hot_top_materials.pt'
     save_to: str = f'reinforcement_learning/saved_models/one_hot_top_materials.pt'
@@ -27,12 +27,9 @@ class EvaluationConfig:
 
 @dataclass
 class PPOConfig:
-    batch_size: int = 4096
-    lr: float = 1e-3 / 2
-    entropy_reg: float = 0.05
+    lr: float = 3e-4
     gamma: float = 0.99
-    epsilon: float = 0.1
-    update_epochs: int = 5
+    update_epochs: int = 10
     nonlinear: str = 'tanh'  # tanh, relu
     dimensions: List[int] = field(default_factory=lambda: [1024, 512, 256, 128])
 
