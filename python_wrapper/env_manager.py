@@ -6,12 +6,12 @@ from stable_baselines3.common.vec_env import VecEnv
 from stable_baselines3.common.vec_env.base_vec_env import VecEnvIndices
 
 from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size, set_record_replays
-from python_wrapper.observation import get_processed_observation
+from python_wrapper.observation import get_processed_observation, NUM_MATERIALS
 
 
 def flatted_obs(obs):
     top_materials_flat = obs.top_materials.flatten()
-    top_materials_one_hot = np.eye(13)[top_materials_flat].flatten()
+    top_materials_one_hot = np.eye(NUM_MATERIALS)[top_materials_flat].flatten()
     tile_heights_flat = obs.tile_heights.flatten()
     player_pos_flat = np.array(obs.player_pos)
     player_rot = np.array([obs.player_rot])

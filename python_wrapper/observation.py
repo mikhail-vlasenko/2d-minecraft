@@ -6,6 +6,10 @@ import numpy as np
 from python_wrapper.ffi_elements import Observation, get_one_observation, action_name, valid_actions_mask
 
 OBSERVATION_GRID_SIZE = 17
+NUM_MATERIALS = 13
+INVENTORY_SIZE = 26
+NUM_MOBS = 16
+MOB_INFO_SIZE = 4
 
 
 class ProcessedObservation:
@@ -56,7 +60,7 @@ class ProcessedObservation:
         hp = c_observation.hp
         time = c_observation.time
         inventory_state = np.ctypeslib.as_array(c_observation.inventory_state).tolist()
-        mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((16, 4)).tolist()
+        mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((NUM_MOBS, MOB_INFO_SIZE)).tolist()
         score = c_observation.score
         message = ctypes.cast(c_observation.message, ctypes.c_char_p).value.decode('utf-8') if c_observation.message else ""
         done = c_observation.done
