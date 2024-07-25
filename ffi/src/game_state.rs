@@ -35,6 +35,16 @@ impl GameState {
             action, &mut self.field, &mut self.player, 
             &RefCell::new(false), &RefCell::new(false), None, &mut self.recorded_replay
         );
+        if self.is_done() {
+            // save the replay
+            if SETTINGS.read().unwrap().record_replays && !self.recorded_replay.is_empty() {
+                let path = PathBuf::from(SETTINGS.read().unwrap().replay_folder.clone().into_owned());
+                let name = self.recorded_replay.make_save_name();
+                let path = path.join(name.clone());
+                self.recorded_replay.save(path.as_path());
+                self.recorded_replay = Replay::new();
+            }
+        }
     }
 
     pub fn step_i32(&mut self, action: i32) {
@@ -79,15 +89,10 @@ impl GameState {
     }
     
     pub fn reset(&mut self) {
-        if SETTINGS.read().unwrap().record_replays && !self.recorded_replay.is_empty() {
-            let path = PathBuf::from(SETTINGS.read().unwrap().replay_folder.clone().into_owned());
-            let name = self.recorded_replay.make_save_name();
-            let path = path.join(name.clone());
-            self.recorded_replay.save(path.as_path());
-        } 
         let (field, player) = game_logic::init_field_player();
         self.field = field;
         self.player = player;
+        self.recorded_replay = Replay::new();
     }
     
     pub fn can_take_action(&self, action: i32) -> bool {
