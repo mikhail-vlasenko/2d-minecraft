@@ -37,7 +37,7 @@ pub fn init_field_player() -> (Field, Player) {
     };
     let mut field = Field::new(SETTINGS.read().unwrap().window.render_distance as usize, start_chunk);
     let mut player = Player::new(&field);
-    apply_loadout(&mut player);
+    apply_loadout(&mut player, &mut field);
 
     // spawn some initial mobs
     let amount = (SETTINGS.read().unwrap().mobs.spawning.initial_hostile_per_chunk *

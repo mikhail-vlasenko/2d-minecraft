@@ -4,7 +4,7 @@ use crate::auxiliary::animations::{ProjectileType, TileAnimationType};
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::map_generation::mobs::a_star::can_step;
 use crate::character::player::Player;
-use crate::map_generation::field::{Field, RelativePos};
+use crate::map_generation::field::{AbsolutePos, Field, RelativePos};
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind, MobState, ZERGLING_ATTACK_RANGE};
 use crate::map_generation::mobs::mob_kind::MobKind::{Baneling, GelatinousCube, Zergling};
@@ -16,6 +16,15 @@ pub struct Position {
     pub x: i32,
     pub y: i32,
     pub z: usize,
+}
+
+impl Position {
+    pub fn new(xy: AbsolutePos, field: &Field) -> Self {
+        let x = xy.0;
+        let y = xy.1;
+        let z = field.len_at(xy);
+        Position { x, y, z }
+    }
 }
 
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
