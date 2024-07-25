@@ -1,5 +1,5 @@
 import ctypes
-from typing import Tuple, List
+from typing import Tuple
 
 import numpy as np
 
@@ -10,6 +10,7 @@ NUM_MATERIALS = 13
 INVENTORY_SIZE = 26
 NUM_MOBS = 16
 MOB_INFO_SIZE = 4
+LOOT_INFO_SIZE = 3
 
 
 class ProcessedObservation:
@@ -20,8 +21,9 @@ class ProcessedObservation:
                  player_rot: int,
                  hp: int,
                  time: float,
-                 inventory_state: List[int],
-                 mobs: List[List[int]],
+                 inventory_state: np.ndarray,
+                 mobs: np.ndarray,
+                 loot: np.ndarray,
                  score: int,
                  message: str,
                  done: bool = False):
@@ -33,6 +35,7 @@ class ProcessedObservation:
         self.time = time
         self.inventory_state = inventory_state
         self.mobs = mobs
+        self.loot = loot
         self.score = score
         self.message = message
         self.done = done
@@ -45,6 +48,7 @@ class ProcessedObservation:
                 f"Time: {self.time}\n"
                 f"Inventory State: {self.inventory_state}\n"
                 f"Mobs: {self.mobs}\n"
+                f"Loot: {self.loot}\n"
                 f"Message: {self.message}\n"
                 f"Top Materials:\n{self.top_materials}\n"
                 f"Tile Heights:\n{self.tile_heights}\n"
@@ -59,12 +63,19 @@ class ProcessedObservation:
         player_rot = c_observation.player_rot
         hp = c_observation.hp
         time = c_observation.time
-        inventory_state = np.ctypeslib.as_array(c_observation.inventory_state).tolist()
-        mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((NUM_MOBS, MOB_INFO_SIZE)).tolist()
+        inventory_state = np.ctypeslib.as_array(c_observation.inventory_state)
+        mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((NUM_MOBS, MOB_INFO_SIZE))
+        loot = np.ctypeslib.as_array(c_observation.loot).reshape((NUM_MOBS, LOOT_INFO_SIZE))
         score = c_observation.score
         message = ctypes.cast(c_observation.message, ctypes.c_char_p).value.decode('utf-8') if c_observation.message else ""
         done = c_observation.done
-        return ProcessedObservation(top_materials, tile_heights, player_pos, player_rot, hp, time, inventory_state, mobs, score, message, done)
+        return ProcessedObservation(
+            top_materials, tile_heights,
+            player_pos, player_rot,
+            hp, time, inventory_state,
+            mobs, loot,
+            score, message, done
+        )
 
 
 def get_processed_observation(idx: int) -> ProcessedObservation:

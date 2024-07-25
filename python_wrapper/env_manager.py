@@ -19,8 +19,12 @@ def flatted_obs(obs, available_actions=None, discovered_actions=None):
     time = np.array([obs.time])
     inventory_state = np.array(obs.inventory_state)
     mobs_flat = np.array(obs.mobs).flatten()
-    obs = np.concatenate(
-        [top_materials_one_hot, tile_heights_flat, player_pos_flat, player_rot, hp, time, inventory_state, mobs_flat])
+    loot_flat = np.array(obs.loot).flatten()
+
+    obs = np.concatenate([
+        top_materials_one_hot, tile_heights_flat, player_pos_flat, player_rot,
+        hp, time, inventory_state, mobs_flat, loot_flat
+    ])
     if available_actions is not None:
         obs = np.concatenate([obs, available_actions.astype(np.float32)])
     if discovered_actions is not None:
