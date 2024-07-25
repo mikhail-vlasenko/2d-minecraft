@@ -19,6 +19,7 @@ class LoggingCallback(BaseCallback):
         self.total_lengths = []
         self.final_times = []
         self.num_discovered_actions = []
+        self.game_scores = []
 
     def _on_step(self) -> bool:
         rewards = self.locals["rewards"]
@@ -35,6 +36,7 @@ class LoggingCallback(BaseCallback):
                 self.total_rewards.append(self.episode_rewards[i])
                 self.total_lengths.append(self.episode_lengths[i])
                 self.final_times.append(self.extract_time_from_observation(self.locals["obs_tensor"][i]))
+                self.game_scores.append(self.locals["infos"][i]['game_score'])
                 if CONFIG.env.discovered_actions_reward:
                     self.num_discovered_actions.append(self.locals["infos"][i]['discovered_actions'].sum())
 
@@ -50,14 +52,17 @@ class LoggingCallback(BaseCallback):
             average_reward = np.mean(self.total_rewards)
             average_length = np.mean(self.total_lengths)
             average_max_time = np.mean(self.final_times)
+            average_game_score = np.mean(self.game_scores)
             print(f"Over {len(self.total_rewards)} episodes:")
             print(f"Average episode reward: {average_reward:.2f}")
             print(f"Average episode length: {average_length:.2f}")
             print(f"Average episode time: {average_max_time:.2f}")
+            print(f"Average game score: {average_game_score:.2f}")
             metrics = {
                 'Average Reward': average_reward,
                 'Average Length': average_length,
                 'Average End Time': average_max_time,
+                'Average Game Score': average_game_score,
                 'Episodes': len(self.total_rewards)
             }
             if CONFIG.env.discovered_actions_reward:
@@ -71,6 +76,7 @@ class LoggingCallback(BaseCallback):
             self.total_lengths = []
             self.final_times = []
             self.num_discovered_actions = []
+            self.game_scores = []
 
     @staticmethod
     def extract_time_from_observation(obs):

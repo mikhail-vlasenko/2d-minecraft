@@ -93,6 +93,7 @@ class Minecraft2dEnv(VecEnv):
         else:
             reward = obs.score - self.current_scores[i]
         self.current_scores[i] = obs.score
+        info['game_score'] = obs.score
         done = obs.done
 
         if self.discovered_actions_reward or self.include_actions_in_obs:
