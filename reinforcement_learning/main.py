@@ -18,6 +18,7 @@ class LoggingCallback(BaseCallback):
         self.total_rewards = []
         self.total_lengths = []
         self.final_times = []
+        self.num_discovered_actions = []
 
     def _on_step(self) -> bool:
         rewards = self.locals["rewards"]
@@ -34,6 +35,8 @@ class LoggingCallback(BaseCallback):
                 self.total_rewards.append(self.episode_rewards[i])
                 self.total_lengths.append(self.episode_lengths[i])
                 self.final_times.append(self.extract_time_from_observation(self.locals["obs_tensor"][i]))
+                if CONFIG.env.discovered_actions_reward:
+                    self.num_discovered_actions.append(self.locals["infos"][i]['discovered_actions'].sum())
 
                 # Reset the counters for completed episodes
                 self.episode_rewards[i] = 0
@@ -51,17 +54,23 @@ class LoggingCallback(BaseCallback):
             print(f"Average episode reward: {average_reward:.2f}")
             print(f"Average episode length: {average_length:.2f}")
             print(f"Average episode time: {average_max_time:.2f}")
-            wandb.log({
+            metrics = {
                 'Average Reward': average_reward,
                 'Average Length': average_length,
                 'Average End Time': average_max_time,
                 'Episodes': len(self.total_rewards)
-            })
+            }
+            if CONFIG.env.discovered_actions_reward:
+                metrics['Discovered Actions'] = np.mean(self.num_discovered_actions)
+                metrics['Max Discovered Actions'] = np.max(self.num_discovered_actions)
+                print(f"Average number of discovered actions: {metrics['Discovered Actions']:.2f}, max: {metrics['Max Discovered Actions']:.2f}")
+            wandb.log(metrics)
 
             # Reset the lists for the next set of episodes
             self.total_rewards = []
             self.total_lengths = []
             self.final_times = []
+            self.num_discovered_actions = []
 
     @staticmethod
     def extract_time_from_observation(obs):
@@ -87,7 +96,12 @@ class CustomMLPFeatureExtractor(nn.Module):
 def main():
     run = wandb.init(entity="mvlasenko", project='minecraft-rl', config=CONFIG.as_dict())
 
-    env = Minecraft2dEnv(num_envs=CONFIG.env.num_envs, lib_path=CONFIG.env.lib_path)
+    env = Minecraft2dEnv(
+        num_envs=CONFIG.env.num_envs,
+        lib_path=CONFIG.env.lib_path,
+        discovered_actions_reward=CONFIG.env.discovered_actions_reward,
+        include_actions_in_obs=CONFIG.env.include_actions_in_obs
+    )
 
     policy_kwargs = dict(
         net_arch=dict(pi=CONFIG.ppo.dimensions, vf=CONFIG.ppo.dimensions),
@@ -98,6 +112,7 @@ def main():
     model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs,
                 verbose=1, tensorboard_log=f"runs/{run.id}",
                 learning_rate=CONFIG.ppo.lr, n_steps=1024,
+                ent_coef=CONFIG.ppo.ent_coef,
                 n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
 
     print(model.policy)

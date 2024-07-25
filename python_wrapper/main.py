@@ -4,13 +4,15 @@ from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, 
 from python_wrapper.observation import ProcessedObservation, get_processed_observation, get_action_name, \
     get_actions_mask
 
-init_lib('./target/debug/ffi.dll')
+init_lib('./target/release/ffi.dll')
 
 batch_size = 2
 set_batch_size(batch_size)
 
 num_actions = num_actions()
 print(f'Total number of available actions: {num_actions}')
+for i in range(num_actions):
+    print(f'Action {i}: {get_action_name(i)}')
 
 print(get_processed_observation(0))
 

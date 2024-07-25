@@ -79,4 +79,4 @@ def get_action_name(action: int) -> str:
 
 def get_actions_mask(idx: int) -> np.ndarray:
     c_action_mask = valid_actions_mask(idx)
-    return np.ctypeslib.as_array(c_action_mask.mask).tolist()
+    return np.ctypeslib.as_array(c_action_mask.mask).astype(bool)
