@@ -202,6 +202,7 @@ impl<'a> State<'a> {
         let (field, player) = init_field_player();
         self.field = field;
         self.player = player;
+        self.recorded_replay = Replay::new();
     }
 
     pub fn get_size(&self) -> PhysicalSize<u32> {

@@ -1,14 +1,16 @@
-use std::fs::{create_dir_all, File};
+use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 use crate::character::player::Player;
+use crate::crafting::consumable::Consumable;
+use crate::crafting::items::Item;
 use crate::crafting::material::Material;
-use crate::map_generation::field::{AbsolutePos, Field};
+use crate::crafting::storable::Storable;
+use crate::map_generation::field::{AbsolutePos, Field, relative_to_absolute, RelativePos};
 use crate::map_generation::field_observation::get_tile_observation;
 use crate::map_generation::mobs::mob::Mob;
-use crate::SETTINGS;
 
 /// Stores an incomplete snapshot of the game state.
 /// Incomplete for saving memory and time.
@@ -18,10 +20,12 @@ pub struct ObservableState {
     pub top_materials: Vec<Vec<Material>>,
     pub tile_heights: Vec<Vec<i32>>,
     // todo: interactables
-    // todo: loot and arrows
+    pub loot_positions: Vec<AbsolutePos>,
+    pub arrow_positions: Vec<AbsolutePos>,
     pub mobs: Vec<Mob>,
     pub player: Player,
     pub time: f32,
+    // todo: animations
 }
 
 #[derive(Serialize, Deserialize, Debug, Derivative)]
@@ -41,11 +45,15 @@ impl Replay {
     
     pub fn record_state(&mut self, field: &Field, player: &Player, ) {
         let (top_materials, tile_heights) = get_tile_observation(field, player);
+        let loot_positions = self.vec_to_absolute(field.loot_indices(player), player);
+        let arrow_positions = self.vec_to_absolute(field.arrow_indices(player), player);
         let mobs = field.close_mob_info(|mob| mob.clone(), player);
         let time = field.get_time();
         self.states.push(ObservableState {
             top_materials,
             tile_heights,
+            loot_positions,
+            arrow_positions,
             mobs,
             player: player.clone(),
             time,
@@ -90,6 +98,8 @@ impl Replay {
         field.set_time(state.time);
         field.set_visible_tiles(&state.top_materials, &state.tile_heights, (player.x, player.y));
         field.set_mobs(state.mobs.clone());
+        self.clear_field_loot(field, player);
+        self.place_field_loot(field);
         field.animations_buffer.clear();
         self.current_step += 1;
     }
@@ -110,5 +120,31 @@ impl Replay {
 
     pub fn is_empty(&self) -> bool {
         self.states.is_empty()
+    }
+    
+    fn clear_field_loot(&self, field: &mut Field, player: &Player) {
+        let loot_positions = self.vec_to_absolute(field.loot_indices(player), player);
+        let arrow_positions = self.vec_to_absolute(field.arrow_indices(player), player);
+        for pos in loot_positions {
+            field.gather_loot_at(pos);
+        }
+        for pos in arrow_positions {
+            field.gather_loot_at(pos);
+        }
+    }
+    
+    fn place_field_loot(&self, field: &mut Field) {
+        let state = &self.states[self.current_step];
+        for pos in &state.loot_positions {
+            // place a dummy loot, as it will not actually be picked up, just drawn
+            field.add_loot_at(vec![Storable::C(Consumable::RawMeat)], pos.clone());
+        }
+        for pos in &state.arrow_positions {
+            field.add_loot_at(vec![Storable::I(Item::Arrow)], pos.clone());
+        }
+    }
+    
+    fn vec_to_absolute(&self, vec: Vec<RelativePos>, player: &Player) -> Vec<AbsolutePos> {
+        vec.iter().map(|pos| relative_to_absolute(*pos, player)).collect()
     }
 }
