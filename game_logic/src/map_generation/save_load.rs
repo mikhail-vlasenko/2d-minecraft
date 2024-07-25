@@ -1,7 +1,7 @@
 use std::{fs, io};
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use crate::character::player::Player;
 use crate::map_generation::field::Field;
 
@@ -79,4 +79,28 @@ pub fn get_directories(path: &Path) -> io::Result<Vec<String>> {
     directories.sort();
 
     Ok(directories)
+}
+
+pub fn get_files(path: &Path) -> io::Result<Vec<String>> {
+    let mut files = Vec::new();
+
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        // If the entry is a file, add it to the list
+        if path.is_file() {
+            if let Some(filename) = path.file_name() {
+                files.push(filename.to_string_lossy().into_owned());
+            }
+        }
+    }
+    files.sort();
+
+    Ok(files)
+}
+
+pub fn get_full_path(path: &Path) -> PathBuf {
+    let working_dir = std::env::current_dir().unwrap_or(PathBuf::new());
+    working_dir.join(path)
 }

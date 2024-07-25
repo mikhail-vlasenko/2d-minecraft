@@ -1,10 +1,9 @@
-use std::fs;
 use std::path::Path;
 use std::process::exit;
-use egui::{Slider};
+use egui::{ScrollArea, Slider};
 use egui::{Align2, Color32, FontId, RichText, Context};
 use game_logic::character::player::Player;
-use game_logic::map_generation::save_load::get_directories;
+use game_logic::map_generation::save_load::{get_directories, get_files, get_full_path};
 use game_logic::SETTINGS;
 use game_logic::settings::Settings;
 
@@ -92,9 +91,9 @@ impl MainMenu {
 
                     self.second_panel_label(&mut columns[1]);
 
-                    let path_string = settings.save_folder.clone().into_owned();
-                    let path = Path::new(&path_string);
-                    let save_names = get_directories(&path).unwrap_or(vec![]);
+                    let save_path_string = settings.save_folder.clone().into_owned();
+                    let save_path = Path::new(&save_path_string);
+                    let save_names = get_directories(&save_path).unwrap_or(vec![]);
 
                     match self.second_panel {
                         SecondPanelState::SaveGame => {
@@ -113,29 +112,41 @@ impl MainMenu {
                             self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::LoadGame => {
-                            // todo: make into a scroll area
-                            for name in save_names.iter() {
-                                if columns[1].button(RichText::new(name)
-                                    .font(FontId::proportional(20.0))).clicked() {
-                                    self.save_name = name.clone();
-                                    self.selected_option = SelectedOption::LoadGame;
+                            ScrollArea::vertical().show(&mut columns[1], |scroll| {
+                                for name in save_names.iter() {
+                                    if scroll.button(RichText::new(name)
+                                        .font(FontId::proportional(20.0))).clicked() {
+                                        self.save_name = name.clone();
+                                        self.selected_option = SelectedOption::LoadGame;
+                                    }
                                 }
+                            });
+                            
+                            if save_names.is_empty() {
+                                let full_path = get_full_path(&save_path);
+                                columns[1].label(format!("No saves found in \n{}", full_path.to_string_lossy()));
                             }
 
                             self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::Replays => {
-                            let path_string = settings.replay_folder.clone().into_owned();
-                            let path = Path::new(&path_string);
-                            let replay_names = fs::read_dir(path).unwrap()
-                                .map(|entry| entry.unwrap().file_name().into_string().unwrap())
-                                .collect::<Vec<String>>();
-                            for name in replay_names.iter() {
-                                if columns[1].button(RichText::new(name)
-                                    .font(FontId::proportional(20.0))).clicked() {
-                                    self.replay_name = name.clone();
-                                    self.selected_option = SelectedOption::WatchReplay;
+                            let replay_path_string = settings.replay_folder.clone().into_owned();
+                            let replay_path = Path::new(&replay_path_string);
+                            let mut replay_names = get_files(&replay_path).unwrap_or(vec![]);
+                            // files are already sorted alphabetically but recent replays should come first
+                            replay_names.reverse();
+                            ScrollArea::vertical().show(&mut columns[1], |scroll| {
+                                for name in replay_names.iter() {
+                                    if scroll.button(RichText::new(name)
+                                        .font(FontId::proportional(20.0))).clicked() {
+                                        self.replay_name = name.clone();
+                                        self.selected_option = SelectedOption::WatchReplay;
+                                    }
                                 }
+                            });
+                            if replay_names.is_empty() {
+                                let full_path = get_full_path(&replay_path);
+                                columns[1].label(format!("No replays found in \n{}", full_path.to_string_lossy()));
                             }
                             
                             self.back_button(&mut columns[1]);
