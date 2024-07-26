@@ -47,7 +47,7 @@ player:
 
 save_folder: game_saves
 replay_folder: replays
-record_replays: true
+record_replays: false
 
 scoring:
   time:  # survival time

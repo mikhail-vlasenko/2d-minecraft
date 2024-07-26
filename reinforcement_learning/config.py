@@ -15,17 +15,17 @@ class EnvConfig:
 @dataclass
 class PPOTrainConfig:
     env_steps: int = 16000000
-    load_from: str = None
-    # load_from: str = f'reinforcement_learning/saved_models/rl_model_2000000_steps.zip'
+    # load_from: str = None
+    load_from: str = f'reinforcement_learning/saved_models/rl_model_800000_steps_run_72_resumed2.zip'
     # load_from: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     fall_back_save_to: str = f'reinforcement_learning/saved_models/unfinished_run.pt'
-    save_every: int = env_steps // 10
+    save_every: int = env_steps // 20
 
 
 @dataclass
 class EvaluationConfig:
-    n_games: int = 5
+    n_games: int = 2
     record_replays: bool = True
 
 
@@ -42,6 +42,7 @@ class PPOConfig:
 
 @dataclass
 class Config:
+    wandb_resume_id: str = ""
     env: EnvConfig = field(default_factory=EnvConfig)
     ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)

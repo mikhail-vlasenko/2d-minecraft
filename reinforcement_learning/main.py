@@ -100,7 +100,16 @@ class CustomMLPFeatureExtractor(nn.Module):
 
 
 def main():
-    run = wandb.init(entity="mvlasenko", project='minecraft-rl', config=CONFIG.as_dict())
+    wandb_kwargs = {
+        'project': 'minecraft-rl',
+        'entity': 'mvlasenko',
+        'config': CONFIG.as_dict()
+    }
+    if CONFIG.wandb_resume_id:
+        wandb_kwargs['resume'] = "must"
+        wandb_kwargs['id'] = CONFIG.wandb_resume_id
+
+    run = wandb.init(**wandb_kwargs)
 
     env = Minecraft2dEnv(
         num_envs=CONFIG.env.num_envs,
@@ -121,11 +130,11 @@ def main():
                 ent_coef=CONFIG.ppo.ent_coef,
                 n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
 
-    print(model.policy)
-
     if CONFIG.ppo_train.load_from is not None:
         print(f"Loading model from {CONFIG.ppo_train.load_from}")
-        model.load(CONFIG.ppo_train.load_from)
+        model = model.load(CONFIG.ppo_train.load_from, env)
+
+    print(model.policy)
 
     checkpoint_callback = CheckpointCallback(
         save_freq=CONFIG.ppo_train.save_every // CONFIG.env.num_envs,

@@ -202,7 +202,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
             loadout: Cow::Borrowed("fighter"),
         },
     },
-    record_replays: true,
+    record_replays: false,
     replay_folder: Cow::Borrowed("replays"),
     save_folder: Cow::Borrowed("game_saves"),
     scoring: _Config__scoring {
