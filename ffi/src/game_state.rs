@@ -4,6 +4,7 @@ use strum::IntoEnumIterator;
 use game_logic::auxiliary::actions::{Action, can_take_action};
 use game_logic::character::player::Player;
 use game_logic::{handle_action, is_game_over, SETTINGS};
+use game_logic::auxiliary::execution_tracking::write_to_state_spy;
 use game_logic::auxiliary::replay::Replay;
 use game_logic::map_generation::field::{absolute_to_relative, Field};
 use game_logic::map_generation::field_observation::get_tile_observation;
@@ -31,10 +32,12 @@ impl GameState {
     }
 
     pub fn step(&mut self, action: &Action) {
+        write_to_state_spy(&format!("Started step with action {:?}", action));
         handle_action(
             action, &mut self.field, &mut self.player, 
             &RefCell::new(false), &RefCell::new(false), None, &mut self.recorded_replay
         );
+        write_to_state_spy("Handled action in ffi");
         if self.is_done() {
             // save the replay
             if SETTINGS.read().unwrap().record_replays && !self.recorded_replay.is_empty() {
@@ -89,6 +92,7 @@ impl GameState {
     }
     
     pub fn reset(&mut self) {
+        write_to_state_spy("Resetting game state");
         let (field, player) = game_logic::init_field_player();
         self.field = field;
         self.player = player;

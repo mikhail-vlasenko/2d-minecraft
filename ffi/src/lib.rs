@@ -4,6 +4,7 @@ use interoptopus::{ffi_function, Inventory, InventoryBuilder, function};
 use interoptopus::{Error, Interop};
 use lazy_static::lazy_static;
 use game_logic::auxiliary::actions::Action;
+use game_logic::auxiliary::execution_tracking::{init_execution_state_spy, write_to_state_spy};
 use game_logic::SETTINGS;
 
 use crate::game_state::GameState;
@@ -35,6 +36,7 @@ pub extern "C" fn set_batch_size(new_batch_size: i32) {
     reset_all(new_batch_size as usize);
     let mut batch_size = BATCH_SIZE.lock().unwrap();
     *batch_size = new_batch_size as usize;
+    init_execution_state_spy();
 }
 
 /// Resets all game states.
@@ -57,7 +59,9 @@ pub extern "C" fn reset() {
 #[ffi_function]
 #[no_mangle]
 pub extern "C" fn step_one(action: i32, index: i32) {
+    write_to_state_spy(&format!("Started step_one for {index} with action {action}"));
     let mut state = STATE.lock().unwrap();
+    write_to_state_spy(&format!("Locked state for step_one for {index} with action {action}"));
     if let Some(game_state) = state.get_mut(index as usize) {
         if !game_state.is_done() {
             game_state.step_i32(action);

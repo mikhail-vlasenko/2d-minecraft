@@ -126,7 +126,7 @@ def main():
 
     model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs,
                 verbose=1, tensorboard_log=f"runs/{run.id}",
-                learning_rate=CONFIG.ppo.lr, n_steps=1024,
+                learning_rate=CONFIG.ppo.lr, n_steps=1024, batch_size=CONFIG.ppo.batch_size,
                 ent_coef=CONFIG.ppo.ent_coef,
                 n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
 

@@ -7,6 +7,7 @@ use rand::Rng;
 use serde::{Serialize, Deserialize};
 use derivative::Derivative;
 use crate::auxiliary::animations::{AnimationsBuffer, TileAnimationType};
+use crate::auxiliary::execution_tracking::write_to_state_spy;
 use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -112,15 +113,19 @@ impl Field {
     pub fn step_time(&mut self, passed_time: f32, player: &mut Player) {
         self.accumulated_time += passed_time;
         while self.accumulated_time >= 1. {
+            write_to_state_spy("Stepping field");
             player.step_status_effects();
             self.step_interactables(player);
+            write_to_state_spy("Stepped statuses and interactables");
             let rng: f32 = rand::random();
             if rng > 0.9 {
                 self.spawn_mobs(player,
                                 self.get_mob_spawn_amount(),
                                 self.is_night())
             }
+            write_to_state_spy("Spawned mobs");
             self.step_mobs(player);
+            write_to_state_spy("Stepped mobs");
             self.accumulated_time -= 1.;
             self.time += 1.;
             player.score_passed_time(1., self.get_time());

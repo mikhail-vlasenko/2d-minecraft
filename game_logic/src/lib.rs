@@ -60,7 +60,9 @@ pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player,
                 craft_menu_open,
                 main_menu_open
         );
+        auxiliary::execution_tracking::write_to_state_spy(&format!("Handled action in game_logic lib with passed time {}", passed_time));
         field.step_time(passed_time, player);
+        auxiliary::execution_tracking::write_to_state_spy("Stepped field in game_logic lib");
         if let Some(animation_manager) = animation_manager {
             if passed_time > 0. {
                 // drop continuous animations if player made an action

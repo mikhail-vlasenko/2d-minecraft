@@ -3,5 +3,6 @@ members = [
     "game_logic",
     "minecraft",
     "ffi",
+    "stress_test",
 ]
 resolver = "2"
