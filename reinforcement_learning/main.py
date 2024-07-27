@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3 import PPO
@@ -111,6 +113,7 @@ def main():
 
     run = wandb.init(**wandb_kwargs)
 
+    print(f"PID: {os.getpid()}")
     env = Minecraft2dEnv(
         num_envs=CONFIG.env.num_envs,
         lib_path=CONFIG.env.lib_path,
@@ -125,8 +128,10 @@ def main():
     )
 
     model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs,
-                verbose=1, tensorboard_log=f"runs/{run.id}",
-                learning_rate=CONFIG.ppo.lr, n_steps=1024, batch_size=CONFIG.ppo.batch_size,
+                verbose=0, tensorboard_log=f"runs/{run.id}",
+                learning_rate=CONFIG.ppo.lr,
+                n_steps=CONFIG.ppo_train.iter_env_steps,
+                batch_size=CONFIG.ppo.batch_size,
                 ent_coef=CONFIG.ppo.ent_coef,
                 n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
 
@@ -153,9 +158,10 @@ def main():
         print("Training interrupted. Saving model anyway.")
         model.save(CONFIG.ppo_train.fall_back_save_to)
 
-    # model_art = wandb.Artifact('sb3_ppo_model', type='model')
-    # model_art.add_file(CONFIG.ppo_train.save_to)
-    # run.log_artifact(model_art)
+    model_art = wandb.Artifact('sb3_ppo_checkpoint', type='model')
+    # saves the last checkpoint by the callback
+    model_art.add_file(f"./reinforcement_learning/saved_models/rl_model_{CONFIG.ppo_train.env_steps}_steps.zip")
+    run.log_artifact(model_art)
 
     env.close()
     run.finish()

@@ -8,15 +8,16 @@ import torch
 class EnvConfig:
     num_envs: int = 32
     lib_path: str = './target/release/ffi.dll'
-    discovered_actions_reward: float = 100.
+    discovered_actions_reward: float = 50.
     include_actions_in_obs: bool = True
 
 
 @dataclass
 class PPOTrainConfig:
-    env_steps: int = 16000000
+    env_steps: int = 64000000
+    iter_env_steps: int = 1024
     load_from: str = None
-    # load_from: str = f'reinforcement_learning/saved_models/rl_model_12000000_steps.zip'
+    # load_from: str = f'reinforcement_learning/saved_models/rl_model_64000000_steps.zip'
     # load_from: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     fall_back_save_to: str = f'reinforcement_learning/saved_models/unfinished_run.pt'

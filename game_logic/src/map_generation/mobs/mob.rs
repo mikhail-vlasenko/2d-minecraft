@@ -335,7 +335,3 @@ impl ActingWithSpeed for Mob {
         self.speed_buffer -= 1.0;
     }
 }
-
-pub fn mob_act_with_speed(mob: &mut Mob, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-    mob.act_with_speed(field, player, min_loaded, max_loaded)
-}

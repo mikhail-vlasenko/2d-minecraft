@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use std::boxed::Box;
 
 const ENTRY_SIZE: usize = 128;
-const NUM_ENTRIES: usize = 16;
+const NUM_ENTRIES: usize = 32;
 
 lazy_static! {
     static ref EXECUTION_STATE_SPY: Mutex<[[u8; ENTRY_SIZE]; NUM_ENTRIES]> = Mutex::new([[0u8; ENTRY_SIZE]; NUM_ENTRIES]);

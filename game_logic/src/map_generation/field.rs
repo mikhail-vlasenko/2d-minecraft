@@ -45,9 +45,9 @@ pub struct Field {
     map_render_distance: usize,
     /// struct for pathing
     #[derivative(PartialEq = "ignore")]
-    a_star: AStar,
+    pub a_star: AStar,
     /// mobs that have been extracted from their chunks, and are currently (in queue for) acting
-    stray_mobs: Vec<Mob>,
+    pub stray_mobs: Vec<Mob>,
     /// animations that have to be started as a result of events
     pub animations_buffer: AnimationsBuffer,
     /// Number of turns passed. Time of the day is from 0 to 99. Night is from 50 to 99.
@@ -132,7 +132,7 @@ impl Field {
         }
     }
     
-    fn detach_mobs(&mut self) {
+    pub fn detach_mobs(&mut self) {
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
                 self.stray_mobs.extend(self.loaded_chunks[i][j].lock().unwrap().transfer_mobs());
@@ -253,8 +253,10 @@ impl Field {
         self.a_star.reset(player.0, player.1);
         let mut secondary_a_star = AStar::default();
         swap(&mut secondary_a_star, &mut self.a_star);
+        // write_to_state_spy("Swapped A* and starting search");
         // now secondary_a_star is the actual self.a_star now
         let res = secondary_a_star.full_pathing(self, source, destination, detour);
+        // write_to_state_spy("Finished A* full pathing");
         swap(&mut secondary_a_star, &mut self.a_star);
         res
     }

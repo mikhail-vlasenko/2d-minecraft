@@ -37,12 +37,12 @@ def read_index(pid, address):
 
 def main():
     # inputs:
-    pid = 186052
-    data_address = 0x7ffe43912163
-    index_address = 0x236c87b9450
+    pid = 292964
+    data_address = 0x7ffe252a2273
+    index_address = 0x2e35c213740
 
     entry_size = 128
-    num_entries = 16
+    num_entries = 32
     total_size = entry_size * num_entries
 
     raw_data = read_memory(pid, data_address, total_size)
