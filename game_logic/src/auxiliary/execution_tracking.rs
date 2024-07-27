@@ -10,14 +10,28 @@ lazy_static! {
     static ref CURRENT_INDEX: Mutex<Box<usize>> = Mutex::new(Box::new(0));
 }
 
-/// This may not work well with multithreading.
-pub fn init_execution_state_spy() {
+/// This acts as near-0-overhead logging.
+/// 
+/// Call this function to be able to read it.
+/// 
+/// At an important place in the code, call the write_to_state_spy to "log" some short string into a fixed-size queue.
+/// Using the python_wrapper/read_spy_data.py and plugging in the pid and the printed addresses from this function, 
+/// it is possible to read the logging queue.
+/// 
+/// Why not just logging? 
+/// 1. Because if the rust code hangs somewhere, the logging may not be flushed to disk, and you will be misled about where to look.
+/// 2. Because this doesn't write anything to disk, so will not take up gigabytes when training an agent.
+/// 
+/// May not work well with multithreading.
+pub fn locate_execution_state_spy() {
     let data_ptr = EXECUTION_STATE_SPY.lock().unwrap().as_ptr() as *const u8;
     let index_ptr = CURRENT_INDEX.lock().unwrap().as_ref() as *const usize;
     println!("Memory address at start: {:?}", data_ptr);
     println!("Index address: {:?}", index_ptr);
 }
 
+/// Push info to the fixed-size queue.
+/// See locate_execution_state_spy for more info.
 pub fn write_to_state_spy(input: &str) {
     let mut state_spy = EXECUTION_STATE_SPY.lock().unwrap();
     let mut current_index = CURRENT_INDEX.lock().unwrap();
