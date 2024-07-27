@@ -1,5 +1,4 @@
 import random
-import time
 
 from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size
 from python_wrapper.observation import ProcessedObservation, get_processed_observation, get_action_name, \
@@ -32,5 +31,5 @@ for b in range(batch_size):
 
         mask = get_actions_mask(b)
         print(f'Valid actions for game state {b}: {mask}')
-time.sleep(10000)
+
 reset()

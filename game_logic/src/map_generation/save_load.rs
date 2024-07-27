@@ -49,7 +49,6 @@ pub fn load_game(path: &Path) -> (Field, Player) {
     let field_path = path.join("field.postcard");
     let player_path = path.join("player.postcard");
 
-    println!("{:?}", field_path);
     let mut file = File::open(field_path).unwrap();
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();

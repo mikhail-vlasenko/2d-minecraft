@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3 import PPO
@@ -113,7 +111,6 @@ def main():
 
     run = wandb.init(**wandb_kwargs)
 
-    print(f"PID: {os.getpid()}")
     env = Minecraft2dEnv(
         num_envs=CONFIG.env.num_envs,
         lib_path=CONFIG.env.lib_path,
