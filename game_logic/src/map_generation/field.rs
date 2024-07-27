@@ -247,10 +247,8 @@ impl Field {
         self.a_star.reset(player.0, player.1);
         let mut secondary_a_star = AStar::default();
         swap(&mut secondary_a_star, &mut self.a_star);
-        // write_to_state_spy("Swapped A* and starting search");
         // now secondary_a_star is the actual self.a_star now
         let res = secondary_a_star.full_pathing(self, source, destination, detour);
-        // write_to_state_spy("Finished A* full pathing");
         swap(&mut secondary_a_star, &mut self.a_star);
         res
     }
