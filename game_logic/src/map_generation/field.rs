@@ -8,7 +8,6 @@ use serde::{Serialize, Deserialize};
 use derivative::Derivative;
 use crate::auxiliary::animations::{AnimationsBuffer, TileAnimationType};
 use crate::character::acting_with_speed::ActingWithSpeed;
-use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
 use crate::character::player::Player;

@@ -1,7 +1,12 @@
+use std::path::PathBuf;
+use rand::random;
 use serde::{Serialize, Deserialize};
+use crate::character::player::Player;
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::priority_queue::PriorityQueue;
+use crate::map_generation::save_load::{load_game, save_game};
+use crate::SETTINGS;
 
 /// Runs A* on the field. Cuts off execution if expected route is too long.
 #[derive(Serialize, Deserialize, Debug)]
@@ -44,13 +49,13 @@ impl AStar {
                         max_detour: i32) -> ((i32, i32), i32) {
         let max_priority = Self::shortest_len(source, destination) + max_detour;
 
-        self.visit(source);
         let idx = self.convert_idx(source);
         self.dist_to[idx.0][idx.1] = 0;
         self.pending.push(0, source);
 
         while self.pending.len() > 0 {
             let mut current_tile = self.pending.pop().unwrap();
+            self.visit(current_tile);
 
             if current_tile == destination {
                 // restore path
@@ -66,17 +71,33 @@ impl AStar {
                         return ((current_tile.0 - source.0, current_tile.1 - source.1), route_len);
                     }
                     current_tile = prev;
-                    route_len += 1
+                    route_len += 1;
+                    if route_len > max_priority {
+                        println!("\nThis should not happen. Here is the info for debugging convenience:\n");
+                        println!("Max detour: {}", max_detour);
+                        println!("Max priority: {}", max_priority);
+                        println!("Source: {:?}", source);
+                        println!("Destination: {:?}", destination);
+                        let mut dummy_player = Player::new(field);
+                        dummy_player.x = destination.0;
+                        dummy_player.y = destination.1;
+                        dummy_player.land(field);
+                        let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
+                        let num: u16 = random();
+                        path.push(format!("a_star_error_{}", num));
+                        save_game(field, &dummy_player, &path);
+                        println!("Saved the game to {:?}", path);
+                        unreachable!("A* backtracking loop should finish before reaching this point");
+                    }
                 }
             }
             let idx = self.convert_idx(current_tile);
 
             let neighbours = self.get_neighbours(field, current_tile);
             for n in neighbours {
-                self.set_parent(n, current_tile);
                 let priority = self.dist_to[idx.0][idx.1] + estimate_remaining(n, destination);
                 if priority <= max_priority {
-                    self.visit(current_tile);
+                    self.set_parent(n, current_tile);
                     self.pending.push(priority, n);
                 }
             }
@@ -165,5 +186,21 @@ pub fn can_step_towards(field: &Field, source: (i32, i32), destination: (i32, i3
 
 fn estimate_remaining(tile: (i32, i32), destination: (i32, i32)) -> i32 {
     (tile.0 - destination.0).abs() + (tile.1 - destination.1).abs()
+}
+
+#[test]
+#[ignore]
+fn test_hanging_from_save() {
+    // let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
+    // path.push("a_star_error_15079");
+    // let (mut field, mut player) = load_game(path.as_path());
+    // field.a_star = AStar::new(SETTINGS.read().unwrap().pathing.a_star_radius);
+    // println!("{:?}", player.x);
+    // println!("{:?}", player.y);
+    // let source = (-25, -12);
+    // let destination = (-20, -14);
+    // let (dir, len) = field.full_pathing(source, destination, (player.x, player.y), None);
+    // assert!(len > 0);
+    // assert_ne!(dir, (0, 0));
 }
 

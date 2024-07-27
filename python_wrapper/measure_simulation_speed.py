@@ -1,10 +1,11 @@
 import time
-from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size
+from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size, set_record_replays
 
 
 def measure_ticks_per_second(duration_seconds=3):
     batch_size = 32
     set_batch_size(batch_size)
+    set_record_replays(False)
 
     start_time = time.time()
     end_time = start_time + duration_seconds
