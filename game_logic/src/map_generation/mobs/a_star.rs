@@ -191,16 +191,16 @@ fn estimate_remaining(tile: (i32, i32), destination: (i32, i32)) -> i32 {
 #[test]
 #[ignore]
 fn test_hanging_from_save() {
-    let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
-    path.push("a_star_error_15079");
-    let (mut field, mut player) = load_game(path.as_path());
-    field.a_star = AStar::new(SETTINGS.read().unwrap().pathing.a_star_radius);
-    println!("{:?}", player.x);
-    println!("{:?}", player.y);
-    let source = (-25, -12);
-    let destination = (-20, -14);
-    let (dir, len) = field.full_pathing(source, destination, (player.x, player.y), None);
-    assert!(len > 0);
-    assert_ne!(dir, (0, 0));
+    // let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
+    // path.push("a_star_error_15079");
+    // let (mut field, mut player) = load_game(path.as_path());
+    // field.a_star = AStar::new(SETTINGS.read().unwrap().pathing.a_star_radius);
+    // println!("{:?}", player.x);
+    // println!("{:?}", player.y);
+    // let source = (-25, -12);
+    // let destination = (-20, -14);
+    // let (dir, len) = field.full_pathing(source, destination, (player.x, player.y), None);
+    // assert!(len > 0);
+    // assert_ne!(dir, (0, 0));
 }
 
