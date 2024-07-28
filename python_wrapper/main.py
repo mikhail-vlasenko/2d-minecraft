@@ -1,6 +1,6 @@
 import random
 
-from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size
+from python_wrapper.ffi_elements import init_lib, reset, step_one, num_actions, set_batch_size, connect_env
 from python_wrapper.observation import ProcessedObservation, get_processed_observation, get_action_name, \
     get_actions_mask
 
@@ -13,6 +13,9 @@ num_actions = num_actions()
 print(f'Total number of available actions: {num_actions}')
 for i in range(num_actions):
     print(f'Action {i}: {get_action_name(i)}')
+
+print(f'first connection index: {connect_env()}')
+print(f'second connection index: {connect_env()}')
 
 print(get_processed_observation(0))
 

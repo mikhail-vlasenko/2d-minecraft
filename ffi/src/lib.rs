@@ -17,6 +17,7 @@ pub mod ffi_config;
 lazy_static! {
     static ref STATE: Mutex<Vec<GameState>> = Mutex::new(vec![GameState::new()]);
     static ref BATCH_SIZE: Mutex<usize> = Mutex::new(1);
+    static ref CONNECTED: Mutex<Vec<bool>> = Mutex::new(vec![false]);
 }
 
 fn reset_all(batch_size: usize) {
@@ -28,13 +29,32 @@ fn reset_all(batch_size: usize) {
     *state = new_states;
 }
 
-/// Does a reset on all game states
+/// Initializes batch_size games states.
+/// Does a reset on all game states.
 #[ffi_function]
 #[no_mangle]
 pub extern "C" fn set_batch_size(new_batch_size: i32) {
     reset_all(new_batch_size as usize);
     let mut batch_size = BATCH_SIZE.lock().unwrap();
     *batch_size = new_batch_size as usize;
+    // set all envs as not connected
+    let mut connected = CONNECTED.lock().unwrap();
+    *connected = vec![false; new_batch_size as usize];
+}
+
+/// Finds an unconnected games state and returns its index.
+/// Panics if all game states are connected.
+#[ffi_function]
+#[no_mangle]
+pub extern "C" fn connect_env() -> i32 {
+    let mut connected = CONNECTED.lock().unwrap();
+    for (i, is_connected) in connected.iter_mut().enumerate() {
+        if !*is_connected {
+            *is_connected = true;
+            return i as i32;
+        }
+    }
+    panic!("All game states are connected. close_one() disconnects one game. set_batch_size() disconnects all games.");
 }
 
 /// Resets all game states.
@@ -45,10 +65,19 @@ pub extern "C" fn reset() {
     reset_all(*BATCH_SIZE.lock().unwrap());
 }
 
+/// Resets the game state at the specified index.
+#[ffi_function]
+#[no_mangle]
+pub extern "C" fn reset_one(index: i32) {
+    let mut state = STATE.lock().unwrap();
+    if let Some(game_state) = state.get_mut(index as usize) {
+        game_state.reset();
+    } else {
+        panic!("Index {} out of bounds for batch size {}", index, state.len());
+    }
+}
+
 /// Steps the game state at the specified index with the given action.
-/// Checking for Done is at the start of the function. 
-/// An action that was sent to a game that was already done, will be ignored, 
-/// so that a starting observation can be obtained. 
 ///
 /// # Arguments
 ///
@@ -61,8 +90,6 @@ pub extern "C" fn step_one(action: i32, index: i32) {
     if let Some(game_state) = state.get_mut(index as usize) {
         if !game_state.is_done() {
             game_state.step_i32(action);
-        } else {
-            game_state.reset();
         }
     } else {
         panic!("Index {} out of bounds for batch size {}", index, state.len());
@@ -89,6 +116,21 @@ pub extern "C" fn get_one_observation(index: i32) -> Observation {
     }
 }
 
+/// Closes the game state at the specified index.
+/// The game state is reset and can be connected to again.
+#[ffi_function]
+#[no_mangle]
+pub extern "C" fn close_one(index: i32) {
+    let mut connected = CONNECTED.lock().unwrap();
+    let mut state = STATE.lock().unwrap();
+    if let Some(is_connected) = connected.get_mut(index as usize) {
+        *is_connected = false;
+        state.get_mut(index as usize).unwrap().reset();
+    } else {
+        panic!("Index {} out of bounds for batch size {}", index, connected.len());
+    }
+}
+
 /// Gets the actions mask for the game state at the specified index.
 /// The mask is an array of integers where 1 means the action will lead to something happening with the games state,
 /// and 0 means taking the action will yield the same observation.
@@ -103,7 +145,7 @@ pub extern "C" fn get_one_observation(index: i32) -> Observation {
 #[ffi_function]
 #[no_mangle]
 pub extern "C" fn valid_actions_mask(index: i32) -> ActionMask {
-    let mut state = STATE.lock().unwrap();
+    let state = STATE.lock().unwrap();
     if let Some(game_state) = state.get(index as usize) {
         ActionMask::new(game_state)
     } else {
@@ -143,9 +185,12 @@ pub extern "C" fn action_name(action: i32) -> *mut c_char {
 pub fn ffi_inventory() -> Inventory {
     InventoryBuilder::new()
         .register(function!(set_batch_size))
+        .register(function!(connect_env))
         .register(function!(reset))
+        .register(function!(reset_one))
         .register(function!(step_one))
         .register(function!(get_one_observation))
+        .register(function!(close_one))
         .register(function!(valid_actions_mask))
         .register(function!(set_record_replays))
         .register(function!(num_actions))
