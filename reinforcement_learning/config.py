@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field, asdict
-from typing import List
+from typing import List, Union
 
 import torch
 
 
 @dataclass
 class EnvConfig:
-    num_envs: int = 16
+    num_envs: int = 8
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     discovered_actions_reward: float = 50.
     include_actions_in_obs: bool = True
@@ -15,7 +15,7 @@ class EnvConfig:
 @dataclass
 class PPOTrainConfig:
     env_steps: int = 64000000
-    iter_env_steps: int = 1024
+    iter_env_steps: int = 512
     load_from: str = None
     # load_from: str = f'reinforcement_learning/saved_models/rl_model_64000000_steps.zip'
     # load_from: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
@@ -36,7 +36,8 @@ class PPOConfig:
     gamma: float = 0.99
     update_epochs: int = 10
     ent_coef: float = 0.01
-    batch_size: int = 256
+    batch_size: int = 512
+    rollout_fragment_length: Union[int, str] = 'auto'
     nonlinear: str = 'tanh'
     dimensions: List[int] = field(default_factory=lambda: [512, 256, 128, 64])
 
@@ -44,7 +45,7 @@ class PPOConfig:
 @dataclass
 class Config:
     wandb_resume_id: str = ""
-    num_runners: int = 1
+    num_runners: int = 8
     env: EnvConfig = field(default_factory=EnvConfig)
     ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)

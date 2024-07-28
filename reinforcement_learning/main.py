@@ -6,6 +6,7 @@ from ray.air.integrations.wandb import WandbLoggerCallback
 
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from reinforcement_learning.config import CONFIG
+from reinforcement_learning.metrics_callback import MinecraftMetricsCallback
 
 
 def env_creator(env_config):
@@ -41,10 +42,10 @@ def main():
         })
         .framework("torch")
         .training(
-            # model={
-            #     "fcnet_hiddens": CONFIG.ppo.dimensions,
-            #     "fcnet_activation": CONFIG.ppo.nonlinear,
-            # },
+            model={
+                "fcnet_hiddens": CONFIG.ppo.dimensions,
+                "fcnet_activation": CONFIG.ppo.nonlinear,
+            },
             lr=CONFIG.ppo.lr,
             gamma=CONFIG.ppo.gamma,
             lambda_=0.95,
@@ -53,8 +54,10 @@ def main():
             sgd_minibatch_size=CONFIG.ppo.batch_size,
             train_batch_size=CONFIG.ppo_train.iter_env_steps * CONFIG.env.num_envs,
         )
-        .rollouts(num_rollout_workers=1)
-        .resources(num_gpus=int(CONFIG.device.type == "cuda"))
+        .rollouts(num_rollout_workers=CONFIG.num_runners)
+        .resources(num_gpus=1)
+        .env_runners(num_cpus_per_env_runner=1)
+        .callbacks(MinecraftMetricsCallback)
     )
 
     if CONFIG.ppo_train.load_from:

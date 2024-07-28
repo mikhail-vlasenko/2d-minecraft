@@ -98,6 +98,9 @@ class Minecraft2dEnv(gym.Env):
         reward = obs.score - self.current_score
         self.current_score = obs.score
         info['game_score'] = obs.score
+        info['time'] = obs.time
+        info['hp'] = obs.hp
+        info['message'] = obs.message
         terminated = obs.done
 
         if self.discovered_actions_reward or self.include_actions_in_obs:
