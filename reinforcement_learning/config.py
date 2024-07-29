@@ -18,10 +18,7 @@ class PPOTrainConfig:
     env_steps: int = 16000000
     iter_env_steps: int = 512
     load_from: str = None
-    # load_from: str = f'reinforcement_learning/saved_models/rl_model_64000000_steps.zip'
-    # load_from: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
-    fall_back_save_to: str = f'reinforcement_learning/saved_models/unfinished_run.pt'
     checkpoints_per_training: int = 16
     num_runners: int = 0
 

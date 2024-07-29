@@ -5,7 +5,7 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
 from ray.air.integrations.wandb import WandbLoggerCallback
 
-from python_wrapper.minecraft_2d_env import Minecraft2dEnv, initialize_minecraft_connection
+from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from reinforcement_learning.config import CONFIG
 from reinforcement_learning.metrics_callback import MinecraftMetricsCallback
 

@@ -2,13 +2,11 @@ import glob
 import os
 import ray
 from ray.rllib.algorithms import Algorithm
-from ray.rllib.algorithms.ppo import PPO
 from ray.tune.registry import register_env
 import numpy as np
 from tqdm import tqdm
 
-from python_wrapper.ffi_elements import init_lib, set_batch_size, set_record_replays
-from python_wrapper.minecraft_2d_env import Minecraft2dEnv
+from python_wrapper.minecraft_2d_env import Minecraft2dEnv, initialize_minecraft_connection
 from reinforcement_learning.config import CONFIG
 from reinforcement_learning.main import env_creator
 
@@ -22,9 +20,7 @@ def evaluate_model(checkpoint_path, num_episodes):
 
     print("Reinitializing lib connection "
           "because checkpoint loading makes its envs in the training configuration automatically.")
-    init_lib(CONFIG.env.lib_path)
-    set_batch_size(1)
-    set_record_replays(True)
+    initialize_minecraft_connection(num_envs=1, lib_path=CONFIG.env.lib_path, record_replays=True)
 
     env = Minecraft2dEnv(
         discovered_actions_reward=CONFIG.env.discovered_actions_reward,
