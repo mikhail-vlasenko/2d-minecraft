@@ -1,5 +1,6 @@
 import ray
 from ray import tune
+from ray.air import CheckpointConfig
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
 from ray.air.integrations.wandb import WandbLoggerCallback
@@ -34,7 +35,7 @@ def main():
         wandb_kwargs['resume'] = "must"
         wandb_kwargs['id'] = CONFIG.wandb_resume_id
 
-    initialize_minecraft_connection(num_envs=CONFIG.env.num_envs, record_replays=False, lib_path=CONFIG.env.lib_path)
+    train_batch_size = CONFIG.ppo_train.iter_env_steps * CONFIG.env.num_envs
 
     ppo_config = (
         PPOConfig()
@@ -54,10 +55,10 @@ def main():
             entropy_coeff=CONFIG.ppo.ent_coef,
             num_sgd_iter=CONFIG.ppo.update_epochs,
             sgd_minibatch_size=CONFIG.ppo.batch_size,
-            train_batch_size=CONFIG.ppo_train.iter_env_steps * CONFIG.env.num_envs,
+            train_batch_size=train_batch_size,
         )
         .resources(num_gpus=1, num_cpus_for_main_process=4)
-        .env_runners(num_env_runners=CONFIG.num_runners, num_envs_per_env_runner=CONFIG.env.num_envs)  # num_cpus_per_env_runner=2
+        .env_runners(num_env_runners=CONFIG.ppo_train.num_runners, num_envs_per_env_runner=CONFIG.env.num_envs)  # num_cpus_per_env_runner=2
         .callbacks(MinecraftMetricsCallback)
     )
 
@@ -65,12 +66,19 @@ def main():
         "timesteps_total": CONFIG.ppo_train.env_steps,
     }
 
+    checkpoint_config = CheckpointConfig(
+        num_to_keep=2,
+        checkpoint_score_attribute="env_runners/episode_return_mean",
+        checkpoint_at_end=True,
+        checkpoint_frequency=CONFIG.ppo_train.env_steps // train_batch_size // CONFIG.ppo_train.checkpoints_per_training
+    )
+
     analysis = tune.run(
         "PPO",
+        storage_path=CONFIG.storage_path,
         config=ppo_config.to_dict(),
         stop=stop_conditions,
-        checkpoint_freq=CONFIG.ppo_train.save_every // CONFIG.env.num_envs,
-        checkpoint_at_end=True,
+        checkpoint_config=checkpoint_config,
         callbacks=[
             WandbLoggerCallback(
                 log_config=True,

@@ -1,27 +1,91 @@
-from stable_baselines3 import PPO
-from stable_baselines3.common.evaluation import evaluate_policy
+import glob
+import os
+import ray
+from ray.rllib.algorithms import Algorithm
+from ray.rllib.algorithms.ppo import PPO
+from ray.tune.registry import register_env
+import numpy as np
+from tqdm import tqdm
 
-from python_wrapper.env_manager import Minecraft2dEnv
+from python_wrapper.ffi_elements import init_lib, set_batch_size, set_record_replays
+from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from reinforcement_learning.config import CONFIG
+from reinforcement_learning.main import env_creator
 
 
-def main():
+def evaluate_model(checkpoint_path, num_episodes):
+    register_env("Minecraft2D", env_creator)
+
+    ray.init()
+
+    algo = Algorithm.from_checkpoint(checkpoint_path)
+
+    print("Reinitializing lib connection "
+          "because checkpoint loading makes its envs in the training configuration automatically.")
+    init_lib(CONFIG.env.lib_path)
+    set_batch_size(1)
+    set_record_replays(True)
+
     env = Minecraft2dEnv(
-        num_envs=1, lib_path=CONFIG.env.lib_path,
-        record_replays=CONFIG.evaluation.record_replays,
         discovered_actions_reward=CONFIG.env.discovered_actions_reward,
-        include_actions_in_obs=CONFIG.env.include_actions_in_obs
+        include_actions_in_obs=CONFIG.env.include_actions_in_obs,
+        lib_path=CONFIG.env.lib_path,
+        record_replays=True,
+        num_total_envs=1,
     )
 
-    model = PPO.load(CONFIG.ppo_train.load_from, env=env)
+    episode_rewards = []
+    episode_lengths = []
+    final_times = []
+    game_scores = []
+    discovered_actions = []
 
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=CONFIG.evaluation.n_games, deterministic=False)
+    for _ in tqdm(range(num_episodes), desc="Evaluating"):
+        obs, info = env.reset()
+        done = False
+        episode_reward = 0
+        episode_length = 0
 
-    print(f'Mean Evaluation Reward: {mean_reward}')
-    print(f'Std Evaluation Reward: {std_reward}')
+        while not done:
+            action = algo.compute_single_action(obs)
+            obs, reward, terminated, truncated, info = env.step(action)
+            done = terminated or truncated
+            episode_reward += reward
+            episode_length += 1
 
+        episode_rewards.append(episode_reward)
+        episode_lengths.append(episode_length)
+        final_times.append(info['time'])
+        game_scores.append(info['game_score'])
+        if CONFIG.env.discovered_actions_reward:
+            discovered_actions.append(info['discovered_actions'].sum())
+
+    print(f"\nEvaluation over {num_episodes} episodes:")
+    print(f"Average episode reward: {np.mean(episode_rewards):.2f} ± {np.std(episode_rewards):.2f}")
+    print(f"Average episode length: {np.mean(episode_lengths):.2f} ± {np.std(episode_lengths):.2f}")
+    print(f"Average final time: {np.mean(final_times):.2f} ± {np.std(final_times):.2f}")
+    print(f"Average game score: {np.mean(game_scores):.2f} ± {np.std(game_scores):.2f}")
+    if CONFIG.env.discovered_actions_reward:
+        print(f"Average discovered actions: {np.mean(discovered_actions):.2f} ± {np.std(discovered_actions):.2f}")
+        print(f"Max discovered actions: {np.max(discovered_actions)}")
+
+    # Clean up
     env.close()
+    ray.shutdown()
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    # Find the latest experiment directory
+    experiment_dirs = glob.glob(os.path.join(CONFIG.storage_path, "PPO_*"))
+    latest_experiment = max(experiment_dirs, key=os.path.getmtime)
+
+    # Find the latest trial directory within the latest experiment
+    trial_dirs = glob.glob(os.path.join(latest_experiment, "PPO_Minecraft2D_*"))
+    latest_trial = max(trial_dirs, key=os.path.getmtime)
+
+    # Find the latest checkpoint file
+    checkpoint_files = glob.glob(os.path.join(latest_trial, "checkpoint_*"))
+    latest_checkpoint = max(checkpoint_files, key=os.path.getmtime)
+
+    print(f"Evaluating checkpoint: {latest_checkpoint}")
+    evaluate_model(latest_checkpoint, num_episodes=CONFIG.evaluation.n_games)

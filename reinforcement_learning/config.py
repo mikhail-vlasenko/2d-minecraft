@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field, asdict
 from typing import List, Union
 
@@ -8,20 +9,21 @@ import torch
 class EnvConfig:
     num_envs: int = 64
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
-    discovered_actions_reward: float = 50.
+    discovered_actions_reward: float = 100.
     include_actions_in_obs: bool = True
 
 
 @dataclass
 class PPOTrainConfig:
-    env_steps: int = 64000000
+    env_steps: int = 16000000
     iter_env_steps: int = 512
     load_from: str = None
     # load_from: str = f'reinforcement_learning/saved_models/rl_model_64000000_steps.zip'
     # load_from: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     fall_back_save_to: str = f'reinforcement_learning/saved_models/unfinished_run.pt'
-    save_every: int = env_steps // 10
+    checkpoints_per_training: int = 16
+    num_runners: int = 0
 
 
 @dataclass
@@ -44,8 +46,8 @@ class PPOConfig:
 
 @dataclass
 class Config:
+    storage_path: str = f"{os.getcwd()}/reinforcement_learning/ray_results"
     wandb_resume_id: str = ""
-    num_runners: int = 0
     env: EnvConfig = field(default_factory=EnvConfig)
     ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
