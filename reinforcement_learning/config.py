@@ -7,20 +7,20 @@ import torch
 
 @dataclass
 class EnvConfig:
-    num_envs: int = 64
+    num_envs: int = 8
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     discovered_actions_reward: float = 100.
     include_actions_in_obs: bool = True
 
 
 @dataclass
-class PPOTrainConfig:
+class TrainConfig:
     env_steps: int = 16000000
-    iter_env_steps: int = 512
+    iter_env_steps: int = 1024
     load_from: str = None
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     checkpoints_per_training: int = 16
-    num_runners: int = 0
+    num_runners: int = 8
 
 
 @dataclass
@@ -42,13 +42,20 @@ class PPOConfig:
 
 
 @dataclass
+class IMPALAConfig:
+    gamma: float = 0.995
+    rollout_fragment_length: int = 256
+
+
+@dataclass
 class Config:
     storage_path: str = f"{os.getcwd()}/reinforcement_learning/ray_results"
     wandb_resume_id: str = ""
     env: EnvConfig = field(default_factory=EnvConfig)
-    ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
+    train: TrainConfig = field(default_factory=TrainConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
     ppo: PPOConfig = field(default_factory=PPOConfig)
+    impala: IMPALAConfig = field(default_factory=IMPALAConfig)
     device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     def as_dict(self):
