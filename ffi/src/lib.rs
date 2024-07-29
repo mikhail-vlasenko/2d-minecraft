@@ -169,6 +169,12 @@ pub extern "C" fn set_record_replays(value: bool) {
 
 #[ffi_function]
 #[no_mangle]
+pub extern "C" fn get_batch_size() -> i32 {
+    *BATCH_SIZE.lock().unwrap() as i32
+}
+
+#[ffi_function]
+#[no_mangle]
 pub extern "C" fn num_actions() -> i32 {
     NUM_ACTIONS as i32
 }
@@ -193,6 +199,7 @@ pub fn ffi_inventory() -> Inventory {
         .register(function!(close_one))
         .register(function!(valid_actions_mask))
         .register(function!(set_record_replays))
+        .register(function!(get_batch_size))
         .register(function!(num_actions))
         .register(function!(action_name))
         .inventory()

@@ -19,12 +19,14 @@ def init_lib(path):
     c_lib.close_one.argtypes = [ctypes.c_int32]
     c_lib.valid_actions_mask.argtypes = [ctypes.c_int32]
     c_lib.set_record_replays.argtypes = [ctypes.c_bool]
+    c_lib.get_batch_size.argtypes = []
     c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
 
     c_lib.connect_env.restype = ctypes.c_int32
     c_lib.get_one_observation.restype = Observation
     c_lib.valid_actions_mask.restype = ActionMask
+    c_lib.get_batch_size.restype = ctypes.c_int32
     c_lib.num_actions.restype = ctypes.c_int32
     c_lib.action_name.restype = ctypes.POINTER(ctypes.c_int8)
 
@@ -99,6 +101,9 @@ def set_record_replays(value: bool):
  
  * `value` - The value to set record_replays to."""
     return c_lib.set_record_replays(value)
+
+def get_batch_size() -> int:
+    return c_lib.get_batch_size()
 
 def num_actions() -> int:
     return c_lib.num_actions()

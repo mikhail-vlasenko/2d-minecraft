@@ -5,7 +5,7 @@ from typing import Optional
 
 from python_wrapper.ffi_elements import (
     init_lib, reset_one, step_one, num_actions, set_batch_size,
-    set_record_replays, connect_env, close_one, c_lib
+    set_record_replays, connect_env, close_one, c_lib, get_batch_size
 )
 from python_wrapper.observation import get_processed_observation, NUM_MATERIALS, get_actions_mask
 
@@ -35,9 +35,16 @@ class Minecraft2dEnv(gym.Env):
             include_actions_in_obs (bool): Whether to include available actions in the observation.
         """
         if c_lib is None:
-            print("Initializing Minecraft connection in Minecraft2dEnv init. "
-                  "This should not happen twice in the same process")
-            initialize_minecraft_connection(num_envs=num_total_envs, record_replays=record_replays, lib_path=lib_path)
+            init_lib(lib_path)
+            if get_batch_size() == 1:
+                # so in Ray env creation seems somehow isolated, so the init_lib has to be called always,
+                # but after the first time it connects to an existing FFI environment.
+                # so if the batch size is not its default value (1), then the by calling set_batch_size again,
+                # we would invalidate previous connections.
+                print("Initializing Minecraft connection in Minecraft2dEnv init. "
+                      "This should not happen twice in the same process")
+                set_batch_size(num_total_envs)
+                set_record_replays(record_replays)
         super().__init__()
 
         if render_mode is not None:
@@ -45,6 +52,7 @@ class Minecraft2dEnv(gym.Env):
 
         self.render_mode = render_mode
         self.c_lib_index = connect_env()
+        print(f"Connected to environment with index {self.c_lib_index}.")
 
         self.num_actions = num_actions()
         self.current_score = 0

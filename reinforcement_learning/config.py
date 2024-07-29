@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class EnvConfig:
-    num_envs: int = 8
+    num_envs: int = 64
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     discovered_actions_reward: float = 50.
     include_actions_in_obs: bool = True
@@ -45,7 +45,7 @@ class PPOConfig:
 @dataclass
 class Config:
     wandb_resume_id: str = ""
-    num_runners: int = 8
+    num_runners: int = 0
     env: EnvConfig = field(default_factory=EnvConfig)
     ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)

@@ -4,7 +4,7 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
 from ray.air.integrations.wandb import WandbLoggerCallback
 
-from python_wrapper.minecraft_2d_env import Minecraft2dEnv
+from python_wrapper.minecraft_2d_env import Minecraft2dEnv, initialize_minecraft_connection
 from reinforcement_learning.config import CONFIG
 from reinforcement_learning.metrics_callback import MinecraftMetricsCallback
 
@@ -34,6 +34,8 @@ def main():
         wandb_kwargs['resume'] = "must"
         wandb_kwargs['id'] = CONFIG.wandb_resume_id
 
+    initialize_minecraft_connection(num_envs=CONFIG.env.num_envs, record_replays=False, lib_path=CONFIG.env.lib_path)
+
     ppo_config = (
         PPOConfig()
         .environment("Minecraft2D", env_config={
@@ -54,14 +56,10 @@ def main():
             sgd_minibatch_size=CONFIG.ppo.batch_size,
             train_batch_size=CONFIG.ppo_train.iter_env_steps * CONFIG.env.num_envs,
         )
-        .rollouts(num_rollout_workers=CONFIG.num_runners)
-        .resources(num_gpus=1)
-        .env_runners(num_cpus_per_env_runner=1)
+        .resources(num_gpus=1, num_cpus_for_main_process=4)
+        .env_runners(num_env_runners=CONFIG.num_runners, num_envs_per_env_runner=CONFIG.env.num_envs)  # num_cpus_per_env_runner=2
         .callbacks(MinecraftMetricsCallback)
     )
-
-    if CONFIG.ppo_train.load_from:
-        ppo_config = ppo_config.restore(CONFIG.ppo_train.load_from)
 
     stop_conditions = {
         "timesteps_total": CONFIG.ppo_train.env_steps,
