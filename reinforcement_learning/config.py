@@ -1,5 +1,6 @@
+import os
 from dataclasses import dataclass, field, asdict
-from typing import List
+from typing import List, Union
 
 import torch
 
@@ -7,21 +8,20 @@ import torch
 @dataclass
 class EnvConfig:
     num_envs: int = 32
-    lib_path: str = './target/release/ffi.dll'
-    discovered_actions_reward: float = 50.
+    lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
+    discovered_actions_reward: float = 75.
     include_actions_in_obs: bool = True
 
 
 @dataclass
-class PPOTrainConfig:
-    env_steps: int = 64000000
+class TrainConfig:
+    env_steps: int = 16000000
     iter_env_steps: int = 1024
     load_from: str = None
-    # load_from: str = f'reinforcement_learning/saved_models/rl_model_64000000_steps.zip'
-    # load_from: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
-    fall_back_save_to: str = f'reinforcement_learning/saved_models/unfinished_run.pt'
-    save_every: int = env_steps // 20
+    fall_back_save_to: str = f'reinforcement_learning/saved_models/sb3_ppo_interrupted.pt'
+    checkpoints_per_training: int = 16
+    num_runners: int = 8
 
 
 @dataclass
@@ -36,19 +36,28 @@ class PPOConfig:
     gamma: float = 0.99
     update_epochs: int = 10
     ent_coef: float = 0.01
-    batch_size: int = 1024
-    nonlinear: str = 'tanh'  # tanh, relu
+    batch_size: int = 512
+    rollout_fragment_length: Union[int, str] = 'auto'
+    nonlinear: str = 'tanh'
     extractor_dim: int = 512
     dimensions: List[int] = field(default_factory=lambda: [256, 128, 64])
 
 
 @dataclass
+class IMPALAConfig:
+    gamma: float = 0.995
+    rollout_fragment_length: int = 256
+
+
+@dataclass
 class Config:
+    storage_path: str = f"{os.getcwd()}/reinforcement_learning/ray_results"
     wandb_resume_id: str = ""
     env: EnvConfig = field(default_factory=EnvConfig)
-    ppo_train: PPOTrainConfig = field(default_factory=PPOTrainConfig)
+    train: TrainConfig = field(default_factory=TrainConfig)
     evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
     ppo: PPOConfig = field(default_factory=PPOConfig)
+    impala: IMPALAConfig = field(default_factory=IMPALAConfig)
     device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     def as_dict(self):

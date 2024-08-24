@@ -11,35 +11,48 @@ def init_lib(path):
     c_lib = ctypes.cdll.LoadLibrary(path)
 
     c_lib.set_batch_size.argtypes = [ctypes.c_int32]
+    c_lib.connect_env.argtypes = []
     c_lib.reset.argtypes = []
+    c_lib.reset_one.argtypes = [ctypes.c_int32]
     c_lib.step_one.argtypes = [ctypes.c_int32, ctypes.c_int32]
     c_lib.get_one_observation.argtypes = [ctypes.c_int32]
+    c_lib.close_one.argtypes = [ctypes.c_int32]
     c_lib.valid_actions_mask.argtypes = [ctypes.c_int32]
     c_lib.set_record_replays.argtypes = [ctypes.c_bool]
+    c_lib.get_batch_size.argtypes = []
     c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
 
+    c_lib.connect_env.restype = ctypes.c_int32
     c_lib.get_one_observation.restype = Observation
     c_lib.valid_actions_mask.restype = ActionMask
+    c_lib.get_batch_size.restype = ctypes.c_int32
     c_lib.num_actions.restype = ctypes.c_int32
     c_lib.action_name.restype = ctypes.POINTER(ctypes.c_int8)
 
 
 
 def set_batch_size(new_batch_size: int):
-    """ Does a reset on all game states"""
+    """ Initializes batch_size games states.
+ Does a reset on all game states."""
     return c_lib.set_batch_size(new_batch_size)
+
+def connect_env() -> int:
+    """ Finds an unconnected games state and returns its index.
+ Panics if all game states are connected."""
+    return c_lib.connect_env()
 
 def reset():
     """ Resets all game states.
  Not advised. Especially since game states initialize ready to be stepped."""
     return c_lib.reset()
 
+def reset_one(index: int):
+    """ Resets the game state at the specified index."""
+    return c_lib.reset_one(index)
+
 def step_one(action: int, index: int):
     """ Steps the game state at the specified index with the given action.
- Checking for Done is at the start of the function. 
- An action that was sent to a game that was already done, will be ignored, 
- so that a starting observation can be obtained. 
 
  # Arguments
 
@@ -58,6 +71,11 @@ def get_one_observation(index: int) -> Observation:
 
  * `observation::Observation` - The observation of the game state."""
     return c_lib.get_one_observation(index)
+
+def close_one(index: int):
+    """ Closes the game state at the specified index.
+ The game state is reset and can be connected to again."""
+    return c_lib.close_one(index)
 
 def valid_actions_mask(index: int) -> ActionMask:
     """ Gets the actions mask for the game state at the specified index.
@@ -83,6 +101,9 @@ def set_record_replays(value: bool):
  
  * `value` - The value to set record_replays to."""
     return c_lib.set_record_replays(value)
+
+def get_batch_size() -> int:
+    return c_lib.get_batch_size()
 
 def num_actions() -> int:
     return c_lib.num_actions()
