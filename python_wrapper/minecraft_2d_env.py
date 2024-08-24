@@ -9,7 +9,10 @@ from python_wrapper.ffi_elements import (
     init_lib, reset_one, step_one, num_actions, set_batch_size,
     set_record_replays, connect_env, close_one, c_lib, get_batch_size
 )
-from python_wrapper.observation import get_processed_observation, NUM_MATERIALS, get_actions_mask
+from python_wrapper.observation import (
+    get_processed_observation, NUM_MATERIALS, get_actions_mask, ProcessedObservation,
+    OBSERVATION_GRID_SIZE, NUM_MOBS
+)
 
 
 def initialize_minecraft_connection(num_envs=1, lib_path='./target/release/ffi.dll', record_replays=False):
@@ -21,20 +24,31 @@ def initialize_minecraft_connection(num_envs=1, lib_path='./target/release/ffi.d
 class Minecraft2dEnv(gym.Env):
     def __init__(
             self,
-            render_mode: Optional[str] = None,
+            lib_path: str = './target/release/ffi.dll',
+            num_total_envs: int = 1,
             discovered_actions_reward: float = 0,
             include_actions_in_obs: bool = False,
-            lib_path: str = './target/release/ffi.dll',
+            observation_distance: int = (OBSERVATION_GRID_SIZE - 1) // 2,
+            max_observable_mobs: int = NUM_MOBS,
             record_replays: bool = False,
-            num_total_envs: int = 1,
+            render_mode: Optional[str] = None,
     ):
         """
         Initialize the Minecraft 2D environment.
 
         Args:
-            render_mode (str, optional): The render mode. Currently not supported.
+            lib_path (str): Path to the FFI library.
+            num_total_envs (int): Number of environments that will be used in parallel at most.
+                Usually is the same that you would pass to the vectorizing wrapper.
             discovered_actions_reward (float): Reward for discovering new actions.
             include_actions_in_obs (bool): Whether to include available actions in the observation.
+            observation_distance (int): The distance in tiles from the player to the edge of the observation grid.
+            max_observable_mobs (int): The maximum number of mobs that can be observed.
+                Also, the number of loot tiles that can be observed.
+                Guaranteed to be the closest ones.
+            record_replays (bool): Whether to record replays. If yes, creates a file for each finished episode.
+                The file can be viewed with the 2d-minecraft binary.
+            render_mode (str, optional): The render mode. Currently not supported.
         """
         if c_lib is None:
             init_lib(lib_path)
@@ -62,6 +76,9 @@ class Minecraft2dEnv(gym.Env):
         self.discovered_actions_reward = discovered_actions_reward
         self.discovered_actions = np.zeros(self.num_actions, dtype=bool)
         self.reset_discovered_actions()
+
+        self.observation_distance = observation_distance
+        self.max_observable_mobs = max_observable_mobs
 
         # Define action and observation spaces
         self.action_space = spaces.Discrete(self.num_actions)
@@ -103,7 +120,7 @@ class Minecraft2dEnv(gym.Env):
     def close(self):
         close_one(self.c_lib_index)
 
-    def _decode_observation(self, obs):
+    def _decode_observation(self, obs: ProcessedObservation):
         info = {}
         reward = obs.score - self.current_score
         self.current_score = obs.score
@@ -139,18 +156,30 @@ class Minecraft2dEnv(gym.Env):
         self.reset_discovered_actions()
         return obs
 
-    @staticmethod
-    def flatted_obs(obs, available_actions=None, discovered_actions=None):
-        top_materials_flat = obs.top_materials.flatten()
+    def flatted_obs(self, obs, available_actions=None, discovered_actions=None):
+        """
+        Transforms the observation into a flat numpy array.
+        Crops off the observable grid around the player to the observation distance value.
+        :param obs:
+        :param available_actions:
+        :param discovered_actions:
+        :return:
+        """
+        middle = (obs.top_materials.shape[0] - 1) // 2
+        start = middle - self.observation_distance
+        end = middle + self.observation_distance + 1
+        cropped_top_materials = obs.top_materials[start:end, start:end]
+        cropped_tile_heights = obs.tile_heights[start:end, start:end]
+        top_materials_flat = cropped_top_materials.flatten()
         top_materials_one_hot = np.eye(NUM_MATERIALS)[top_materials_flat].flatten()
-        tile_heights_flat = obs.tile_heights.flatten()
+        tile_heights_flat = cropped_tile_heights.flatten()
         player_pos_flat = np.array(obs.player_pos)
         player_rot = np.array([obs.player_rot])
         hp = np.array([obs.hp])
         time = np.array([obs.time])
         inventory_state = np.array(obs.inventory_state)
-        mobs_flat = np.array(obs.mobs).flatten()
-        loot_flat = np.array(obs.loot).flatten()
+        mobs_flat = np.array(obs.mobs[:self.max_observable_mobs]).flatten()
+        loot_flat = np.array(obs.loot[:self.max_observable_mobs]).flatten()
 
         processed_obs = np.concatenate([
             top_materials_one_hot, tile_heights_flat, player_pos_flat, player_rot,

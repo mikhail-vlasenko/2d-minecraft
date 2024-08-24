@@ -39,7 +39,13 @@ pub struct Observation {
 }
 
 impl Observation {
-    pub fn new(vec_top_materials: Vec<Vec<i32>>, vec_tile_heights: Vec<Vec<i32>>, field: &Field, player: &Player, close_mobs: Vec<[i32; 4]>) -> Self {
+    pub fn new(
+        vec_top_materials: Vec<Vec<i32>>, 
+        vec_tile_heights: Vec<Vec<i32>>, 
+        field: &Field, player: &Player, 
+        close_mobs: Vec<[i32; MOB_INFO_SIZE]>, 
+        close_loot: [[i32; LOOT_INFO_SIZE]; MAX_MOBS]
+    ) -> Self {
         if vec_top_materials.len() != OBSERVATION_GRID_SIZE || vec_tile_heights.len() != OBSERVATION_GRID_SIZE {
             panic!("Invalid observation size");
         }
@@ -68,7 +74,7 @@ impl Observation {
                 mobs[i][j] = close_mobs[i][j];
             }
         }
-        let loot = Observation::make_loot_array(field, player);
+        let loot = close_loot;
         let score = player.get_score();
         let message = CString::new(player.message.clone()).unwrap().into_raw();
         let done = is_game_over(player);
@@ -86,31 +92,6 @@ impl Observation {
             message,
             done,
         }
-    }
-    
-    fn make_loot_array(field: &Field, player: &Player) -> [[i32; LOOT_INFO_SIZE]; MAX_MOBS] {
-        let mut loot = [[0, 0, -1]; 16];
-        let loot_indices = field.loot_indices(player);
-        let mut arrow_indices = field.arrow_indices(player);
-        let mut min_empty_loot_position = 0;
-        // record loot and loot+arrow positions
-        for i in 0..min(loot_indices.len(), MAX_MOBS) {
-            let idx = loot_indices[i];
-            if arrow_indices.contains(&idx) {
-                loot[i] = [idx.0, idx.1, 3];
-                let index_accounted_for = arrow_indices.iter().position(|x| *x == idx).unwrap();
-                arrow_indices.remove(index_accounted_for);
-            } else {
-                loot[i] = [idx.0, idx.1, 2];
-            }
-            min_empty_loot_position = i + 1;
-        }
-        // in the remaining slots, record arrow-only positions
-        for i in 0..min(arrow_indices.len(), MAX_MOBS - min_empty_loot_position) {
-            let idx = arrow_indices[i];
-            loot[min_empty_loot_position + i] = [idx.0, idx.1, 1];
-        }
-        loot
     }
 }
 

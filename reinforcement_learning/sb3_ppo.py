@@ -37,7 +37,7 @@ class LoggingCallback(BaseCallback):
                 # Log completed episodes
                 self.total_rewards.append(self.episode_rewards[i])
                 self.total_lengths.append(self.episode_lengths[i])
-                self.final_times.append(self.extract_time_from_observation(self.locals["obs_tensor"][i]))
+                self.final_times.append(self.locals["infos"][i]['time'])
                 self.game_scores.append(self.locals["infos"][i]['game_score'])
                 if CONFIG.env.discovered_actions_reward:
                     self.num_discovered_actions.append(self.locals["infos"][i]['discovered_actions'].sum())
@@ -73,12 +73,6 @@ class LoggingCallback(BaseCallback):
             self.num_discovered_actions = []
             self.game_scores = []
 
-    @staticmethod
-    def extract_time_from_observation(obs):
-        # sum the sizes of previous arrays to get the index of the time
-        idx = OBSERVATION_GRID_SIZE ** 2 * 13 + OBSERVATION_GRID_SIZE ** 2 + 3 + 1 + 1
-        return obs[idx].item()
-
 
 class CustomMLPFeatureExtractor(nn.Module):
     def __init__(self, observation_space: spaces.Box, features_dim: int):
@@ -107,6 +101,8 @@ def main():
     run = wandb.init(**wandb_kwargs)
 
     env_kwargs = {
+        "observation_distance": CONFIG.env.observation_distance,
+        "max_observable_mobs": CONFIG.env.max_observable_mobs,
         "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
         "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
         "lib_path": CONFIG.env.lib_path,

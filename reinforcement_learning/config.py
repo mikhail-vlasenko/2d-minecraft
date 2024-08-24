@@ -11,6 +11,8 @@ class EnvConfig:
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     discovered_actions_reward: float = 75.
     include_actions_in_obs: bool = True
+    observation_distance: int = 3
+    max_observable_mobs: int = 8
 
 
 @dataclass
@@ -39,8 +41,8 @@ class PPOConfig:
     batch_size: int = 512
     rollout_fragment_length: Union[int, str] = 'auto'
     nonlinear: str = 'tanh'
-    extractor_dim: int = 512
-    dimensions: List[int] = field(default_factory=lambda: [256, 128, 64])
+    extractor_dim: int = 256
+    dimensions: List[int] = field(default_factory=lambda: [128, 64])
 
 
 @dataclass

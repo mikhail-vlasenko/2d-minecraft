@@ -35,6 +35,8 @@ def main():
     impala_config = (
         ImpalaConfig()
         .environment("Minecraft2D", env_config={
+            "observation_distance": CONFIG.env.observation_distance,
+            "max_observable_mobs": CONFIG.env.max_observable_mobs,
             "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
             "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
             "lib_path": CONFIG.env.lib_path,
