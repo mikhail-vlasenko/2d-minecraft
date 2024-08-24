@@ -1,3 +1,5 @@
+import warnings
+
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
@@ -75,7 +77,7 @@ class Minecraft2dEnv(gym.Env):
             options: Optional[dict] = None
     ) -> tuple[np.ndarray, dict]:
         if seed is not None:
-            raise NotImplementedError("Seed is not supported in this environment.")
+            warnings.warn('Seed is not supported in this environment. It is ignored.')
         super().reset(seed=seed)
 
         self.reset_discovered_actions()

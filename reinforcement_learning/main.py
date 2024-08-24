@@ -12,13 +12,7 @@ from reinforcement_learning.metrics_callback import MinecraftMetricsCallback
 
 
 def env_creator(env_config):
-    return Minecraft2dEnv(
-        discovered_actions_reward=env_config["discovered_actions_reward"],
-        include_actions_in_obs=env_config["include_actions_in_obs"],
-        lib_path=CONFIG.env.lib_path,
-        record_replays=False,
-        num_total_envs=CONFIG.env.num_envs,
-    )
+    return Minecraft2dEnv(**env_config)
 
 
 register_env("Minecraft2D", env_creator)
@@ -43,11 +37,14 @@ def main():
         .environment("Minecraft2D", env_config={
             "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
             "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
+            "lib_path": CONFIG.env.lib_path,
+            "num_total_envs": CONFIG.env.num_envs,
+            "record_replays": False,
         })
         .framework("torch")
         .training(
             # model={
-            #     "fcnet_hiddens": CONFIG.ppo.dimensions,
+            #     "fcnet_hiddens": CONFIG.ppo.dimensions.insert(CONFIG.ppo.extractor_dim, 0),
             #     "fcnet_activation": CONFIG.ppo.nonlinear,
             # },
             gamma=CONFIG.ppo.gamma,

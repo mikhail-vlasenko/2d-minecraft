@@ -7,9 +7,9 @@ import torch
 
 @dataclass
 class EnvConfig:
-    num_envs: int = 8
+    num_envs: int = 32
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
-    discovered_actions_reward: float = 100.
+    discovered_actions_reward: float = 75.
     include_actions_in_obs: bool = True
 
 
@@ -19,6 +19,7 @@ class TrainConfig:
     iter_env_steps: int = 1024
     load_from: str = None
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
+    fall_back_save_to: str = f'reinforcement_learning/saved_models/sb3_ppo_interrupted.pt'
     checkpoints_per_training: int = 16
     num_runners: int = 8
 
@@ -38,7 +39,8 @@ class PPOConfig:
     batch_size: int = 512
     rollout_fragment_length: Union[int, str] = 'auto'
     nonlinear: str = 'tanh'
-    dimensions: List[int] = field(default_factory=lambda: [512, 256, 128, 64])
+    extractor_dim: int = 512
+    dimensions: List[int] = field(default_factory=lambda: [256, 128, 64])
 
 
 @dataclass
