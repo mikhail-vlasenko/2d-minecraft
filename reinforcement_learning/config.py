@@ -9,17 +9,22 @@ import torch
 class EnvConfig:
     num_envs: int = 32
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
-    discovered_actions_reward: float = 75.
+    discovered_actions_reward: float = 25.
     include_actions_in_obs: bool = True
     observation_distance: int = 3
     max_observable_mobs: int = 8
+    start_loadout: str = 'random'
+    simplified_action_space: bool = True
 
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 16000000
+    env_steps: int = 128000000
     iter_env_steps: int = 1024
-    load_from: str = None
+    # load_from: str = None
+    load_from: str = "reinforcement_learning/saved_models/sb3_ppo_interrupted.pt"
+    load_checkpoint: str = None
+    # load_checkpoint: str = "reinforcement_learning/saved_models/rl_model_88000000_steps.zip"
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     fall_back_save_to: str = f'reinforcement_learning/saved_models/sb3_ppo_interrupted.pt'
     checkpoints_per_training: int = 16
@@ -28,7 +33,7 @@ class TrainConfig:
 
 @dataclass
 class EvaluationConfig:
-    n_games: int = 2
+    n_games: int = 3
     record_replays: bool = True
 
 
@@ -36,7 +41,7 @@ class EvaluationConfig:
 class PPOConfig:
     lr: float = 3e-4
     gamma: float = 0.99
-    update_epochs: int = 10
+    update_epochs: int = 5
     ent_coef: float = 0.01
     batch_size: int = 512
     rollout_fragment_length: Union[int, str] = 'auto'

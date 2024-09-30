@@ -7,11 +7,11 @@ from typing import Optional
 
 from python_wrapper.ffi_elements import (
     init_lib, reset_one, step_one, num_actions, set_batch_size,
-    set_record_replays, connect_env, close_one, c_lib, get_batch_size
+    set_record_replays, connect_env, close_one, c_lib, get_batch_size, set_start_loadout
 )
 from python_wrapper.observation import (
     get_processed_observation, NUM_MATERIALS, get_actions_mask, ProcessedObservation,
-    OBSERVATION_GRID_SIZE, NUM_MOBS
+    OBSERVATION_GRID_SIZE, NUM_MOBS, get_action_name
 )
 
 
@@ -30,6 +30,7 @@ class Minecraft2dEnv(gym.Env):
             include_actions_in_obs: bool = False,
             observation_distance: int = (OBSERVATION_GRID_SIZE - 1) // 2,
             max_observable_mobs: int = NUM_MOBS,
+            start_loadout: str = 'random',
             record_replays: bool = False,
             render_mode: Optional[str] = None,
     ):
@@ -61,6 +62,7 @@ class Minecraft2dEnv(gym.Env):
                       "This should not happen twice in the same process")
                 set_batch_size(num_total_envs)
                 set_record_replays(record_replays)
+                self.set_start_loadout_str(start_loadout)
         super().__init__()
 
         if render_mode is not None:
@@ -192,3 +194,18 @@ class Minecraft2dEnv(gym.Env):
             processed_obs = np.concatenate([processed_obs, discovered_actions.astype(np.float32)])
 
         return processed_obs
+
+    def get_action_name(self, action: int) -> str:
+        return get_action_name(action)
+
+    @staticmethod
+    def set_start_loadout_str(start_loadout: str):
+        """
+        Affects all environments.
+        :param start_loadout: a loadout string
+        :return:
+        """
+        start_loadouts = ['empty', 'apples', 'fighter', 'archer', 'random']
+        if start_loadout not in start_loadouts:
+            raise ValueError(f"Invalid start loadout. Must be one of {start_loadouts}.")
+        set_start_loadout(start_loadouts.index(start_loadout))

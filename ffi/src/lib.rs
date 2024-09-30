@@ -167,6 +167,25 @@ pub extern "C" fn set_record_replays(value: bool) {
     SETTINGS.write().unwrap().record_replays = value;
 }
 
+/// Sets the start loadout for the player for all new games.
+/// 
+/// # Arguments
+/// 
+/// * `value_index` - The index of the loadout to set. Not the actual string value because of the FFI memory safety.
+#[ffi_function]
+#[no_mangle]
+pub extern "C" fn set_start_loadout(value_index: i32){
+    let value = match value_index {
+        0 => "empty",
+        1 => "apples",
+        2 => "fighter",
+        3 => "archer",
+        4 => "random",
+        _ => panic!("Unknown loadout index: {}", value_index),
+    };
+    SETTINGS.write().unwrap().player.start_inventory.loadout = value.into();
+}
+
 #[ffi_function]
 #[no_mangle]
 pub extern "C" fn get_batch_size() -> i32 {
@@ -199,6 +218,7 @@ pub fn ffi_inventory() -> Inventory {
         .register(function!(close_one))
         .register(function!(valid_actions_mask))
         .register(function!(set_record_replays))
+        .register(function!(set_start_loadout))
         .register(function!(get_batch_size))
         .register(function!(num_actions))
         .register(function!(action_name))

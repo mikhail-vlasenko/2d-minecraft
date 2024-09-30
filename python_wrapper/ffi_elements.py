@@ -19,6 +19,7 @@ def init_lib(path):
     c_lib.close_one.argtypes = [ctypes.c_int32]
     c_lib.valid_actions_mask.argtypes = [ctypes.c_int32]
     c_lib.set_record_replays.argtypes = [ctypes.c_bool]
+    c_lib.set_start_loadout.argtypes = [ctypes.c_int32]
     c_lib.get_batch_size.argtypes = []
     c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
@@ -101,6 +102,14 @@ def set_record_replays(value: bool):
  
  * `value` - The value to set record_replays to."""
     return c_lib.set_record_replays(value)
+
+def set_start_loadout(value_index: int):
+    """ Sets the start loadout for the player for all new games.
+ 
+ # Arguments
+ 
+ * `value_index` - The index of the loadout to set. Not the actual string value because of the FFI memory safety."""
+    return c_lib.set_start_loadout(value_index)
 
 def get_batch_size() -> int:
     return c_lib.get_batch_size()

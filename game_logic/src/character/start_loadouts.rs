@@ -1,4 +1,5 @@
 use rand::{random, Rng, thread_rng};
+use rand::seq::SliceRandom;
 use strum::IntoEnumIterator;
 use itertools::Itertools;
 use crate::character::player::Player;
@@ -14,7 +15,14 @@ use crate::SETTINGS;
 
 pub fn apply_loadout(player: &mut Player, field: &mut Field) {
     let binding = SETTINGS.read().unwrap().player.start_inventory.loadout.clone();
-    let loadout = binding.as_ref();
+    let mut loadout = binding.as_ref();
+
+    let valid_loadouts = ["empty", "apples", "fighter", "archer"];
+
+    if loadout == "random" {
+        loadout = valid_loadouts.choose(&mut thread_rng()).unwrap();
+    }
+    
     match loadout {
         "empty" => {},
         "apples" => {

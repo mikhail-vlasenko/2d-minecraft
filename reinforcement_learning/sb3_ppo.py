@@ -8,6 +8,7 @@ from torch import nn
 
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from python_wrapper.observation import OBSERVATION_GRID_SIZE
+from python_wrapper.simplified_actions import ActionSimplificationWrapper
 from reinforcement_learning.config import CONFIG
 
 
@@ -105,12 +106,17 @@ def main():
         "max_observable_mobs": CONFIG.env.max_observable_mobs,
         "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
         "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
+        "start_loadout": CONFIG.env.start_loadout,
         "lib_path": CONFIG.env.lib_path,
         "num_total_envs": CONFIG.env.num_envs,
         "record_replays": False,
     }
 
-    env = make_vec_env(Minecraft2dEnv, n_envs=CONFIG.env.num_envs, env_kwargs=env_kwargs)
+    wrapper_class = None
+    if CONFIG.env.simplified_action_space:
+        wrapper_class = ActionSimplificationWrapper
+
+    env = make_vec_env(Minecraft2dEnv, n_envs=CONFIG.env.num_envs, env_kwargs=env_kwargs, wrapper_class=wrapper_class)
 
     policy_kwargs = dict(
         net_arch=dict(pi=CONFIG.ppo.dimensions, vf=CONFIG.ppo.dimensions),
@@ -118,17 +124,22 @@ def main():
         features_extractor_kwargs=dict(features_dim=CONFIG.ppo.extractor_dim),
     )
 
-    model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs,
-                verbose=0, tensorboard_log=f"runs/{run.id}",
-                learning_rate=CONFIG.ppo.lr,
-                n_steps=CONFIG.train.iter_env_steps,
-                batch_size=CONFIG.ppo.batch_size,
-                ent_coef=CONFIG.ppo.ent_coef,
-                n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
+    if CONFIG.train.load_checkpoint is not None:
+        print(f"Loading checkpoint from {CONFIG.train.load_checkpoint}")
+        model = PPO.load(CONFIG.train.load_checkpoint, env, tensorboard_log=f"runs/{run.id}")
+    else:
+        model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs,
+                    verbose=0, tensorboard_log=f"runs/{run.id}",
+                    learning_rate=CONFIG.ppo.lr,
+                    n_steps=CONFIG.train.iter_env_steps,
+                    batch_size=CONFIG.ppo.batch_size,
+                    ent_coef=CONFIG.ppo.ent_coef,
+                    n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
 
     if CONFIG.train.load_from is not None:
         print(f"Loading model from {CONFIG.train.load_from}")
-        model = model.load(CONFIG.train.load_from, env)
+        # this loads weights but keeps hyperparameters from the current initialization
+        model.set_parameters(CONFIG.train.load_from)
 
     print(model.policy)
 
