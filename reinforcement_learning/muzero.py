@@ -14,12 +14,12 @@ import torch
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-import diagnose_model
-import models
-import replay_buffer
-import self_play
-import shared_storage
-import trainer
+import muzero_general.diagnose_model
+import muzero_general.models
+import muzero_general.replay_buffer
+import muzero_general.self_play
+import muzero_general.shared_storage
+import muzero_general.trainer
 
 
 class MuZero:
