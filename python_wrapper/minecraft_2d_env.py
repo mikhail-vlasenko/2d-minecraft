@@ -133,7 +133,7 @@ class Minecraft2dEnv(gym.Env):
         terminated = obs.done
 
         if self.discovered_actions_reward or self.include_actions_in_obs:
-            available_actions = get_actions_mask(self.c_lib_index)
+            available_actions = self.get_actions_mask()
             info['available_actions'] = available_actions
             new_discovered_actions = np.logical_or(self.discovered_actions, available_actions)
             reward += self.discovered_actions_reward * (
@@ -158,7 +158,7 @@ class Minecraft2dEnv(gym.Env):
         self.reset_discovered_actions()
         return obs
 
-    def flatted_obs(self, obs, available_actions=None, discovered_actions=None):
+    def flatted_obs(self, obs, available_actions=None, discovered_actions=None) -> np.ndarray:
         """
         Transforms the observation into a flat numpy array.
         Crops off the observable grid around the player to the observation distance value.
@@ -197,6 +197,9 @@ class Minecraft2dEnv(gym.Env):
 
     def get_action_name(self, action: int) -> str:
         return get_action_name(action)
+
+    def get_actions_mask(self) -> np.ndarray:
+        return get_actions_mask(self.c_lib_index)
 
     @staticmethod
     def set_start_loadout_str(start_loadout: str):

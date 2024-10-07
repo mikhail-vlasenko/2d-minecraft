@@ -4,8 +4,12 @@ import time
 import numpy
 import ray
 import torch
+import wandb
+from reinforcement_learning.config import CONFIG
 
-import models
+from reinforcement_learning.muzero_general import models
+from reinforcement_learning.muzero_general.self_play import GameHistory
+from reinforcement_learning.sb3_ppo import LoggingCallback
 
 
 @ray.remote
@@ -14,12 +18,22 @@ class ReplayBuffer:
     Class which run in a dedicated thread to store played games and generate batch.
     """
 
-    def __init__(self, initial_checkpoint, initial_buffer, config, wandb_run):
+    def __init__(self, initial_checkpoint, initial_buffer, config):
         self.config = config
         self.buffer = copy.deepcopy(initial_buffer)
         self.num_played_games = initial_checkpoint["num_played_games"]
         self.num_played_steps = initial_checkpoint["num_played_steps"]
         self.cnt = 0
+        wandb_kwargs = {
+            'entity': 'mvlasenko',
+            'project': "minecraft-rl",
+            'config': CONFIG.as_dict()
+        }
+        if CONFIG.wandb_resume_id:
+            wandb_kwargs['resume'] = "must"
+            wandb_kwargs['id'] = CONFIG.wandb_resume_id
+        wandb_run = wandb.init(**wandb_kwargs)
+        self.logging_callback = LoggingCallback()
         self.total_samples = sum(
             [len(game_history.root_values) for game_history in self.buffer.values()]
         )
@@ -31,10 +45,15 @@ class ReplayBuffer:
         # Fix random generator seed
         numpy.random.seed(self.config.seed)
 
-    def save_game(self, game_history, shared_storage=None):
+    def save_game(self, game_history: GameHistory, shared_storage=None):
         self.cnt += 1
+        for i in range(len(game_history.reward_history)):
+            self.logging_callback.locals["rewards"] = [game_history.reward_history[i]]
+            self.logging_callback.locals["dones"] = [i == (len(game_history.reward_history) - 1)]
+            self.logging_callback.locals["infos"] = [game_history.infos[i]]
+            self.logging_callback._on_step()
         if self.cnt == 10:
-            print("wandb logging", sum(game_history.reward_history))
+            self.logging_callback._on_rollout_end()
             self.cnt = 0
         if self.config.PER:
             if game_history.priorities is not None:

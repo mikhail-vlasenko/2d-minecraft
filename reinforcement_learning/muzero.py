@@ -1,4 +1,5 @@
 import copy
+import datetime
 import importlib
 import json
 import math
@@ -14,12 +15,17 @@ import torch
 import wandb
 from torch.utils.tensorboard import SummaryWriter
 
-import muzero_general.diagnose_model
-import muzero_general.models
-import muzero_general.replay_buffer
-import muzero_general.self_play
-import muzero_general.shared_storage
-import muzero_general.trainer
+from python_wrapper.muzero_wrapper import MuZeroWrapper
+from python_wrapper.simplified_actions import ActionSimplificationWrapper
+from reinforcement_learning.muzero_general import diagnose_model
+from reinforcement_learning.muzero_general import models
+from reinforcement_learning.muzero_general import replay_buffer
+from reinforcement_learning.muzero_general import self_play
+from reinforcement_learning.muzero_general import shared_storage
+from reinforcement_learning.muzero_general import trainer
+from python_wrapper.minecraft_2d_env import Minecraft2dEnv
+from reinforcement_learning.config import CONFIG
+from reinforcement_learning.sb3_ppo import LoggingCallback
 
 
 class MuZero:
@@ -40,30 +46,16 @@ class MuZero:
         >>> muzero.test(render=True)
     """
 
-    def __init__(self, game_name, config=None, split_resources_in=1):
-        # Load the game and the config from the module with the game name
-        try:
-            game_module = importlib.import_module("games." + game_name)
-            self.Game = game_module.Game
-            self.config = game_module.MuZeroConfig()
-        except ModuleNotFoundError as err:
-            print(
-                f'{game_name} is not a supported game name, try "cartpole" or refer to the documentation for adding a new game.'
-            )
-            raise err
-
-        # Overwrite the config
-        if config:
-            if type(config) is dict:
-                for param, value in config.items():
-                    if hasattr(self.config, param):
-                        setattr(self.config, param, value)
-                    else:
-                        raise AttributeError(
-                            f"{game_name} config has no attribute '{param}'. Check the config file for the complete list of parameters."
-                        )
-            else:
-                self.config = config
+    def __init__(self, game_constructor, split_resources_in=1):
+        self.Game = game_constructor
+        self.config = CONFIG.muzero
+        example_game = self.Game()
+        self.config.observation_shape = example_game.observation_space.shape
+        action_space = example_game.action_space
+        self.config.action_space = list(range(action_space.n))
+        print("legal actions:", example_game.legal_actions())
+        self.config.results_path = (pathlib.Path(__file__).resolve().parents[1] / "results" /
+                                    datetime.datetime.now().strftime("%Y-%m-%d--%H-%M-%S"))
 
         # Fix random generator seed
         numpy.random.seed(self.config.seed)
@@ -137,16 +129,6 @@ class MuZero:
         Args:
             log_in_tensorboard (bool): Start a testing worker and log its performance in TensorBoard.
         """
-        wandb_kwargs = {
-            'entity': 'mvlasenko',
-            'project': "minecraft-rl",
-            # 'config': CONFIG.as_dict()
-        }
-        # if CONFIG.wandb_resume_id:
-        #     wandb_kwargs['resume'] = "must"
-        #     wandb_kwargs['id'] = CONFIG.wandb_resume_id
-        wandb_run = wandb.init(**wandb_kwargs)
-
         if log_in_tensorboard or self.config.save_model:
             self.config.results_path.mkdir(parents=True, exist_ok=True)
 
@@ -177,7 +159,7 @@ class MuZero:
         self.shared_storage_worker.set_info.remote("terminate", False)
 
         self.replay_buffer_worker = replay_buffer.ReplayBuffer.remote(
-            self.checkpoint, self.replay_buffer, self.config, wandb_run
+            self.checkpoint, self.replay_buffer, self.config
         )
 
         if self.config.use_last_model_value:
@@ -629,8 +611,24 @@ def load_model_menu(muzero, game_name):
     )
 
 
+env_kwargs = {
+    "observation_distance": CONFIG.env.observation_distance,
+    "max_observable_mobs": CONFIG.env.max_observable_mobs,
+    "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
+    "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
+    "start_loadout": CONFIG.env.start_loadout,
+    "lib_path": CONFIG.env.lib_path,
+    "num_total_envs": CONFIG.env.num_envs,
+    "record_replays": False,
+}
+
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 1:
+        def game_constructor(_seed=None):
+            return MuZeroWrapper(ActionSimplificationWrapper(Minecraft2dEnv(**env_kwargs)))
+        muzero = MuZero(game_constructor)
+        muzero.train()
+    elif len(sys.argv) == 2:
         # Train directly with: python muzero.py cartpole
         muzero = MuZero(sys.argv[1])
         muzero.train()

@@ -5,7 +5,7 @@ import numpy
 import ray
 import torch
 
-import models
+from reinforcement_learning.muzero_general import models
 
 
 @ray.remote

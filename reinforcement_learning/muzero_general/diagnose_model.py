@@ -3,8 +3,8 @@ import numpy
 import seaborn
 import torch
 
-import models
-from self_play import MCTS, Node, SelfPlay
+from reinforcement_learning.muzero_general import models
+from reinforcement_learning.muzero_general.self_play import MCTS, Node, SelfPlay
 
 
 class DiagnoseModel:

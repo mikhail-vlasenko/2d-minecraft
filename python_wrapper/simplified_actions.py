@@ -1,4 +1,5 @@
 import gymnasium as gym
+import numpy as np
 from gymnasium import Wrapper, ActionWrapper
 
 from python_wrapper.ffi_elements import num_actions
@@ -32,6 +33,7 @@ class ActionSimplificationWrapper(ActionWrapper):
         self.all_descriptions = [self.env.get_action_name(i) for i in range(num_actions())]
         self.place_actions: list[tuple[int, int]] = []
         self.map_to_orig_idx = {}
+        self.map_from_orig_idx = np.empty(num_actions(), dtype=int)  # this one has continuous source domain
         self._build_action_mappings()
         self.action_space = gym.spaces.Discrete(len(self.map_to_orig_idx) + self.num_new_actions)
 
@@ -52,10 +54,13 @@ class ActionSimplificationWrapper(ActionWrapper):
                 # to preserve continuity of indices
                 self.map_to_orig_idx[i - num_reduced_actions + self.num_new_actions] = i
 
+        for i in range(num_actions()):
+            self.map_from_orig_idx[i] = self.map_to_orig_idx.get(i, int(1e8))  # map to a non-existing index (should never be used)
+
         self.place_actions.sort(key=lambda x: x[1])
 
     def action(self, action):
-        available_actions = get_actions_mask(self.env.c_lib_index)
+        available_actions = self.env.get_actions_mask()
 
         if action == 0:
             # combined "place" action
@@ -72,3 +77,13 @@ class ActionSimplificationWrapper(ActionWrapper):
             return self.combined_place_action_name
         else:
             return self.all_descriptions[self.map_to_orig_idx[action]]
+
+    def get_actions_mask(self):
+        actual_available_actions = self.env.get_actions_mask()
+        mask = np.zeros(self.action_space.n, dtype=bool)
+        for i in range(self.action_space.n):
+            if i == 0:
+                mask[i] = any(actual_available_actions[i] for i, _ in self.place_actions)
+            else:
+                mask[i] = actual_available_actions[self.map_from_orig_idx[i]]
+        return mask

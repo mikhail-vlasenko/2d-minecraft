@@ -5,7 +5,7 @@ import numpy
 import ray
 import torch
 
-import models
+from reinforcement_learning.muzero_general import models
 
 
 @ray.remote
@@ -115,11 +115,12 @@ class SelfPlay:
         Play one game with actions based on the Monte Carlo tree search at each moves.
         """
         game_history = GameHistory()
-        observation = self.game.reset()
+        observation, info = self.game.reset()
         game_history.action_history.append(0)
         game_history.observation_history.append(observation)
         game_history.reward_history.append(0)
         game_history.to_play_history.append(self.game.to_play())
+        game_history.infos.append(info)
 
         done = False
 
@@ -167,7 +168,8 @@ class SelfPlay:
                         opponent, stacked_observations
                     )
 
-                observation, reward, done = self.game.step(action)
+                observation, reward, terminated, truncated, info = self.game.step(action)
+                done = terminated or truncated
 
                 if render:
                     print(f"Played action: {self.game.action_to_string(action)}")
@@ -180,6 +182,7 @@ class SelfPlay:
                 game_history.observation_history.append(observation)
                 game_history.reward_history.append(reward)
                 game_history.to_play_history.append(self.game.to_play())
+                game_history.infos.append(info)
 
         return game_history
 
@@ -489,6 +492,7 @@ class GameHistory:
         self.to_play_history = []
         self.child_visits = []
         self.root_values = []
+        self.infos = []
         self.reanalysed_predicted_root_values = None
         # For PER
         self.priorities = None
