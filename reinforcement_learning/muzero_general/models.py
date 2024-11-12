@@ -96,8 +96,7 @@ class MuZeroFullyConnectedNetwork(AbstractNetwork):
         self.full_support_size = 2 * support_size + 1
 
         print("initializing fully connected network")
-        self.representation_network = torch.nn.DataParallel(
-            mlp(
+        self.representation_network = mlp(
                 observation_shape[0]
                 * observation_shape[1]
                 * observation_shape[2]
@@ -105,27 +104,18 @@ class MuZeroFullyConnectedNetwork(AbstractNetwork):
                 + stacked_observations * observation_shape[1] * observation_shape[2],
                 fc_representation_layers,
                 encoding_size,
-            ),
         )
         print("representation_network", self.representation_network)
 
-        self.dynamics_encoded_state_network = torch.nn.DataParallel(
-            mlp(
+        self.dynamics_encoded_state_network = mlp(
                 encoding_size + self.action_space_size,
                 fc_dynamics_layers,
                 encoding_size,
-            ),
         )
-        self.dynamics_reward_network = torch.nn.DataParallel(
-            mlp(encoding_size, fc_reward_layers, self.full_support_size),
-        )
-
-        self.prediction_policy_network = torch.nn.DataParallel(
-            mlp(encoding_size, fc_policy_layers, self.action_space_size),
-        )
-        self.prediction_value_network = torch.nn.DataParallel(
-            mlp(encoding_size, fc_value_layers, self.full_support_size),
-        )
+        self.dynamics_reward_network = mlp(encoding_size, fc_reward_layers, self.full_support_size)
+        self.prediction_policy_network = mlp(encoding_size, fc_policy_layers, self.action_space_size)
+        print("prediction_policy_network", self.prediction_policy_network)
+        self.prediction_value_network = mlp(encoding_size, fc_value_layers, self.full_support_size)
 
     def prediction(self, encoded_state):
         policy_logits = self.prediction_policy_network(encoded_state)
