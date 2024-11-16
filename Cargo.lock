@@ -986,6 +986,7 @@ dependencies = [
  "log",
  "postcard",
  "rand",
+ "rand_chacha",
  "serde",
  "serde_yaml 0.9.17",
  "strum",

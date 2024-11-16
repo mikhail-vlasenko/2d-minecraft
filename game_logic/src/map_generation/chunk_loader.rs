@@ -7,22 +7,26 @@ use crate::SETTINGS;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChunkLoader {
     #[serde(with = "hash_map_serde")]
-    chunks: HashMap<i64, Arc<Mutex<Chunk>>>,
+    chunks: HashMap<u64, Arc<Mutex<Chunk>>>,
     /// in chunks, not tiles
     loading_distance: usize,
     /// in tiles
     chunk_size: usize,
+    field_seed: u64,
 }
 
 impl ChunkLoader {
     pub fn new(loading_distance: usize) -> Self {
         let chunk_size = SETTINGS.read().unwrap().field.chunk_size as usize;
+        let read_seed = SETTINGS.read().unwrap().field.seed;
+        let field_seed = if read_seed == -1 { rand::random() } else { read_seed as u64 };
         let chunks = HashMap::new();
 
         let mut loader = Self {
             chunks,
             loading_distance,
             chunk_size,
+            field_seed,
         };
         loader.generate_close_chunks(0, 0);
         loader
@@ -40,7 +44,7 @@ impl ChunkLoader {
             for y in (chunk_y - self.loading_distance as i32)..=(chunk_y + self.loading_distance as i32) {
                 let key = Self::encode_key(x, y);
                 if !self.chunks.contains_key(&key) {
-                    let generated = Chunk::new(self.chunk_size);
+                    let generated = Chunk::new(self.chunk_size, self.chunk_seed(x, y));
                     // spawn_hostile(&mut generated, x, y);
                     self.chunks.insert(key, Arc::new(Mutex::new(generated)));
                 }
@@ -64,10 +68,15 @@ impl ChunkLoader {
         loaded
     }
 
-    fn encode_key(x: i32, y: i32) -> i64 {
-        let low = x as i64;
-        let high = (y as i64) << 32;
-        low + high
+    fn encode_key(x: i32, y: i32) -> u64 {
+        let low = (x as u64) & 0xFFFFFFFF;  // mask to keep only lower 32 bits
+        let high = (y as u64) << 32;
+        low | high
+    }
+    
+    fn chunk_seed(&self, x: i32, y: i32) -> u64 {
+        let key = Self::encode_key(x, y);
+        key.wrapping_add(self.field_seed)
     }
     
     pub fn get_chunk_size(&self) -> usize {
@@ -97,7 +106,7 @@ impl PartialEq for ChunkLoader {
 
 mod hash_map_serde {
     use super::*;
-    pub fn serialize<S: Serializer>(map: &HashMap<i64, Arc<Mutex<Chunk>>>, serializer: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(map: &HashMap<u64, Arc<Mutex<Chunk>>>, serializer: S) -> Result<S::Ok, S::Error> {
         let mut chunks = Vec::new();
         for (idx, chunk) in map.iter() {
             chunks.push((idx.clone(), chunk.lock().unwrap().clone()));
@@ -105,11 +114,11 @@ mod hash_map_serde {
         serializer.collect_seq(chunks)
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<i64, Arc<Mutex<Chunk>>>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<HashMap<u64, Arc<Mutex<Chunk>>>, D::Error>
     where D: Deserializer<'de>
     {
         let mut map = HashMap::new();
-        for (idx, chunk) in Vec::<(i64, Chunk)>::deserialize(deserializer)? {
+        for (idx, chunk) in Vec::<(u64, Chunk)>::deserialize(deserializer)? {
             map.insert(idx, Arc::new(Mutex::new(chunk)));
         }
         Ok(map)

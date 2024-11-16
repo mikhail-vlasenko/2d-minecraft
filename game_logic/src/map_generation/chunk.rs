@@ -1,4 +1,6 @@
 use std::mem;
+use rand::prelude::*;
+use rand_chacha::ChaCha8Rng;
 use serde::{Serialize, Deserialize};
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
@@ -23,16 +25,17 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn new(size: usize) -> Self {
+    pub fn new(size: usize, chunk_seed: u64) -> Self {
+        let mut chunk_rng = ChaCha8Rng::seed_from_u64(chunk_seed);
         let mut tiles = Vec::new();
         for i in 0..size {
             tiles.push(Vec::new());
             for _ in 0..size {
-                tiles[i].push(Self::gen_tile());
+                tiles[i].push(Self::gen_tile(&mut chunk_rng));
             }
         }
         let mut chunk = Self::from(tiles);
-        chunk.add_structures();
+        chunk.add_structures(&mut chunk_rng);
         chunk
     }
 
@@ -65,16 +68,18 @@ impl Chunk {
     }
 
     /// Randomly generate a Tile (a cell on the field)
-    pub fn gen_tile() -> Tile {
+    pub fn gen_tile(chunk_rng: &mut impl Rng) -> Tile {
         let mut tile = Tile::make_dirt();
         randomly_augment(&mut tile, &Tile::make_rock,
-                         SETTINGS.read().unwrap().field.generation.rock_proba);
+                         SETTINGS.read().unwrap().field.generation.rock_proba, chunk_rng);
         randomly_augment(&mut tile, &Tile::add_tree,
-                         SETTINGS.read().unwrap().field.generation.tree_proba);
+                         SETTINGS.read().unwrap().field.generation.tree_proba, chunk_rng);
         randomly_augment(&mut tile, &Tile::make_iron,
-                         SETTINGS.read().unwrap().field.generation.iron_proba);
+                         SETTINGS.read().unwrap().field.generation.iron_proba, chunk_rng);
         randomly_augment(&mut tile, &Tile::make_diamond,
-                         SETTINGS.read().unwrap().field.generation.diamond_proba);
+                         SETTINGS.read().unwrap().field.generation.diamond_proba, chunk_rng);
+        randomly_augment(&mut tile, &Tile::make_full_diamond,
+                         0.5, chunk_rng);  // applies only if there is a diamond already
         tile
     }
 

@@ -15,6 +15,7 @@ field:
     structures:  # spawn probabilities are per chunk
       robot_proba: 0.1
   from_test_chunk: false
+  seed: 1  # -1 for no seed
 
 pathing:
   a_star_radius: 20

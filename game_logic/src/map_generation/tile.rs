@@ -99,9 +99,12 @@ impl Tile {
     pub fn make_diamond(tile: &mut Tile) {
         if tile.blocks[1].material == Stone {
             tile.blocks[1] = Block { material: Diamond };
-            if tile.blocks[2].material == Stone && rand::random() {
+        }
+    }
+    
+    pub fn make_full_diamond(tile: &mut Tile) {
+        if tile.blocks[1].material == Diamond && tile.blocks[2].material == Stone {
                 tile.blocks[2] = Block { material: Diamond };
-            }
         }
     }
 
@@ -114,9 +117,9 @@ impl Tile {
 }
 
 /// Calls an augmentation function of the Tile with a certain probability
-pub fn randomly_augment(tile: &mut Tile, augmentation: &dyn Fn(&mut Tile), proba: f32) {
-    let rng: f32 = rand::random();
-    if rng < proba {
+pub fn randomly_augment(tile: &mut Tile, augmentation: &dyn Fn(&mut Tile), proba: f32, rng: &mut impl rand::Rng) {
+    let value: f32 = rng.gen();
+    if value < proba {
         augmentation(tile)
     }
 }

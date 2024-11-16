@@ -1,4 +1,4 @@
-use rand::{random, Rng};
+use rand::Rng;
 use crate::map_generation::tile::{Tile};
 use crate::crafting::material::Material;
 use crate::crafting::texture_material::TextureMaterial;
@@ -10,9 +10,8 @@ use TextureMaterial::*;
 use crate::crafting::items::Item;
 
 impl Chunk {
-    pub fn add_structures(&mut self) {
-        let mut rng = rand::thread_rng();
-        let structure = Self::choose_structure();
+    pub fn add_structures(&mut self, chunk_rng: &mut impl Rng) {
+        let structure = Self::choose_structure(chunk_rng);
         if structure.is_none() {
             return;
         }
@@ -22,8 +21,8 @@ impl Chunk {
             // todo: rotation and flip
             let structure_width = structure[0].len();
             let structure_height = structure.len();
-            let structure_x = rng.gen_range(0..self.get_size() - structure_height);
-            let structure_y = rng.gen_range(0..self.get_size() - structure_width);
+            let structure_x = chunk_rng.gen_range(0..self.get_size() - structure_height);
+            let structure_y = chunk_rng.gen_range(0..self.get_size() - structure_width);
             let mut structure_valid = true;
             for i in 0..structure_width {
                 for j in 0..structure_height {
@@ -44,9 +43,9 @@ impl Chunk {
         }
     }
 
-    fn choose_structure() -> Option<Vec<Vec<Tile>>> {
-        let rng: f32 = random();
-        if rng < SETTINGS.read().unwrap().field.generation.structures.robot_proba {
+    fn choose_structure(chunk_rng: &mut impl Rng) -> Option<Vec<Vec<Tile>>> {
+        let value: f32 = chunk_rng.gen();
+        if value < SETTINGS.read().unwrap().field.generation.structures.robot_proba {
             Some(Self::make_war_robot())
         } else {
             None

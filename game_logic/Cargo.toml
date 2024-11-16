@@ -27,3 +27,4 @@ derivative = "2.2.0"
 postcard = { version = "1.0.8", features = [ "use-std" ] }
 chrono = "0.4.38"
 itertools = "0.13.0"
+rand_chacha = "0.3.1"

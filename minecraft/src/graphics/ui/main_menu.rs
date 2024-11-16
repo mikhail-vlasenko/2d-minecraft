@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::process::exit;
-use egui::{ScrollArea, Slider};
+use egui::{ScrollArea, Slider, TextEdit};
 use egui::{Align2, Color32, FontId, RichText, Context};
 use game_logic::character::player::Player;
 use game_logic::map_generation::save_load::{get_directories, get_files, get_full_path};
@@ -14,15 +14,21 @@ pub struct MainMenu {
     pub second_panel: SecondPanelState,
     pub save_name: String,
     pub replay_name: String,
+    pub world_seed_buffer: String,
 }
 
 impl MainMenu {
     pub fn new() -> Self {
+        let mut world_seed_buffer = SETTINGS.read().unwrap().field.seed.to_string();
+        if world_seed_buffer == "-1" {
+            world_seed_buffer = "".to_string();
+        }
         MainMenu {
             selected_option: SelectedOption::Nothing,
             second_panel: SecondPanelState::About,
             save_name: String::from("default_save"),
             replay_name: String::from("default_replay"),
+            world_seed_buffer,
         }
     }
 
@@ -152,6 +158,8 @@ impl MainMenu {
                             self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::Settings => {
+                            self.render_world_seed(&mut columns[1], &mut settings);
+                            columns[1].add_space(10.0);
                             Self::render_difficulty_buttons(&mut columns[1], &mut settings);
                             columns[1].add_space(10.0);
                             Self::render_settings_sliders(&mut columns[1], &mut settings);
@@ -191,6 +199,20 @@ impl MainMenu {
                     }
                 });
             });
+    }
+    
+    fn render_world_seed(&mut self, ui: &mut egui::Ui, settings: &mut Settings) {
+        ui.horizontal(|ui| {
+            ui.label("World seed:");
+            ui.add(TextEdit::singleline(&mut self.world_seed_buffer));
+        });
+        // remove all non-digit characters
+        self.world_seed_buffer.retain(|c| c.is_digit(10));
+        if self.world_seed_buffer.is_empty() {
+            settings.field.seed = -1;
+        } else {
+            settings.field.seed = self.world_seed_buffer.parse().unwrap();
+        }
     }
 
     fn render_difficulty_buttons(ui: &mut egui::Ui, settings: &mut Settings) {
