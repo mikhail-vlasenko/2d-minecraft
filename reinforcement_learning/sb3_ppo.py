@@ -9,7 +9,7 @@ from torch import nn
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from python_wrapper.observation import OBSERVATION_GRID_SIZE
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
-from reinforcement_learning.config import CONFIG
+from reinforcement_learning.config import CONFIG, ENV_KWARGS, WANDB_KWARGS
 
 
 class LoggingCallback(BaseCallback):
@@ -90,38 +90,18 @@ class CustomMLPFeatureExtractor(nn.Module):
 
 
 def main():
-    wandb_kwargs = {
-        'project': 'minecraft-rl',
-        'entity': 'mvlasenko',
-        'config': CONFIG.as_dict()
-    }
-    if CONFIG.wandb_resume_id:
-        wandb_kwargs['resume'] = "must"
-        wandb_kwargs['id'] = CONFIG.wandb_resume_id
-
-    run = wandb.init(**wandb_kwargs)
-
-    env_kwargs = {
-        "observation_distance": CONFIG.env.observation_distance,
-        "max_observable_mobs": CONFIG.env.max_observable_mobs,
-        "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
-        "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
-        "start_loadout": CONFIG.env.start_loadout,
-        "lib_path": CONFIG.env.lib_path,
-        "num_total_envs": CONFIG.env.num_envs,
-        "record_replays": False,
-    }
+    run = wandb.init(**WANDB_KWARGS)
 
     wrapper_class = None
     if CONFIG.env.simplified_action_space:
         wrapper_class = ActionSimplificationWrapper
 
-    env = make_vec_env(Minecraft2dEnv, n_envs=CONFIG.env.num_envs, env_kwargs=env_kwargs, wrapper_class=wrapper_class)
+    env = make_vec_env(Minecraft2dEnv, n_envs=CONFIG.env.num_envs, env_kwargs=ENV_KWARGS, wrapper_class=wrapper_class)
 
     policy_kwargs = dict(
-        net_arch=dict(pi=CONFIG.ppo.dimensions, vf=CONFIG.ppo.dimensions),
+        net_arch=dict(pi=CONFIG.model.dimensions, vf=CONFIG.model.dimensions),
         features_extractor_class=CustomMLPFeatureExtractor,
-        features_extractor_kwargs=dict(features_dim=CONFIG.ppo.extractor_dim),
+        features_extractor_kwargs=dict(features_dim=CONFIG.model.extractor_dim),
     )
 
     if CONFIG.train.load_checkpoint is not None:

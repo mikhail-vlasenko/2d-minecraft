@@ -3,24 +3,16 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 from python_wrapper.minecraft_2d_env import initialize_minecraft_connection, Minecraft2dEnv
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
-from reinforcement_learning.config import CONFIG
+from reinforcement_learning.config import CONFIG, ENV_KWARGS
 
 
 def main():
     initialize_minecraft_connection(num_envs=1, lib_path=CONFIG.env.lib_path, record_replays=True)
 
-    env_kwargs = {
-        "observation_distance": CONFIG.env.observation_distance,
-        "max_observable_mobs": CONFIG.env.max_observable_mobs,
-        "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
-        "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
-        "start_loadout": CONFIG.env.start_loadout,
-        "lib_path": CONFIG.env.lib_path,
-        "num_total_envs": 1,
-        "record_replays": True,
-    }
+    ENV_KWARGS["num_total_envs"] = 1
+    ENV_KWARGS["record_replays"] = CONFIG.evaluation.record_replays
 
-    env = Minecraft2dEnv(**env_kwargs)
+    env = Minecraft2dEnv(**ENV_KWARGS)
 
     if CONFIG.env.simplified_action_space:
         env = ActionSimplificationWrapper(env)

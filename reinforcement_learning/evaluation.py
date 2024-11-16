@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv, initialize_minecraft_connection
-from reinforcement_learning.config import CONFIG
+from reinforcement_learning.config import CONFIG, ENV_KWARGS
 from reinforcement_learning.main import env_creator
 
 
@@ -22,13 +22,10 @@ def evaluate_model(checkpoint_path, num_episodes):
           "because checkpoint loading makes its envs in the training configuration automatically.")
     initialize_minecraft_connection(num_envs=1, lib_path=CONFIG.env.lib_path, record_replays=True)
 
-    env = Minecraft2dEnv(
-        discovered_actions_reward=CONFIG.env.discovered_actions_reward,
-        include_actions_in_obs=CONFIG.env.include_actions_in_obs,
-        lib_path=CONFIG.env.lib_path,
-        record_replays=True,
-        num_total_envs=1,
-    )
+    ENV_KWARGS["num_total_envs"] = 1
+    ENV_KWARGS["record_replays"] = CONFIG.evaluation.record_replays
+
+    env = env_creator(ENV_KWARGS)
 
     episode_rewards = []
     episode_lengths = []
@@ -82,6 +79,8 @@ if __name__ == "__main__":
     # Find the latest checkpoint file
     checkpoint_files = glob.glob(os.path.join(latest_trial, "checkpoint_*"))
     latest_checkpoint = max(checkpoint_files, key=os.path.getmtime)
+    if CONFIG.train.load_checkpoint:
+        latest_checkpoint = CONFIG.train.load_checkpoint
 
     print(f"Evaluating checkpoint: {latest_checkpoint}")
     evaluate_model(latest_checkpoint, num_episodes=CONFIG.evaluation.n_games)
