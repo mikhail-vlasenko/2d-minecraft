@@ -32,8 +32,9 @@ use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use game_logic::map_generation::chunk::Chunk;
 use game_logic::map_generation::read_chunk::read_file;
 use game_logic::map_generation::save_load::{load_game, save_game};
-use game_logic::{handle_action, init_field_player, SETTINGS};
+use game_logic::{handle_action, init_game, SETTINGS};
 use game_logic::auxiliary::replay::Replay;
+use game_logic::character::milestones::MilestoneTracker;
 use crate::graphical_config::CONFIG;
 use crate::input_decoding::map_key_to_action;
 
@@ -61,6 +62,7 @@ pub struct State<'a> {
     animation_manager: AnimationManager,
     recorded_replay: Replay,
     active_replay: Option<Replay>,
+    milestone_tracker: MilestoneTracker,
     field: Field,
     player: Player,
 }
@@ -164,17 +166,16 @@ impl<'a> State<'a> {
             config.format, // TextureFormat
             None,          // this can be None
             1,             // samples
-            window,       // winit Window
+            window,        // winit Window
         );
 
         let egui_manager = EguiManager::new();
 
         let animation_manager = AnimationManager::new();
         
-        let recorded_replay = Replay::new();
         let active_replay = None;
 
-        let (field, player) = init_field_player();
+        let (field, player, recorded_replay, milestone_tracker) = init_game();
 
         let buffers = Buffers::new(&device, field.get_map_render_distance() as i32);
 
@@ -193,16 +194,18 @@ impl<'a> State<'a> {
             animation_manager,
             recorded_replay,
             active_replay,
+            milestone_tracker,
             field,
             player,
         }
     }
 
     pub fn new_game(&mut self) {
-        let (field, player) = init_field_player();
+        let (field, player, replay, milestone_tracker) = init_game();
         self.field = field;
         self.player = player;
-        self.recorded_replay = Replay::new();
+        self.recorded_replay = replay;
+        self.milestone_tracker = milestone_tracker;
     }
 
     pub fn get_size(&self) -> PhysicalSize<u32> {
@@ -248,6 +251,7 @@ impl<'a> State<'a> {
                         &self.egui_manager.craft_menu_open,
                         Some(&mut self.animation_manager),
                         &mut self.recorded_replay,
+                        &mut self.milestone_tracker,
                     );
                 }
             }
@@ -299,7 +303,7 @@ impl<'a> State<'a> {
         if self.egui_manager.main_menu.selected_option == SelectedOption::SaveGame {
             let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
             path.push(self.egui_manager.main_menu.save_name.clone());
-            save_game(&self.field, &self.player, path.as_path());
+            save_game(&self.field, &self.player, &self.milestone_tracker, path.as_path());
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
         }
@@ -307,9 +311,10 @@ impl<'a> State<'a> {
         if self.egui_manager.main_menu.selected_option == SelectedOption::LoadGame {
             let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
             path.push(self.egui_manager.main_menu.save_name.clone());
-            let (field, player) = load_game(path.as_path());
+            let (field, player, milestone_tracker) = load_game(path.as_path());
             self.field = field;
             self.player = player;
+            self.milestone_tracker = milestone_tracker;
             self.egui_manager.main_menu_open.replace(false);
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;

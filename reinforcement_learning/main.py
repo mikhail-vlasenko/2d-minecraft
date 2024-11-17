@@ -39,14 +39,14 @@ def main():
                 "fcnet_activation": CONFIG.model.nonlinear,
             },
             gamma=CONFIG.impala.gamma,
-            vf_loss_coeff=0.5,
+            vf_loss_coeff=CONFIG.impala.vf_loss_coeff,
             entropy_coeff=CONFIG.impala.ent_coef,
             train_batch_size=train_batch_size,
             vtrace=True,
             vtrace_clip_rho_threshold=1.0,
             vtrace_clip_pg_rho_threshold=1.0,
-            replay_proportion=1,
-            replay_buffer_num_slots=32,
+            replay_proportion=CONFIG.impala.replay_proportion,
+            replay_buffer_num_slots=CONFIG.impala.replay_buffer_num_slots,
         )
         .resources(
             num_gpus=(1 - CONFIG.train.num_runners * CONFIG.train.gpus_per_runner),

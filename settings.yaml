@@ -15,7 +15,7 @@ field:
     structures:  # spawn probabilities are per chunk
       robot_proba: 0.1
   from_test_chunk: false
-  seed: 1  # -1 for no seed
+  seed: -1  # -1 for no seed
 
 pathing:
   a_star_radius: 20
@@ -47,6 +47,7 @@ player:
     loadout: fighter  # empty, apples, fighter, archer, random. Fighter and archer start with extra enemies
 
 save_folder: game_saves
+save_on_milestone: true
 replay_folder: replays
 record_replays: false
 
@@ -59,6 +60,7 @@ scoring:
     mined:
       diamond: 50
     crafted:
+      iron_ingot: 5
       diamond_sword: 50
       crossbow_turret: 100
       arrow: 1

@@ -29,6 +29,7 @@ impl Player {
     
     pub fn score_crafted(&mut self, storable: &Storable, amount: u32) {
         let score_per_item = match storable {
+            Storable::I(Item::IronIngot) => self.score_values().blocks.crafted.iron_ingot,
             Storable::I(Item::DiamondSword) => self.score_values().blocks.crafted.diamond_sword,
             Storable::IN(InteractableKind::CrossbowTurret) => self.score_values().blocks.crafted.crossbow_turret,
             Storable::I(Item::Arrow) => self.score_values().blocks.crafted.arrow,

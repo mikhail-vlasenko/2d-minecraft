@@ -14,12 +14,14 @@ def init_lib(path):
     c_lib.connect_env.argtypes = []
     c_lib.reset.argtypes = []
     c_lib.reset_one.argtypes = [ctypes.c_int32]
+    c_lib.reset_one_to_saved.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_int8)]
     c_lib.step_one.argtypes = [ctypes.c_int32, ctypes.c_int32]
     c_lib.get_one_observation.argtypes = [ctypes.c_int32]
     c_lib.close_one.argtypes = [ctypes.c_int32]
     c_lib.valid_actions_mask.argtypes = [ctypes.c_int32]
     c_lib.set_record_replays.argtypes = [ctypes.c_bool]
     c_lib.set_start_loadout.argtypes = [ctypes.c_int32]
+    c_lib.set_save_on_milestone.argtypes = [ctypes.c_bool]
     c_lib.get_batch_size.argtypes = []
     c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
@@ -51,6 +53,10 @@ def reset():
 def reset_one(index: int):
     """ Resets the game state at the specified index."""
     return c_lib.reset_one(index)
+
+def reset_one_to_saved(index: int, save_name: ctypes.POINTER(ctypes.c_int8)):
+    """ Sets the state of this game to the one from a save file."""
+    return c_lib.reset_one_to_saved(index, save_name)
 
 def step_one(action: int, index: int):
     """ Steps the game state at the specified index with the given action.
@@ -110,6 +116,14 @@ def set_start_loadout(value_index: int):
  
  * `value_index` - The index of the loadout to set. Not the actual string value because of the FFI memory safety."""
     return c_lib.set_start_loadout(value_index)
+
+def set_save_on_milestone(value: bool):
+    """ Sets the save_on_milestone setting to the given value.
+ 
+ # Arguments
+ 
+ * `value` - The value to set save_on_milestone to."""
+    return c_lib.set_save_on_milestone(value)
 
 def get_batch_size() -> int:
     return c_lib.get_batch_size()

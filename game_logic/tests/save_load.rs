@@ -6,6 +6,7 @@ use std::path::Path;
 use postcard;
 extern crate alloc;
 use alloc::vec::Vec;
+use game_logic::character::milestones::MilestoneTracker;
 use game_logic::character::player::Player;
 use crate::common::Data;
 
@@ -66,12 +67,14 @@ fn test_field_serialization_file_postcard() {
 fn test_full_save_load_functions() {
     let field = Field::new(8, None);
     let player = Player::new(&field);
+    let tracker = MilestoneTracker::new();
 
     let path = Path::new("game_saves/test_save2");
-    save_game(&field, &player, &path);
-    let (loaded_field, loaded_player) = load_game(&path);
+    save_game(&field, &player, &tracker, &path);
+    let (loaded_field, loaded_player, loaded_tracker) = load_game(&path);
     assert_eq!(field, loaded_field);
     assert_eq!(player, loaded_player);
+    assert_eq!(tracker, loaded_tracker);
 
     let another_field = Field::new(8, None);
     // in an extremely unlikely event these two fields can be equal (because random generation coincided)
@@ -88,8 +91,8 @@ fn test_save_load_mobs() {
     data.step_mobs();
 
     let path = Path::new("game_saves/test_save3");
-    save_game(&data.field, &data.player, &path);
-    let (loaded_field, loaded_player) = load_game(&path);
+    save_game(&data.field, &data.player, &MilestoneTracker::new(), &path);
+    let (loaded_field, loaded_player, _) = load_game(&path);
     assert_eq!(data.field, loaded_field);
     assert_eq!(data.player, loaded_player);
 
@@ -112,8 +115,8 @@ fn test_save_load_after_moves(){
     }
 
     let path = Path::new("game_saves/test_save4");
-    save_game(&data.field, &data.player, &path);
-    let (loaded_field, loaded_player) = load_game(&path);
+    save_game(&data.field, &data.player, &MilestoneTracker::new(), &path);
+    let (loaded_field, loaded_player, _) = load_game(&path);
     assert_eq!(data.field, loaded_field);
     assert_eq!(data.player, loaded_player);
 

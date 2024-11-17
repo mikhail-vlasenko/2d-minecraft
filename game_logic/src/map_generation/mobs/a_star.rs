@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use rand::random;
 use serde::{Serialize, Deserialize};
+use crate::character::milestones::MilestoneTracker;
 use crate::character::player::Player;
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
@@ -85,7 +86,7 @@ impl AStar {
                         let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
                         let num: u16 = random();
                         path.push(format!("a_star_error_{}", num));
-                        save_game(field, &dummy_player, &path);
+                        save_game(field, &dummy_player, &MilestoneTracker::new(), &path);
                         println!("Saved the game to {:?}", path);
                         unreachable!("A* backtracking loop should finish before reaching this point");
                     }

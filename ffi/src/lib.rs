@@ -77,6 +77,19 @@ pub extern "C" fn reset_one(index: i32) {
     }
 }
 
+/// Sets the state of this game to the one from a save file.
+#[ffi_function]
+#[no_mangle]
+pub extern "C" fn reset_one_to_saved(index: i32, save_name: *const c_char) {
+    let mut state = STATE.lock().unwrap();
+    if let Some(game_state) = state.get_mut(index as usize) {
+        let save_name = unsafe { std::ffi::CStr::from_ptr(save_name).to_str().unwrap() };
+        game_state.reset_to_saved(String::from(save_name));
+    } else {
+        panic!("Index {} out of bounds for batch size {}", index, state.len());
+    }
+}
+
 /// Steps the game state at the specified index with the given action.
 ///
 /// # Arguments
@@ -174,7 +187,7 @@ pub extern "C" fn set_record_replays(value: bool) {
 /// * `value_index` - The index of the loadout to set. Not the actual string value because of the FFI memory safety.
 #[ffi_function]
 #[no_mangle]
-pub extern "C" fn set_start_loadout(value_index: i32){
+pub extern "C" fn set_start_loadout(value_index: i32) {
     let value = match value_index {
         0 => "empty",
         1 => "apples",
@@ -184,6 +197,17 @@ pub extern "C" fn set_start_loadout(value_index: i32){
         _ => panic!("Unknown loadout index: {}", value_index),
     };
     SETTINGS.write().unwrap().player.start_inventory.loadout = value.into();
+}
+
+/// Sets the save_on_milestone setting to the given value.
+/// 
+/// # Arguments
+/// 
+/// * `value` - The value to set save_on_milestone to.
+#[ffi_function]
+#[no_mangle]
+pub extern "C" fn set_save_on_milestone(value: bool) {
+    SETTINGS.write().unwrap().save_on_milestone = value;
 }
 
 #[ffi_function]
@@ -213,12 +237,14 @@ pub fn ffi_inventory() -> Inventory {
         .register(function!(connect_env))
         .register(function!(reset))
         .register(function!(reset_one))
+        .register(function!(reset_one_to_saved))
         .register(function!(step_one))
         .register(function!(get_one_observation))
         .register(function!(close_one))
         .register(function!(valid_actions_mask))
         .register(function!(set_record_replays))
         .register(function!(set_start_loadout))
+        .register(function!(set_save_on_milestone))
         .register(function!(get_batch_size))
         .register(function!(num_actions))
         .register(function!(action_name))

@@ -6,9 +6,11 @@ use game_logic::auxiliary::actions::{Action, can_take_action};
 use game_logic::character::player::Player;
 use game_logic::{handle_action, is_game_over, SETTINGS};
 use game_logic::auxiliary::replay::Replay;
+use game_logic::character::milestones::MilestoneTracker;
 use game_logic::map_generation::field::{absolute_to_relative, Field, RelativePos};
 use game_logic::map_generation::field_observation::get_tile_observation;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
+use game_logic::map_generation::save_load::load_game;
 use crate::observation::{LOOT_INFO_SIZE, MAX_MOBS, MOB_INFO_SIZE, Observation};
 
 
@@ -16,25 +18,26 @@ use crate::observation::{LOOT_INFO_SIZE, MAX_MOBS, MOB_INFO_SIZE, Observation};
 pub struct GameState {
     field: Field,
     player: Player,
-    recorded_replay: Replay
+    recorded_replay: Replay,
+    milestone_tracker: MilestoneTracker,
 }
 
 impl GameState {
     pub fn new() -> Self {
-        let (field, player) = game_logic::init_field_player();
-        // will not be recorded if record_replays is disabled in settings
-        let replay = Replay::new();
+        let (field, player, recorded_replay, milestone_tracker) = game_logic::init_game();
         Self {
             field,
             player,
-            recorded_replay: replay,
+            // will not be recorded if record_replays is disabled in settings
+            recorded_replay,
+            milestone_tracker,
         }
     }
 
     pub fn step(&mut self, action: &Action) {
         handle_action(
             action, &mut self.field, &mut self.player, 
-            &RefCell::new(false), &RefCell::new(false), None, &mut self.recorded_replay
+            &RefCell::new(false), &RefCell::new(false), None, &mut self.recorded_replay, &mut self.milestone_tracker
         );
         if self.is_done() {
             // save the replay
@@ -126,14 +129,25 @@ impl GameState {
     }
     
     pub fn reset(&mut self) {
-        let (field, player) = game_logic::init_field_player();
+        let (field, player, replay, milestone_tracker) = game_logic::init_game();
         self.field = field;
         self.player = player;
-        self.recorded_replay = Replay::new();
+        self.recorded_replay = replay;
+        self.milestone_tracker = milestone_tracker;
     }
     
     pub fn can_take_action(&self, action: i32) -> bool {
         let action = Action::try_from(action).expect(format!("Invalid action with index {}", action).as_str());
         can_take_action(&action, &self.player, &self.field)
+    }
+    
+    pub fn reset_to_saved(&mut self, save_name: String) {
+        let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
+        path.push(save_name);
+        let (field, player, milestone_tracker) = load_game(path.as_path());
+        self.field = field;
+        self.player = player;
+        self.recorded_replay = Replay::new();
+        self.milestone_tracker = milestone_tracker;
     }
 }

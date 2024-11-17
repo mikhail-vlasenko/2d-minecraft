@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
 use crate::map_generation::chunk::Chunk;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use crate::SETTINGS;
@@ -73,10 +75,13 @@ impl ChunkLoader {
         let high = (y as u64) << 32;
         low | high
     }
-    
+
     fn chunk_seed(&self, x: i32, y: i32) -> u64 {
         let key = Self::encode_key(x, y);
-        key.wrapping_add(self.field_seed)
+        let mut hasher = DefaultHasher::new();
+        key.hash(&mut hasher);
+        self.field_seed.hash(&mut hasher);
+        hasher.finish()
     }
     
     pub fn get_chunk_size(&self) -> usize {

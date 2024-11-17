@@ -14,19 +14,21 @@ class EnvConfig:
     observation_distance: int = 3
     max_observable_mobs: int = 8
     start_loadout: str = 'random'
+    checkpoint_starts: float = 0.5
     simplified_action_space: bool = True
+    seed: Optional[int] = None  # todo
 
 
 @dataclass
 class TrainConfig:
     env_steps: int = 1280000
-    time_total_s: Optional[int] = 3600 * 3  # if None, then env_steps is used
+    time_total_s: Optional[int] = 3600 * 2  # if None, then env_steps is used
     iter_env_steps: int = 256
-    load_from: str = None
-    # load_from: str = "reinforcement_learning/saved_models/sb3_ppo_interrupted.pt"
-    # load_checkpoint: str = None
-    load_checkpoint: str = "reinforcement_learning/ray_results/saved_models/IMPALA2"
-    save_to: str = f'reinforcement_learning/ray_results/saved_models/IMPALA3'
+    # load_from: str = None
+    load_from: str = "reinforcement_learning/saved_models/sb3_ppo_run_142.pt"
+    load_checkpoint: str = None
+    # load_checkpoint: str = "reinforcement_learning/ray_results/saved_models/IMPALA3"
+    save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     fall_back_save_to: str = f'reinforcement_learning/saved_models/sb3_ppo_interrupted.pt'
     checkpoints_per_training: int = 16
     checkpoint_frequency: int = 32  # in training iterations
@@ -39,6 +41,7 @@ class TrainConfig:
 class EvaluationConfig:
     n_games: int = 3
     record_replays: bool = True
+    milestone_checkpoint: str = "autosave_ms_2_score_167_2024-11-17_18-37-38"
 
 
 @dataclass
@@ -63,6 +66,9 @@ class IMPALAConfig:
     gamma: float = 0.995
     rollout_fragment_length: int = 256
     ent_coef: float = 0.01
+    vf_loss_coeff: float = 0.5
+    replay_proportion: float = 3.0
+    replay_buffer_num_slots: int = 64
 
 
 @dataclass
@@ -89,6 +95,7 @@ ENV_KWARGS = {
     "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
     "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
     "start_loadout": CONFIG.env.start_loadout,
+    "checkpoint_starts": CONFIG.env.checkpoint_starts,
     "lib_path": CONFIG.env.lib_path,
     "num_total_envs": CONFIG.env.num_envs,
     "record_replays": False,

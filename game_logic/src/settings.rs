@@ -13,6 +13,7 @@ pub struct Settings {
     pub record_replays: bool,
     pub replay_folder: Cow<'static, str>,
     pub save_folder: Cow<'static, str>,
+    pub save_on_milestone: bool,
     pub scoring: _Config__scoring,
     pub window: _Config__window,
 }
@@ -122,6 +123,7 @@ pub struct _Config__scoring__blocks__crafted {
     pub arrow: i32,
     pub crossbow_turret: i32,
     pub diamond_sword: i32,
+    pub iron_ingot: i32,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -170,7 +172,7 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
         },
         loading_distance: 5,
         map_radius: 64,
-        seed: 1,
+        seed: -1,
     },
     mobs: _Config__mobs {
         spawning: _Config__mobs__spawning {
@@ -207,12 +209,14 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
     record_replays: false,
     replay_folder: Cow::Borrowed("replays"),
     save_folder: Cow::Borrowed("game_saves"),
+    save_on_milestone: true,
     scoring: _Config__scoring {
         blocks: _Config__scoring__blocks {
             crafted: _Config__scoring__blocks__crafted {
                 arrow: 1,
                 crossbow_turret: 100,
                 diamond_sword: 50,
+                iron_ingot: 5,
             },
             mined: _Config__scoring__blocks__mined {
                 diamond: 50,

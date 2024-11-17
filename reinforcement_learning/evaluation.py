@@ -69,18 +69,18 @@ def evaluate_model(checkpoint_path, num_episodes):
 
 if __name__ == "__main__":
     # Find the latest experiment directory
-    experiment_dirs = glob.glob(os.path.join(CONFIG.storage_path, "PPO_*"))
+    experiment_dirs = glob.glob(os.path.join(CONFIG.storage_path, "IMPALA*"))
     latest_experiment = max(experiment_dirs, key=os.path.getmtime)
 
     # Find the latest trial directory within the latest experiment
-    trial_dirs = glob.glob(os.path.join(latest_experiment, "PPO_Minecraft2D_*"))
+    trial_dirs = glob.glob(os.path.join(latest_experiment, "IMPALA*"))
     latest_trial = max(trial_dirs, key=os.path.getmtime)
 
     # Find the latest checkpoint file
     checkpoint_files = glob.glob(os.path.join(latest_trial, "checkpoint_*"))
     latest_checkpoint = max(checkpoint_files, key=os.path.getmtime)
-    if CONFIG.train.load_checkpoint:
-        latest_checkpoint = CONFIG.train.load_checkpoint
+    # if CONFIG.train.load_checkpoint:
+    #     latest_checkpoint = CONFIG.train.load_checkpoint
 
     print(f"Evaluating checkpoint: {latest_checkpoint}")
     evaluate_model(latest_checkpoint, num_episodes=CONFIG.evaluation.n_games)

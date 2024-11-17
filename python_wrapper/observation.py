@@ -3,7 +3,8 @@ from typing import Tuple
 
 import numpy as np
 
-from python_wrapper.ffi_elements import Observation, get_one_observation, action_name, valid_actions_mask
+from python_wrapper.ffi_elements import Observation, get_one_observation, action_name, valid_actions_mask, \
+    reset_one_to_saved
 
 OBSERVATION_GRID_SIZE = 17
 NUM_MATERIALS = 13
@@ -91,3 +92,21 @@ def get_action_name(action: int) -> str:
 def get_actions_mask(idx: int) -> np.ndarray:
     c_action_mask = valid_actions_mask(idx)
     return np.ctypeslib.as_array(c_action_mask.mask).astype(bool)
+
+
+def reset_one_to_saved_wrapped(idx: int, save_name: str):
+    save_name_bytes = save_name.encode('utf-8')
+
+    # Create a ctypes array from the bytes
+    arr_type = ctypes.c_int8 * (len(save_name_bytes) + 1)  # +1 for null terminator
+    save_name_arr = arr_type()
+
+    # Copy the bytes into the array
+    for i, b in enumerate(save_name_bytes):
+        save_name_arr[i] = b
+    save_name_arr[len(save_name_bytes)] = 0  # Add null terminator
+
+    # Get pointer to the array
+    save_name_ptr = ctypes.cast(save_name_arr, ctypes.POINTER(ctypes.c_int8))
+
+    reset_one_to_saved(idx, save_name_ptr)
