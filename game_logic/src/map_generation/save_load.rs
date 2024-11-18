@@ -2,6 +2,7 @@ use std::{fs, io};
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use crate::auxiliary::replay::Replay;
 use crate::character::milestones::MilestoneTracker;
 use crate::character::player::Player;
 use crate::map_generation::field::Field;
@@ -62,16 +63,16 @@ pub fn save_game(field: &Field, player: &Player, milestone_tracker: &MilestoneTr
     }
 }
 
-pub fn load_game(path: &Path) -> (Field, Player, MilestoneTracker) {
-    fn read_file(path: &Path) -> Vec<u8> {
-        let mut file = File::open(path).unwrap();
+pub fn load_game(path: &Path) -> Result<(Field, Player, Replay, MilestoneTracker), io::Error> {
+    fn read_file(path: &Path) -> Result<Vec<u8>, io::Error> {
+        let mut file = File::open(path)?;
         let mut data = Vec::new();
-        file.read_to_end(&mut data).unwrap();
-        data
+        file.read_to_end(&mut data)?;
+        Ok(data)
     }
 
-    let field = Field::from_binary_string(&read_file(&path.join("field.postcard")));
-    let player = Player::from_binary_string(&read_file(&path.join("player.postcard")));
+    let field = Field::from_binary_string(&read_file(&path.join("field.postcard"))?);
+    let player = Player::from_binary_string(&read_file(&path.join("player.postcard"))?);
     let milestone_tracker = File::open(path.join("milestone_tracker.postcard"))
         .map_or_else(
             |_| MilestoneTracker::new(),
@@ -83,7 +84,7 @@ pub fn load_game(path: &Path) -> (Field, Player, MilestoneTracker) {
             }
         );
     
-    (field, player, milestone_tracker)
+    Ok((field, player, Replay::new(), milestone_tracker))
 }
 
 pub fn get_directories(path: &Path) -> io::Result<Vec<String>> {

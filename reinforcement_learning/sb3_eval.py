@@ -1,6 +1,7 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 
+from python_wrapper.checkpoint_handler import CheckpointHandler
 from python_wrapper.minecraft_2d_env import initialize_minecraft_connection, Minecraft2dEnv
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
 from reinforcement_learning.config import CONFIG, ENV_KWARGS
@@ -12,7 +13,9 @@ def main():
     ENV_KWARGS["num_total_envs"] = 1
     ENV_KWARGS["record_replays"] = CONFIG.evaluation.record_replays
     if CONFIG.evaluation.milestone_checkpoint:
-        ENV_KWARGS["initial_checkpoints"] = [(1, CONFIG.evaluation.milestone_checkpoint)]
+        ENV_KWARGS["checkpoint_handler"] = CheckpointHandler(
+            max_checkpoints=8, initial_checkpoints=[(1, CONFIG.evaluation.milestone_checkpoint)]
+        )
         ENV_KWARGS["checkpoint_starts"] = 1.
 
     env = Minecraft2dEnv(**ENV_KWARGS)

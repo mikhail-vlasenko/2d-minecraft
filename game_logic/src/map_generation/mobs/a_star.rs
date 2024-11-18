@@ -6,7 +6,7 @@ use crate::character::player::Player;
 use crate::map_generation::field::Field;
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::priority_queue::PriorityQueue;
-use crate::map_generation::save_load::{load_game, save_game};
+use crate::map_generation::save_load::save_game;
 use crate::SETTINGS;
 
 /// Runs A* on the field. Cuts off execution if expected route is too long.

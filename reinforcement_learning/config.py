@@ -4,28 +4,30 @@ from typing import List, Union, Optional
 
 import torch
 
+from python_wrapper.checkpoint_handler import CheckpointHandler
+
 
 @dataclass
 class EnvConfig:
-    num_envs: int = 16
+    num_envs: int = 32
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     discovered_actions_reward: float = 25.
     include_actions_in_obs: bool = True
     observation_distance: int = 3
     max_observable_mobs: int = 8
     start_loadout: str = 'random'
-    checkpoint_starts: float = 0.5
+    checkpoint_starts: float = 0.75
     simplified_action_space: bool = True
     seed: Optional[int] = None  # todo
 
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 1280000
-    time_total_s: Optional[int] = 3600 * 2  # if None, then env_steps is used
+    env_steps: int = 128000000
+    time_total_s: Optional[int] = None  # if None, then env_steps is used
     iter_env_steps: int = 256
     # load_from: str = None
-    load_from: str = "reinforcement_learning/saved_models/sb3_ppo_run_142.pt"
+    load_from: str = "reinforcement_learning/saved_models/sb3_ppo_interrupted.pt"
     load_checkpoint: str = None
     # load_checkpoint: str = "reinforcement_learning/ray_results/saved_models/IMPALA3"
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
@@ -39,9 +41,10 @@ class TrainConfig:
 
 @dataclass
 class EvaluationConfig:
-    n_games: int = 3
+    n_games: int = 5
     record_replays: bool = True
-    milestone_checkpoint: str = "autosave_ms_2_score_167_2024-11-17_18-37-38"
+    milestone_checkpoint: str = None
+    # milestone_checkpoint: str = "autosave_ms_2_score_167_2024-11-17_18-37-38"
 
 
 @dataclass
@@ -89,6 +92,10 @@ class Config:
 
 CONFIG: Config = Config()
 
+# declare the global checkpoint handler to share game saves between the env instances
+checkpoint_handler = CheckpointHandler(
+    max_checkpoints=8, initial_checkpoints=[]
+)
 ENV_KWARGS = {
     "observation_distance": CONFIG.env.observation_distance,
     "max_observable_mobs": CONFIG.env.max_observable_mobs,
@@ -96,6 +103,7 @@ ENV_KWARGS = {
     "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
     "start_loadout": CONFIG.env.start_loadout,
     "checkpoint_starts": CONFIG.env.checkpoint_starts,
+    "checkpoint_handler": checkpoint_handler,
     "lib_path": CONFIG.env.lib_path,
     "num_total_envs": CONFIG.env.num_envs,
     "record_replays": False,

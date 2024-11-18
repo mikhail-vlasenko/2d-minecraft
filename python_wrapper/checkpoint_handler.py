@@ -1,8 +1,13 @@
+import os.path
 import re
+import shutil
 from queue import Queue
 from typing import Optional
 
 import numpy as np
+
+
+SAVE_DIR = "game_saves"
 
 
 class CheckpointHandler:
@@ -12,10 +17,11 @@ class CheckpointHandler:
     """
     def __init__(
             self,
-            num_milestones: int,
             max_checkpoints: int,
+            num_milestones: int = 100,
             initial_checkpoints: Optional[list[tuple[int, str]]] = None
     ):
+        assert os.path.exists(SAVE_DIR), f"Directory {SAVE_DIR} does not exist."
         self.checkpoint_names = [Queue(maxsize=max_checkpoints) for _ in range(num_milestones)]
         self.max_reached_milestone = 0  # the index of the first milestone is 1
         if initial_checkpoints:
@@ -33,9 +39,10 @@ class CheckpointHandler:
                 self.max_reached_milestone = milestone_index
             if self.checkpoint_names[milestone_index].full():
                 outdated_checkpoint = self.checkpoint_names[milestone_index].get()
-                # todo: delete outdated_checkpoint
+                # remove the outdated checkpoint
+                if os.path.exists(path := os.path.join(SAVE_DIR, outdated_checkpoint)):
+                    shutil.rmtree(path)
             self.checkpoint_names[milestone_index].put(save_name)
-            print(f"Added checkpoint {save_name} to milestone {milestone_index}")
             return {"milestone_index": milestone_index, "save_name": save_name}
         return None
 

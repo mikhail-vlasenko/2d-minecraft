@@ -33,7 +33,7 @@ class Minecraft2dEnv(gym.Env):
             max_observable_mobs: int = NUM_MOBS,
             start_loadout: str = 'random',
             checkpoint_starts: float = 0.,
-            initial_checkpoints: Optional[list[tuple[int, str]]] = None,
+            checkpoint_handler: CheckpointHandler = None,
             record_replays: bool = False,
             render_mode: Optional[str] = None,
     ):
@@ -53,7 +53,8 @@ class Minecraft2dEnv(gym.Env):
             start_loadout (str): The starting loadout for the player.
                 One of 'empty', 'apples', 'fighter', 'archer', 'random'.
             checkpoint_starts (float): The probability of starting from checkpoint that was reached earlier.
-            initial_checkpoints (list[tuple[int, str]], optional): The list of initial checkpoints.
+            checkpoint_handler (CheckpointHandler): The checkpoint handler.
+                Must be provided. Probably should be the same for all environments to share the checkpoints.
             record_replays (bool): Whether to record replays. If yes, creates a file for each finished episode.
                 The file can be viewed with the 2d-minecraft binary.
             render_mode (str, optional): The render mode. Currently not supported.
@@ -90,9 +91,7 @@ class Minecraft2dEnv(gym.Env):
         self.observation_distance = observation_distance
         self.max_observable_mobs = max_observable_mobs
         self.checkpoint_starts = checkpoint_starts
-        self.checkpoint_handler = CheckpointHandler(
-            num_milestones=100, max_checkpoints=8, initial_checkpoints=initial_checkpoints
-        )
+        self.checkpoint_handler = checkpoint_handler
 
         # Define action and observation spaces
         self.action_space = spaces.Discrete(self.num_actions)
@@ -113,12 +112,8 @@ class Minecraft2dEnv(gym.Env):
 
         self.reset_discovered_actions()
         self.current_score = 0
-        checkpoint_name = options.get('checkpoint', None) if options is not None else None
-        if checkpoint_name or (self.checkpoint_handler.max_reached_milestone > 0
-                               and np.random.rand() < self.checkpoint_starts):
-            if checkpoint_name is None:
-                checkpoint_name = self.checkpoint_handler.sample_checkpoint()
-            print(f"Starting from checkpoint: {checkpoint_name}")
+        if self.checkpoint_handler.max_reached_milestone > 0 and np.random.rand() < self.checkpoint_starts:
+            checkpoint_name = self.checkpoint_handler.sample_checkpoint()
             reset_one_to_saved_wrapped(self.c_lib_index, checkpoint_name)
         else:
             reset_one(self.c_lib_index)

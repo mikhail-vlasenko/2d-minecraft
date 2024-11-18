@@ -311,9 +311,10 @@ impl<'a> State<'a> {
         if self.egui_manager.main_menu.selected_option == SelectedOption::LoadGame {
             let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
             path.push(self.egui_manager.main_menu.save_name.clone());
-            let (field, player, milestone_tracker) = load_game(path.as_path());
+            let (field, player, replay, milestone_tracker) = load_game(path.as_path()).unwrap();
             self.field = field;
             self.player = player;
+            self.recorded_replay = replay;
             self.milestone_tracker = milestone_tracker;
             self.egui_manager.main_menu_open.replace(false);
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;

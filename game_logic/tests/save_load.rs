@@ -71,7 +71,7 @@ fn test_full_save_load_functions() {
 
     let path = Path::new("game_saves/test_save2");
     save_game(&field, &player, &tracker, &path);
-    let (loaded_field, loaded_player, loaded_tracker) = load_game(&path);
+    let (loaded_field, loaded_player, _, loaded_tracker) = load_game(&path).unwrap();
     assert_eq!(field, loaded_field);
     assert_eq!(player, loaded_player);
     assert_eq!(tracker, loaded_tracker);
@@ -92,7 +92,7 @@ fn test_save_load_mobs() {
 
     let path = Path::new("game_saves/test_save3");
     save_game(&data.field, &data.player, &MilestoneTracker::new(), &path);
-    let (loaded_field, loaded_player, _) = load_game(&path);
+    let (loaded_field, loaded_player, _, _) = load_game(&path).unwrap();
     assert_eq!(data.field, loaded_field);
     assert_eq!(data.player, loaded_player);
 
@@ -116,7 +116,7 @@ fn test_save_load_after_moves(){
 
     let path = Path::new("game_saves/test_save4");
     save_game(&data.field, &data.player, &MilestoneTracker::new(), &path);
-    let (loaded_field, loaded_player, _) = load_game(&path);
+    let (loaded_field, loaded_player, _, _) = load_game(&path).unwrap();
     assert_eq!(data.field, loaded_field);
     assert_eq!(data.player, loaded_player);
 

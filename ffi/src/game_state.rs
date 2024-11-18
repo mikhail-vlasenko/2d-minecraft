@@ -143,11 +143,15 @@ impl GameState {
     
     pub fn reset_to_saved(&mut self, save_name: String) {
         let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
-        path.push(save_name);
-        let (field, player, milestone_tracker) = load_game(path.as_path());
+        path.push(&save_name);
+        let (field, player, replay, milestone_tracker) = 
+            load_game(path.as_path()).unwrap_or_else(|_| {
+                println!("Could not load game {}. Initializing a new game instead", save_name);
+                game_logic::init_game()
+            });
         self.field = field;
         self.player = player;
-        self.recorded_replay = Replay::new();
+        self.recorded_replay = replay;
         self.milestone_tracker = milestone_tracker;
     }
 }
