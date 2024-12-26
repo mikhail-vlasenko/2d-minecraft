@@ -11,6 +11,7 @@ from python_wrapper.checkpoint_handler import CheckpointHandler
 class EnvConfig:
     num_envs: int = 32
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
+    flatten_observation: bool = False
     discovered_actions_reward: float = 25.
     include_actions_in_obs: bool = True
     observation_distance: int = 3
@@ -23,11 +24,11 @@ class EnvConfig:
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 128000000
+    env_steps: int = 128000
     time_total_s: Optional[int] = None  # if None, then env_steps is used
     iter_env_steps: int = 256
-    # load_from: str = None
-    load_from: str = "reinforcement_learning/saved_models/sb3_ppo_interrupted.pt"
+    load_from: str = None
+    # load_from: str = "reinforcement_learning/saved_models/sb3_ppo_interrupted.pt"
     load_checkpoint: str = None
     # load_checkpoint: str = "reinforcement_learning/ray_results/saved_models/IMPALA3"
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
@@ -97,6 +98,7 @@ checkpoint_handler = CheckpointHandler(
     max_checkpoints=8, initial_checkpoints=[]
 )
 ENV_KWARGS = {
+    "flatten_observation": CONFIG.env.flatten_observation,
     "observation_distance": CONFIG.env.observation_distance,
     "max_observable_mobs": CONFIG.env.max_observable_mobs,
     "discovered_actions_reward": CONFIG.env.discovered_actions_reward,

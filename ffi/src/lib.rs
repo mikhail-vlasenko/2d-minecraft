@@ -1,6 +1,6 @@
 use std::os::raw::c_char;
 use std::sync::Mutex;
-use interoptopus::{ffi_function, Inventory, InventoryBuilder, function};
+use interoptopus::{ffi_function, Inventory, InventoryBuilder, function, constant};
 use interoptopus::{Error, Interop};
 use lazy_static::lazy_static;
 use game_logic::auxiliary::actions::Action;
@@ -248,6 +248,15 @@ pub fn ffi_inventory() -> Inventory {
         .register(function!(get_batch_size))
         .register(function!(num_actions))
         .register(function!(action_name))
+        
+        .register(constant!(observation::OBSERVATION_GRID_SIZE))
+        .register(constant!(observation::INVENTORY_SIZE))
+        .register(constant!(observation::NUM_ACTIONS))
+        .register(constant!(observation::MOB_INFO_SIZE))
+        .register(constant!(observation::MAX_MOBS))
+        .register(constant!(observation::LOOT_INFO_SIZE))
+        .register(constant!(observation::NUM_MATERIALS))
+        
         .inventory()
 }
 
@@ -268,7 +277,7 @@ fn verify_num_inventory_items() {
     use crate::observation::INVENTORY_SIZE;
     use game_logic::crafting::storable::ALL_STORABLES;
     println!("Actual length of the inventory: {}", ALL_STORABLES.len());
-    assert_eq!(INVENTORY_SIZE, ALL_STORABLES.len(), "change INVENTORY_SIZE manually");
+    assert_eq!(INVENTORY_SIZE as usize, ALL_STORABLES.len(), "change INVENTORY_SIZE manually");
 }
 
 #[test]

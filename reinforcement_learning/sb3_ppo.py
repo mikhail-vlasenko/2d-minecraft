@@ -7,9 +7,9 @@ import wandb
 from torch import nn
 
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
-from python_wrapper.observation import OBSERVATION_GRID_SIZE
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
 from reinforcement_learning.config import CONFIG, ENV_KWARGS, WANDB_KWARGS
+from reinforcement_learning.model.model import FeatureExtractor
 
 
 class LoggingCallback(BaseCallback):
@@ -100,15 +100,15 @@ def main():
 
     policy_kwargs = dict(
         net_arch=dict(pi=CONFIG.model.dimensions, vf=CONFIG.model.dimensions),
-        features_extractor_class=CustomMLPFeatureExtractor,
-        features_extractor_kwargs=dict(features_dim=CONFIG.model.extractor_dim),
+        features_extractor_class=FeatureExtractor,
+        features_extractor_kwargs=dict(),
     )
 
     if CONFIG.train.load_checkpoint is not None:
         print(f"Loading checkpoint from {CONFIG.train.load_checkpoint}")
         model = PPO.load(CONFIG.train.load_checkpoint, env, tensorboard_log=f"runs/{run.id}")
     else:
-        model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs,
+        model = PPO("MultiInputPolicy", env, policy_kwargs=policy_kwargs,
                     verbose=0, tensorboard_log=f"runs/{run.id}",
                     learning_rate=CONFIG.ppo.lr,
                     n_steps=CONFIG.train.iter_env_steps,

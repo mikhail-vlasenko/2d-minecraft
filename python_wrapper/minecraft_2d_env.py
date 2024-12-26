@@ -12,7 +12,7 @@ from python_wrapper.ffi_elements import (
 )
 from python_wrapper.observation import (
     get_processed_observation, NUM_MATERIALS, get_actions_mask, ProcessedObservation,
-    OBSERVATION_GRID_SIZE, NUM_MOBS, get_action_name, reset_one_to_saved_wrapped
+    OBSERVATION_GRID_SIZE, MAX_MOBS, get_action_name, reset_one_to_saved_wrapped
 )
 
 
@@ -27,10 +27,11 @@ class Minecraft2dEnv(gym.Env):
             self,
             lib_path: str = './target/release/ffi.dll',
             num_total_envs: int = 1,
+            flatten_observation: bool = True,
             discovered_actions_reward: float = 0,
             include_actions_in_obs: bool = False,
             observation_distance: int = (OBSERVATION_GRID_SIZE - 1) // 2,
-            max_observable_mobs: int = NUM_MOBS,
+            max_observable_mobs: int = MAX_MOBS,
             start_loadout: str = 'random',
             checkpoint_starts: float = 0.,
             checkpoint_handler: CheckpointHandler = None,
@@ -44,6 +45,8 @@ class Minecraft2dEnv(gym.Env):
             lib_path (str): Path to the FFI library.
             num_total_envs (int): Number of environments that will be used in parallel at most.
                 Usually is the same that you would pass to the vectorizing wrapper.
+            flatten_observation (bool): If true, returns the observation as a flat numpy array.
+                Otherwise, returns the ProcessedObservation class.
             discovered_actions_reward (float): Reward for discovering new actions.
             include_actions_in_obs (bool): Whether to include available actions in the observation.
             observation_distance (int): The distance in tiles from the player to the edge of the observation grid.
@@ -83,6 +86,7 @@ class Minecraft2dEnv(gym.Env):
 
         self.num_actions = num_actions()
         self.current_score = 0
+        self.flatten_observation = flatten_observation
         self.include_actions_in_obs = include_actions_in_obs
         self.discovered_actions_reward = discovered_actions_reward
         self.discovered_actions = np.zeros(self.num_actions, dtype=bool)
@@ -97,9 +101,12 @@ class Minecraft2dEnv(gym.Env):
         self.action_space = spaces.Discrete(self.num_actions)
 
         sample_obs = self.sample_observation()
-        self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=sample_obs.shape, dtype=np.float32
-        )
+        if self.flatten_observation:
+            self.observation_space = spaces.Box(
+                low=-np.inf, high=np.inf, shape=sample_obs.shape, dtype=np.float32
+            )
+        else:
+            self.observation_space = spaces.Dict()  # todo: define observation space
 
     def reset(
             self,
@@ -145,16 +152,17 @@ class Minecraft2dEnv(gym.Env):
         terminated = obs.done
 
         if self.discovered_actions_reward or self.include_actions_in_obs:
-            available_actions = self.get_actions_mask()
-            info['available_actions'] = available_actions
-            new_discovered_actions = np.logical_or(self.discovered_actions, available_actions)
+            new_discovered_actions = np.logical_or(self.discovered_actions, obs.action_mask)
             reward += self.discovered_actions_reward * (
                         np.sum(new_discovered_actions) - np.sum(self.discovered_actions))
             self.discovered_actions = new_discovered_actions
             info['discovered_actions'] = np.copy(self.discovered_actions)
+            obs.discovered_actions = info['discovered_actions']
 
+        if not self.flatten_observation:
+            return obs, reward, terminated, info
         if self.include_actions_in_obs:
-            processed_obs = self.flatted_obs(obs, info['available_actions'], info['discovered_actions'])
+            processed_obs = self.flatted_obs(obs, info['discovered_actions'])
         else:
             processed_obs = self.flatted_obs(obs)
         return processed_obs, reward, terminated, info
@@ -178,12 +186,11 @@ class Minecraft2dEnv(gym.Env):
         self.reset_discovered_actions()
         return obs
 
-    def flatted_obs(self, obs, available_actions=None, discovered_actions=None) -> np.ndarray:
+    def flatted_obs(self, obs, discovered_actions=None) -> np.ndarray:
         """
         Transforms the observation into a flat numpy array.
         Crops off the observable grid around the player to the observation distance value.
         :param obs:
-        :param available_actions:
         :param discovered_actions:
         :return:
         """
@@ -208,14 +215,14 @@ class Minecraft2dEnv(gym.Env):
             hp, time, inventory_state, mobs_flat, loot_flat
         ]).astype(np.float32)
 
-        if available_actions is not None:
-            processed_obs = np.concatenate([processed_obs, available_actions.astype(np.float32)])
         if discovered_actions is not None:
+            processed_obs = np.concatenate([processed_obs, obs.action_mask.astype(np.float32)])
             processed_obs = np.concatenate([processed_obs, discovered_actions.astype(np.float32)])
 
         return processed_obs
 
-    def get_action_name(self, action: int) -> str:
+    @staticmethod
+    def get_action_name(action: int) -> str:
         return get_action_name(action)
 
     def get_actions_mask(self) -> np.ndarray:

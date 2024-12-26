@@ -136,6 +136,13 @@ def action_name(action: int) -> ctypes.POINTER(ctypes.c_int8):
 
 
 
+OBSERVATION_GRID_SIZE = 17
+INVENTORY_SIZE = 26
+NUM_ACTIONS = 39
+MOB_INFO_SIZE = 4
+MAX_MOBS = 16
+LOOT_INFO_SIZE = 3
+NUM_MATERIALS = 13
 
 
 TRUE = ctypes.c_uint8(1)
@@ -208,12 +215,13 @@ class Observation(ctypes.Structure):
         ("inventory_state", ctypes.c_int32 * 26),
         ("mobs", ctypes.c_int32 * 4 * 16),
         ("loot", ctypes.c_int32 * 3 * 16),
+        ("action_mask", ActionMask),
         ("score", ctypes.c_int32),
         ("message", ctypes.POINTER(ctypes.c_int8)),
         ("done", ctypes.c_bool),
     ]
 
-    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, loot = None, score: int = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
+    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, loot = None, action_mask: ActionMask = None, score: int = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
         if top_materials is not None:
             self.top_materials = top_materials
         if tile_heights is not None:
@@ -232,6 +240,8 @@ class Observation(ctypes.Structure):
             self.mobs = mobs
         if loot is not None:
             self.loot = loot
+        if action_mask is not None:
+            self.action_mask = action_mask
         if score is not None:
             self.score = score
         if message is not None:
@@ -310,6 +320,14 @@ class Observation(ctypes.Structure):
     @loot.setter
     def loot(self, value):
         return ctypes.Structure.__set__(self, "loot", value)
+
+    @property
+    def action_mask(self) -> ActionMask:
+        return ctypes.Structure.__get__(self, "action_mask")
+
+    @action_mask.setter
+    def action_mask(self, value: ActionMask):
+        return ctypes.Structure.__set__(self, "action_mask", value)
 
     @property
     def score(self) -> int:
