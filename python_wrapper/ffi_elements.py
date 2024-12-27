@@ -116,7 +116,7 @@ def action_name(action: int) -> ctypes.POINTER(ctypes.c_int8):
 
 
 OBSERVATION_GRID_SIZE = 17
-INVENTORY_SIZE = 26
+INVENTORY_SIZE = 27
 NUM_ACTIONS = 39
 MOB_INFO_SIZE = 8
 MAX_MOBS = 16
@@ -171,7 +171,7 @@ class Observation(ctypes.Structure):
         ("player_rot", ctypes.c_int32),
         ("hp", ctypes.c_int32),
         ("time", ctypes.c_float),
-        ("inventory_state", ctypes.c_int32 * 26),
+        ("inventory_state", ctypes.c_int32 * 27),
         ("mobs", ctypes.c_int32 * 8 * 16),
         ("loot", ctypes.c_int32 * 3 * 16),
         ("action_mask", ctypes.c_int32 * 39),

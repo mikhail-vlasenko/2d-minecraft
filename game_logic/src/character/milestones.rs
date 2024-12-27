@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use crate::character::player::Player;
 use crate::crafting::interactable::InteractableKind::CrossbowTurret;
-use crate::crafting::items::Item::{DiamondSword, IronIngot, IronPickaxe, WoodenPickaxe};
-use crate::crafting::material::Material::{Diamond, IronOre};
+use crate::crafting::items::Item::{Diamond, DiamondSword, IronIngot, IronPickaxe, WoodenPickaxe};
+use crate::crafting::material::Material::IronOre;
 use crate::crafting::storable::Storable;
 
 
@@ -76,7 +76,7 @@ impl MilestoneTracker {
     fn mined_diamond() -> Milestone {
         Milestone::new(
             "Diamonds!".to_string(), 
-            vec![(Storable::M(Diamond), 1)], 
+            vec![(Storable::I(Diamond), 1)], 
             0.
         )
     }

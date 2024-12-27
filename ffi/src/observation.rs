@@ -14,7 +14,7 @@ use crate::game_state::GameState;
 #[ffi_constant]
 pub const OBSERVATION_GRID_SIZE: u32 = ((DEFAULT_SETTINGS.window.render_distance * 2) + 1) as u32;
 #[ffi_constant]
-pub const INVENTORY_SIZE: u32 = 26;
+pub const INVENTORY_SIZE: u32 = 27;
 #[ffi_constant]
 pub const NUM_ACTIONS: u32 = 39;
 #[ffi_constant]

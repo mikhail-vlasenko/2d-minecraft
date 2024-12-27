@@ -1,4 +1,4 @@
-use rand::{random, Rng};
+use rand::Rng;
 use rand::distributions::WeightedIndex;
 use rand::distributions::Distribution;
 use crate::map_generation::chunk::Chunk;

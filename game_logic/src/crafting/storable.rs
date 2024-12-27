@@ -104,6 +104,12 @@ pub enum CraftMenuSection {
     Uncraftable,
 }
 
+impl CraftMenuSection {
+    pub fn render_order() -> Vec<CraftMenuSection> {
+        CraftMenuSection::iter().filter(|section| *section != CraftMenuSection::Uncraftable).collect()
+    }
+}
+
 pub trait Craftable: Display + Into<Storable> + Copy {
     fn name(&self) -> &str;
     fn craft_requirements(&self) -> &[(&Storable, u32)];

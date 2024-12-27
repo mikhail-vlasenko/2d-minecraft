@@ -1,6 +1,6 @@
 use crate::crafting::consumable::Consumable::{RawMeat, SpeedPotion};
-use crate::crafting::items::Item::{Arrow, DiamondSword, IronIngot, IronPickaxe, Stick};
-use crate::crafting::material::Material::{CraftTable, Diamond, Plank};
+use crate::crafting::items::Item::{Arrow, Diamond, DiamondSword, IronIngot, IronPickaxe, Stick};
+use crate::crafting::material::Material::{CraftTable, Plank};
 use crate::crafting::ranged_weapon::RangedWeapon::Bow;
 use crate::character::player::Player;
 use crate::crafting::interactable::InteractableKind::CrossbowTurret;

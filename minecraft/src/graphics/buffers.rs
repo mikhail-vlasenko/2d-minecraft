@@ -3,7 +3,7 @@ use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
 use crate::graphical_config::CONFIG;
 use crate::graphics::instance::{Instance, InstanceRaw};
-use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, PROJECTILE_ARROW_VERTICES, VERTICES};
+use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
 
 
 /// Creates and stores wgpu buffers

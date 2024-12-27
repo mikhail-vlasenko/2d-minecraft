@@ -7,7 +7,6 @@ use crate::character::acting_with_speed::ActingWithSpeed;
 use crate::character::player::Player;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
-use crate::crafting::material::Material::Diamond;
 use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
 use crate::crafting::storable::CraftMenuSection::*;
 use crate::crafting::interactable::InteractableKind::*;
@@ -114,7 +113,7 @@ impl Craftable for InteractableKind {
     }
     fn craft_requirements(&self) -> &[(&Storable, u32)] {
         match self {
-            CrossbowTurret => &[(&I(Stick), 6), (&M(Diamond), 1), (&I(TargetingModule), 1)]
+            CrossbowTurret => &[(&I(Stick), 6), (&I(Diamond), 1), (&I(TargetingModule), 1)]
         }
     }
     fn craft_yield(&self) -> u32 {

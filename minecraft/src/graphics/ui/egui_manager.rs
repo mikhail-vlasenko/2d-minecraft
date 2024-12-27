@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::fmt::format;
 use egui::{Align2, Color32, FontId, Label, RichText, Context};
 use egui_wgpu::ScreenDescriptor;
 use egui_wgpu::wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
@@ -136,11 +135,10 @@ impl EguiManager {
             .collapsible(false)
             .fixed_size([width, 300.])
             .show(context, |ui| {
-                let mut menu_iter = CraftMenuSection::iter();
-                let count = menu_iter.clone().count();
-                ui.columns(count, |columns| {
-                    for i in 0..count {
-                        let section: CraftMenuSection = menu_iter.next().unwrap();
+                let menu_sections = CraftMenuSection::render_order();
+                ui.columns(menu_sections.len(), |columns| {
+                    for i in 0..menu_sections.len() {
+                        let section: CraftMenuSection = menu_sections[i];
                         columns[i].label(format!("{:?}", section));
                         for material in Material::iter() {
                             Self::display_for_section(player, section, columns, material, i);

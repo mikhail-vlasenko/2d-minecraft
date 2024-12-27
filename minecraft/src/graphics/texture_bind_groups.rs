@@ -187,7 +187,7 @@ impl TextureBindGroups {
             Plank => &self.planks,
             IronOre => &self.iron_ore,
             CraftTable => &self.crafting_table,
-            Diamond => &self.diamond,
+            DiamondOre => &self.diamond,
             Texture(t) => self.texture_materials.get_bind_group(t),
         }
     }
