@@ -12,6 +12,7 @@ def main():
 
     ENV_KWARGS["num_total_envs"] = 1
     ENV_KWARGS["record_replays"] = CONFIG.evaluation.record_replays
+    ENV_KWARGS["checkpoint_starts"] = 0.  # every evaluation starts from scratch
     if CONFIG.evaluation.milestone_checkpoint:
         ENV_KWARGS["checkpoint_handler"] = CheckpointHandler(
             max_checkpoints=8, initial_checkpoints=[(1, CONFIG.evaluation.milestone_checkpoint)]

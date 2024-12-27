@@ -11,7 +11,7 @@ use game_logic::map_generation::field::{absolute_to_relative, Field, RelativePos
 use game_logic::map_generation::field_observation::get_tile_observation;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
 use game_logic::map_generation::save_load::load_game;
-use crate::observation::{LOOT_INFO_SIZE, make_action_mask, MAX_MOBS, MOB_INFO_SIZE, Observation};
+use crate::observation::{LOOT_INFO_SIZE, make_action_mask, MAX_MOBS, MOB_INFO_SIZE, NUM_MOB_KINDS, Observation};
 
 
 #[derive(Debug)]
@@ -73,9 +73,13 @@ impl GameState {
         let mob_kinds = MobKind::iter().collect::<Vec<MobKind>>();
         let mut mobs = self.field.close_mob_info(|mob| {
             let pos = absolute_to_relative((mob.pos.x, mob.pos.y), &self.player);
-            [pos.0, pos.1, 
-                mob_kinds.iter().position(| kind | { kind == mob.get_kind() }).unwrap() as i32, 
-                (mob.get_hp_share() * 100.0) as i32]
+            let mut arr = [0; MOB_INFO_SIZE as usize];
+            let idx = mob_kinds.iter().position(| kind | { kind == mob.get_kind() }).unwrap();
+            arr[0] = pos.0;
+            arr[1] = pos.1;
+            arr[2] = (mob.get_hp_share() * 100.0) as i32;
+            arr[3 + idx] = 1;
+            arr
         }, &self.player);
 
         // Sorting the mobs by manhattan distance from the player

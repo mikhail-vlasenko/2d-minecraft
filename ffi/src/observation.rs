@@ -18,7 +18,9 @@ pub const INVENTORY_SIZE: u32 = 26;
 #[ffi_constant]
 pub const NUM_ACTIONS: u32 = 39;
 #[ffi_constant]
-pub const MOB_INFO_SIZE: u32 = 4;
+pub const NUM_MOB_KINDS: u32 = 5;
+#[ffi_constant]
+pub const MOB_INFO_SIZE: u32 = 3 + NUM_MOB_KINDS;  // x, y, health share (0 to 100), [one-hot-encoded type]
 #[ffi_constant]
 pub const MAX_MOBS: u32 = 16;  // also max number of loot items
 #[ffi_constant]
@@ -37,7 +39,7 @@ pub struct Observation {
     pub hp: i32,
     pub time: f32,
     pub inventory_state: [i32; INVENTORY_SIZE as usize],  // amount of storables of i-th type
-    // player-relative x, player-relative y, type, health. for the 16 closest mobs that are visible. mob type -1 is no mob
+    // player-relative x, player-relative y, health share (0 to 100), [one-hot-encoded type]. for the 16 closest mobs that are visible. mob type -1 is no mob
     pub mobs: [[i32; MOB_INFO_SIZE as usize]; MAX_MOBS as usize],
     // player-relative x, player-relative y, content (1: arrow, 2: other loot, 3: arrow and other loot). content -1 for no loot
     pub loot: [[i32; LOOT_INFO_SIZE as usize]; MAX_MOBS as usize],
@@ -78,7 +80,7 @@ impl Observation {
             inventory_state[idx] = *n as i32;
         }
         
-        let mut mobs = [[0, 0, -1, 0]; MAX_MOBS as usize];
+        let mut mobs = [[0; MOB_INFO_SIZE as usize]; MAX_MOBS as usize];
         for i in 0..min(close_mobs.len(), MAX_MOBS as usize) {
             for j in 0..4 {
                 mobs[i][j] = close_mobs[i][j];
@@ -116,7 +118,7 @@ impl Default for Observation {
             hp: 0,
             time: 0.0,
             inventory_state: [0; INVENTORY_SIZE as usize],
-            mobs: [[0, 0, -1, 0]; MAX_MOBS as usize],
+            mobs: [[0; MOB_INFO_SIZE as usize]; MAX_MOBS as usize],
             loot: [[0, 0, -1]; MAX_MOBS as usize],
             action_mask: [0; NUM_ACTIONS as usize],
             score: 0,
