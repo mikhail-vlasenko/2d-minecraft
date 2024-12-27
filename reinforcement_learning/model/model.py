@@ -1,6 +1,3 @@
-from typing import Tuple, List
-
-import numpy as np
 import torch
 import torch.nn as nn
 import gymnasium as gym
@@ -52,6 +49,8 @@ class FeatureExtractor(nn.Module):
             nn.GELU(),
         )
 
+        self.position_scaler = SymmetricLogScaling()
+
         # some spatial invariance for grid-based observations
         self.full_materials_distance = 2  # 5x5 around the player gets full material information
         self.height_distance = 3  # 7x7 around the player gets height information
@@ -89,12 +88,18 @@ class FeatureExtractor(nn.Module):
         height_features = self.height_conv(tile_heights)
         height_features = height_features.view(height_features.size(0), -1)
 
-        # todo: logscale relative mob positions
-        mobs = self.mob_encoder(observation["mobs"] / 4)
+        mobs = observation["mobs"]  # (batch_size, NUM_MOBS, MOB_INFO_SIZE)
+        # first two mob features are x and y positions, which should be log-scaled
+        mobs[:, :, :2] = self.position_scaler(mobs[:, :, :2])
+        # third is mob health, 0 to 100
+        mobs[:, :, 2] = mobs[:, :, 2] / 100
+        mobs = self.mob_encoder(mobs)
         mob_pool = self.mob_pooler(mobs)
         mob_pool = mob_pool.view(mob_pool.size(0), -1)
 
-        loots = self.loot_encoder(observation["loot"] / 4)
+        loots = observation["loot"]  # (batch_size, NUM_LOOTS, LOOT_INFO_SIZE)
+        loots[:, :, :2] = self.position_scaler(loots[:, :, :2])
+        loots = self.loot_encoder(loots)
         loot_pool = self.loot_pooler(loots)
         loot_pool = loot_pool.view(loot_pool.size(0), -1)
 
@@ -106,14 +111,24 @@ class FeatureExtractor(nn.Module):
 
     def extract_flat_features(self, observation: dict) -> torch.Tensor:
         player_pos = observation["player_pos"]
-        player_pos[:, 0] = player_pos[:, 0] / 16
-        player_pos[:, 1] = player_pos[:, 1] / 16
-        player_pos[:, 2] = player_pos[:, 2] / 4
+        player_pos[:, :2] = self.position_scaler(player_pos[:, :2])
+        player_pos[:, 2] = player_pos[:, 2] / 4  # z position is in range 0 to 4
         player_rot = observation["player_rot"].view(player_pos.size(0)).int()
         player_rot = torch.eye(4).to(player_rot.device)[player_rot]
         hp = observation["hp"] / 100  # max hp is 100
-        time = torch.log(observation["time"] + 1)
+        time = torch.log(observation["time"] + 1) / 7  # becomes 1 at around 1000
         time1 = time % 1  # cyclic time component
         action_mask = observation["action_mask"]
         discovered_actions = observation["discovered_actions"]
         return torch.cat([player_pos, player_rot, hp, time, time1, action_mask, discovered_actions], dim=1)
+
+
+class SymmetricLogScaling(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        signs = torch.sign(x)
+        abs_x = torch.abs(x)
+        log_scaled = torch.log(1 + abs_x)
+        return signs * log_scaled
