@@ -77,7 +77,7 @@ impl Into<i32> for Material {
             Bedrock => 4,
             IronOre => 5,
             CraftTable => 6,
-            Diamond => 7,
+            DiamondOre => 7,
             Texture(t) => t as i32 + 8,
         }
     }

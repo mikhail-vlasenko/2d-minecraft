@@ -2,9 +2,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import Wrapper, ActionWrapper
 
-from python_wrapper.ffi_elements import num_actions
+from python_wrapper.ffi_elements import NUM_ACTIONS
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
-from python_wrapper.observation import get_actions_mask
 
 
 class ActionSimplificationWrapper(ActionWrapper):
@@ -30,10 +29,10 @@ class ActionSimplificationWrapper(ActionWrapper):
         # when a placement action is requested, the highest priority material that can be placed, is placed
         self.placement_priority = ['CraftTable', 'Dirt', 'Stone', 'Plank', 'TreeLog', 'IronOre', 'Diamond']
         # obtain action descriptions from the environment
-        self.all_descriptions = [self.env.get_action_name(i) for i in range(num_actions())]
+        self.all_descriptions = [self.env.get_action_name(i) for i in range(NUM_ACTIONS)]
         self.place_actions: list[tuple[int, int]] = []
         self.map_to_orig_idx = {}
-        self.map_from_orig_idx = np.empty(num_actions(), dtype=int)  # this one has continuous source domain
+        self.map_from_orig_idx = np.empty(NUM_ACTIONS, dtype=int)  # this one has continuous source domain
         self._build_action_mappings()
         self.action_space = gym.spaces.Discrete(len(self.map_to_orig_idx) + self.num_new_actions)
 
@@ -54,7 +53,7 @@ class ActionSimplificationWrapper(ActionWrapper):
                 # to preserve continuity of indices
                 self.map_to_orig_idx[i - num_reduced_actions + self.num_new_actions] = i
 
-        for i in range(num_actions()):
+        for i in range(NUM_ACTIONS):
             self.map_from_orig_idx[i] = self.map_to_orig_idx.get(i, int(1e8))  # map to a non-existing index (should never be used)
 
         self.place_actions.sort(key=lambda x: x[1])

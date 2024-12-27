@@ -5,6 +5,7 @@ from typing import List, Union, Optional
 import torch
 
 from python_wrapper.checkpoint_handler import CheckpointHandler
+from python_wrapper.ffi_elements import MAX_MOBS
 
 
 @dataclass
@@ -12,9 +13,8 @@ class EnvConfig:
     num_envs: int = 32
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     discovered_actions_reward: float = 25.
-    include_actions_in_obs: bool = True
-    observation_distance: int = 3
-    max_observable_mobs: int = 8
+    observation_distance: int = 7
+    max_observable_mobs: int = MAX_MOBS
     start_loadout: str = 'random'
     checkpoint_starts: float = 0.75
     simplified_action_space: bool = True
@@ -23,11 +23,11 @@ class EnvConfig:
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 128000000
+    env_steps: int = 32_000_000
     time_total_s: Optional[int] = None  # if None, then env_steps is used
     iter_env_steps: int = 256
-    # load_from: str = None
-    load_from: str = "reinforcement_learning/saved_models/sb3_ppo_interrupted.pt"
+    load_from: str = None
+    # load_from: str = "reinforcement_learning/saved_models/sb3_ppo.pt"
     load_checkpoint: str = None
     # load_checkpoint: str = "reinforcement_learning/ray_results/saved_models/IMPALA3"
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
@@ -50,15 +50,14 @@ class EvaluationConfig:
 @dataclass
 class ModelConfig:
     nonlinear: str = 'tanh'
-    extractor_dim: int = 256
-    dimensions: List[int] = field(default_factory=lambda: [128, 64])
+    dimensions: List[int] = field(default_factory=lambda: [512, 512, 256, 256])
 
 
 @dataclass
 class PPOConfig:
     lr: float = 3e-4
-    gamma: float = 0.99
-    update_epochs: int = 5
+    gamma: float = 0.995
+    update_epochs: int = 5  # todo: 1
     ent_coef: float = 0.01
     batch_size: int = 512
     rollout_fragment_length: Union[int, str] = 'auto'
@@ -100,7 +99,6 @@ ENV_KWARGS = {
     "observation_distance": CONFIG.env.observation_distance,
     "max_observable_mobs": CONFIG.env.max_observable_mobs,
     "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
-    "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
     "start_loadout": CONFIG.env.start_loadout,
     "checkpoint_starts": CONFIG.env.checkpoint_starts,
     "checkpoint_handler": checkpoint_handler,

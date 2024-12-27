@@ -98,13 +98,13 @@ impl Tile {
 
     pub fn make_diamond(tile: &mut Tile) {
         if tile.blocks[1].material == Stone {
-            tile.blocks[1] = Block { material: Diamond };
+            tile.blocks[1] = Block { material: DiamondOre };
         }
     }
     
     pub fn make_full_diamond(tile: &mut Tile) {
-        if tile.blocks[1].material == Diamond && tile.blocks[2].material == Stone {
-                tile.blocks[2] = Block { material: Diamond };
+        if tile.blocks[1].material == DiamondOre && tile.blocks[2].material == Stone {
+                tile.blocks[2] = Block { material: DiamondOre };
         }
     }
 

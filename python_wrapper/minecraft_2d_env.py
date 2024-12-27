@@ -2,17 +2,19 @@ import warnings
 
 import gymnasium as gym
 import numpy as np
+from gymnasium.spaces import Box
 from gymnasium import spaces
 from typing import Optional
 
 from python_wrapper.checkpoint_handler import CheckpointHandler
 from python_wrapper.ffi_elements import (
-    init_lib, reset_one, step_one, num_actions, set_batch_size,
+    init_lib, reset_one, step_one, set_batch_size,
     set_record_replays, connect_env, close_one, c_lib, get_batch_size, set_start_loadout, set_save_on_milestone,
+    INVENTORY_SIZE, MOB_INFO_SIZE, LOOT_INFO_SIZE, NUM_ACTIONS,
 )
 from python_wrapper.observation import (
-    get_processed_observation, NUM_MATERIALS, get_actions_mask, ProcessedObservation,
-    OBSERVATION_GRID_SIZE, NUM_MOBS, get_action_name, reset_one_to_saved_wrapped
+    get_processed_observation, NUM_MATERIALS, ProcessedObservation,
+    OBSERVATION_GRID_SIZE, MAX_MOBS, get_action_name, reset_one_to_saved_wrapped
 )
 
 
@@ -28,9 +30,8 @@ class Minecraft2dEnv(gym.Env):
             lib_path: str = './target/release/ffi.dll',
             num_total_envs: int = 1,
             discovered_actions_reward: float = 0,
-            include_actions_in_obs: bool = False,
             observation_distance: int = (OBSERVATION_GRID_SIZE - 1) // 2,
-            max_observable_mobs: int = NUM_MOBS,
+            max_observable_mobs: int = MAX_MOBS,
             start_loadout: str = 'random',
             checkpoint_starts: float = 0.,
             checkpoint_handler: CheckpointHandler = None,
@@ -45,7 +46,6 @@ class Minecraft2dEnv(gym.Env):
             num_total_envs (int): Number of environments that will be used in parallel at most.
                 Usually is the same that you would pass to the vectorizing wrapper.
             discovered_actions_reward (float): Reward for discovering new actions.
-            include_actions_in_obs (bool): Whether to include available actions in the observation.
             observation_distance (int): The distance in tiles from the player to the edge of the observation grid.
             max_observable_mobs (int): The maximum number of mobs that can be observed.
                 Also, the number of loot tiles that can be observed.
@@ -81,11 +81,10 @@ class Minecraft2dEnv(gym.Env):
         self.c_lib_index = connect_env()
         print(f"Connected to environment with index {self.c_lib_index}.")
 
-        self.num_actions = num_actions()
         self.current_score = 0
-        self.include_actions_in_obs = include_actions_in_obs
         self.discovered_actions_reward = discovered_actions_reward
-        self.discovered_actions = np.zeros(self.num_actions, dtype=bool)
+        self.discovered_actions = np.zeros(NUM_ACTIONS, dtype=bool)
+        self.action_mask = np.zeros(NUM_ACTIONS, dtype=bool)
         self.reset_discovered_actions()
 
         self.observation_distance = observation_distance
@@ -93,19 +92,32 @@ class Minecraft2dEnv(gym.Env):
         self.checkpoint_starts = checkpoint_starts
         self.checkpoint_handler = checkpoint_handler
 
-        # Define action and observation spaces
-        self.action_space = spaces.Discrete(self.num_actions)
+        self.action_space = spaces.Discrete(NUM_ACTIONS)
 
-        sample_obs = self.sample_observation()
-        self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=sample_obs.shape, dtype=np.float32
-        )
+        middle = (OBSERVATION_GRID_SIZE - 1) // 2
+        self.obs_grid_start = middle - self.observation_distance
+        self.obs_grid_end = middle + self.observation_distance + 1
+        span_length = self.observation_distance * 2 + 1
+
+        self.observation_space = spaces.Dict({
+            "top_materials": Box(low=0, high=NUM_MATERIALS-1, shape=(span_length, span_length), dtype=np.int32),
+            "tile_heights": Box(low=0, high=5, shape=(span_length, span_length), dtype=np.int32),
+            "player_pos": Box(low=-np.inf, high=np.inf, shape=(3,), dtype=np.int32),
+            "player_rot": Box(low=0, high=3, shape=(1,), dtype=np.int32),
+            "hp": Box(low=0, high=np.inf, shape=(1,), dtype=np.int32),
+            "time": Box(low=0, high=np.inf, shape=(1,), dtype=np.float32),
+            "inventory_state": Box(low=0, high=np.inf, shape=(INVENTORY_SIZE,), dtype=np.int32),
+            "mobs": Box(low=np.inf, high=np.inf, shape=(self.max_observable_mobs, MOB_INFO_SIZE), dtype=np.int32),
+            "loot": Box(low=np.inf, high=np.inf, shape=(self.max_observable_mobs, LOOT_INFO_SIZE), dtype=np.int32),
+            "action_mask": spaces.MultiBinary(NUM_ACTIONS),
+            "discovered_actions": spaces.MultiBinary(NUM_ACTIONS),
+        })
 
     def reset(
             self,
             seed: Optional[int] = None,
             options: Optional[dict] = None
-    ) -> tuple[np.ndarray, dict]:
+    ) -> tuple[dict, dict]:
         if seed is not None:
             warnings.warn('Seed is not supported in this environment. It is ignored.')
         super().reset(seed=seed)
@@ -123,7 +135,7 @@ class Minecraft2dEnv(gym.Env):
 
         return processed_obs, info
 
-    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
+    def step(self, action: int) -> tuple[dict, float, bool, bool, dict]:
         step_one(action, self.c_lib_index)
         obs = get_processed_observation(self.c_lib_index)
         processed_obs, reward, terminated, info = self._decode_observation(obs)
@@ -138,29 +150,25 @@ class Minecraft2dEnv(gym.Env):
     def close(self):
         close_one(self.c_lib_index)
 
-    def _decode_observation(self, obs: ProcessedObservation):
+    def _decode_observation(self, obs: ProcessedObservation) -> tuple[dict, float, bool, dict]:
         info = self.extract_info(obs)
         reward = obs.score - self.current_score
         self.current_score = obs.score
         terminated = obs.done
 
-        if self.discovered_actions_reward or self.include_actions_in_obs:
-            available_actions = self.get_actions_mask()
-            info['available_actions'] = available_actions
-            new_discovered_actions = np.logical_or(self.discovered_actions, available_actions)
-            reward += self.discovered_actions_reward * (
-                        np.sum(new_discovered_actions) - np.sum(self.discovered_actions))
-            self.discovered_actions = new_discovered_actions
-            info['discovered_actions'] = np.copy(self.discovered_actions)
+        self.action_mask = obs.action_mask
 
-        if self.include_actions_in_obs:
-            processed_obs = self.flatted_obs(obs, info['available_actions'], info['discovered_actions'])
-        else:
-            processed_obs = self.flatted_obs(obs)
-        return processed_obs, reward, terminated, info
+        new_discovered_actions = np.logical_or(self.discovered_actions, obs.action_mask)
+        reward += self.discovered_actions_reward * (
+                    np.sum(new_discovered_actions) - np.sum(self.discovered_actions))
+        self.discovered_actions = new_discovered_actions
+        info['discovered_actions'] = np.copy(self.discovered_actions)
+        obs.discovered_actions = info['discovered_actions']
+
+        return self.dict_observation(obs), reward, terminated, info
 
     def extract_info(self, obs: ProcessedObservation) -> dict:
-        info = {'game_score': obs.score, 'time': obs.time, 'hp': obs.hp, 'message': obs.message}
+        info = {'game_score': obs.score, 'time': obs.time, 'message': obs.message}
         if self.checkpoint_starts > 0. and obs.message:
             checkpoint_info = self.checkpoint_handler.add_checkpoint(obs.message)
             if checkpoint_info:
@@ -168,7 +176,7 @@ class Minecraft2dEnv(gym.Env):
         return info
 
     def reset_discovered_actions(self):
-        self.discovered_actions = np.zeros(self.num_actions, dtype=bool)
+        self.discovered_actions = np.zeros(NUM_ACTIONS, dtype=bool)
         # movement, turning, and mining are always available
         self.discovered_actions[0:7] = True
 
@@ -178,48 +186,29 @@ class Minecraft2dEnv(gym.Env):
         self.reset_discovered_actions()
         return obs
 
-    def flatted_obs(self, obs, available_actions=None, discovered_actions=None) -> np.ndarray:
-        """
-        Transforms the observation into a flat numpy array.
-        Crops off the observable grid around the player to the observation distance value.
-        :param obs:
-        :param available_actions:
-        :param discovered_actions:
-        :return:
-        """
-        middle = (obs.top_materials.shape[0] - 1) // 2
-        start = middle - self.observation_distance
-        end = middle + self.observation_distance + 1
-        cropped_top_materials = obs.top_materials[start:end, start:end]
-        cropped_tile_heights = obs.tile_heights[start:end, start:end]
-        top_materials_flat = cropped_top_materials.flatten()
-        top_materials_one_hot = np.eye(NUM_MATERIALS)[top_materials_flat].flatten()
-        tile_heights_flat = cropped_tile_heights.flatten()
-        player_pos_flat = np.array(obs.player_pos)
-        player_rot = np.array([obs.player_rot])
-        hp = np.array([obs.hp])
-        time = np.array([obs.time])
-        inventory_state = np.array(obs.inventory_state)
-        mobs_flat = np.array(obs.mobs[:self.max_observable_mobs]).flatten()
-        loot_flat = np.array(obs.loot[:self.max_observable_mobs]).flatten()
+    def dict_observation(self, obs: ProcessedObservation) -> dict:
+        def crop(grid_obs):
+            return grid_obs[self.obs_grid_start:self.obs_grid_end, self.obs_grid_start:self.obs_grid_end]
+        return {
+            "top_materials": crop(obs.top_materials),
+            "tile_heights": crop(obs.tile_heights),
+            "player_pos": np.array(obs.player_pos, dtype=np.int32),
+            "player_rot": np.array([obs.player_rot], dtype=np.int32),
+            "hp": np.array([obs.hp], dtype=np.int32),
+            "time": np.array([obs.time], dtype=np.float32),
+            "inventory_state": obs.inventory_state,
+            "mobs": obs.mobs[:self.max_observable_mobs],
+            "loot": obs.loot[:self.max_observable_mobs],
+            "action_mask": obs.action_mask,
+            "discovered_actions": self.discovered_actions
+        }
 
-        processed_obs = np.concatenate([
-            top_materials_one_hot, tile_heights_flat, player_pos_flat, player_rot,
-            hp, time, inventory_state, mobs_flat, loot_flat
-        ]).astype(np.float32)
-
-        if available_actions is not None:
-            processed_obs = np.concatenate([processed_obs, available_actions.astype(np.float32)])
-        if discovered_actions is not None:
-            processed_obs = np.concatenate([processed_obs, discovered_actions.astype(np.float32)])
-
-        return processed_obs
-
-    def get_action_name(self, action: int) -> str:
+    @staticmethod
+    def get_action_name(action: int) -> str:
         return get_action_name(action)
 
     def get_actions_mask(self) -> np.ndarray:
-        return get_actions_mask(self.c_lib_index)
+        return self.action_mask
 
     @staticmethod
     def set_start_loadout_str(start_loadout: str):

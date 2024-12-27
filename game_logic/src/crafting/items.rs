@@ -6,7 +6,6 @@ use serde::{Serialize, Deserialize};
 use Storable::*;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
-use crate::crafting::material::Material::Diamond;
 use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
 use crate::crafting::storable::CraftMenuSection::*;
 
@@ -19,6 +18,7 @@ pub enum Item {
     IronPickaxe,
     IronIngot,
     IronSword,
+    Diamond,
     DiamondSword,
     Arrow,
     TargetingModule,
@@ -34,6 +34,7 @@ impl Craftable for Item {
             IronPickaxe => "iron pickaxe",
             IronIngot => "iron ingot",
             IronSword => "iron sword",
+            Diamond => "diamond",
             DiamondSword => "diamond sword",
             Arrow => "arrow",
             TargetingModule => "targeting module",
@@ -47,7 +48,8 @@ impl Craftable for Item {
             IronPickaxe => &[(&I(IronIngot), 3), (&I(Stick), 2)],
             IronIngot => &[(&M(Material::IronOre), 1)],
             IronSword => &[(&I(IronIngot), 2), (&I(Stick), 1)],
-            DiamondSword => &[(&M(Diamond), 2), (&I(Stick), 1)],
+            Diamond => &[],
+            DiamondSword => &[(&I(Diamond), 2), (&I(Stick), 1)],
             Arrow => &[(&I(IronIngot), 1), (&I(Stick), 2)],
             TargetingModule => &[],
         }
@@ -58,6 +60,7 @@ impl Craftable for Item {
             Stick => 2,
             Arrow => 2,
             TargetingModule => 0,
+            Diamond => 0,
             _ => 1,
         }
     }
@@ -81,6 +84,7 @@ impl Craftable for Item {
             IronSword => Weapons,
             DiamondSword => Weapons,
             Arrow => Weapons,
+            Diamond => Uncraftable,
             TargetingModule => Uncraftable,
         }
     }

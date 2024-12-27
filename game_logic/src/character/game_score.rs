@@ -22,7 +22,7 @@ impl Player {
     
     pub fn score_mined(&mut self, material: &Material) {
         match material {
-            Material::Diamond => self.add_to_score(self.score_values().blocks.mined.diamond),
+            Material::DiamondOre => self.add_to_score(self.score_values().blocks.mined.diamond),
             _ => {}
         }
     }

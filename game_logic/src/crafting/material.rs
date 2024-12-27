@@ -5,6 +5,7 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use Material::*;
 use Storable::*;
+use crate::crafting::items::Item::Diamond;
 use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
 use crate::crafting::storable::CraftMenuSection::*;
 use crate::crafting::texture_material::TextureMaterial;
@@ -20,7 +21,7 @@ pub enum Material {
     Bedrock,
     IronOre,
     CraftTable,
-    Diamond,
+    DiamondOre,
     Texture(TextureMaterial),  // unbreakable material used to display textures of spawnable structures
 }
 
@@ -42,7 +43,7 @@ impl Material {
             Plank => String::from("w"),
             IronOre => String::from("i"),
             CraftTable => String::from("C"),
-            Diamond => String::from("D"),
+            DiamondOre => String::from("D"),
             Texture(t) => t.glyph(),
         }
     }
@@ -53,7 +54,7 @@ impl Material {
             Texture(t) => t.required_mining_power(),
             Stone => 1,
             IronOre => 1,
-            Diamond => 2,
+            DiamondOre => 2,
             _ => 0
         }
     }
@@ -62,6 +63,7 @@ impl Material {
     /// None for default behavior - drop the material itself.
     pub fn drop_item(&self) -> Option<Storable> {
         match self {
+            DiamondOre => Some(I(Diamond)),
             Texture(t) => t.drop_item(),
             _ => None
         }
@@ -78,7 +80,7 @@ impl Craftable for Material {
             Plank => "plank",
             IronOre => "iron ore",
             CraftTable => "crafting table",
-            Diamond => "diamond",
+            DiamondOre => "diamond",
             Texture(_) => "some texture",
         }
     }
