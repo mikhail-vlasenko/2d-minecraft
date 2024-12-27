@@ -99,25 +99,24 @@ class Minecraft2dEnv(gym.Env):
         # Define action and observation spaces
         self.action_space = spaces.Discrete(NUM_ACTIONS)
 
-        sample_obs = self.sample_observation()
-        if self.flatten_observation:
-            self.observation_space = spaces.Box(
-                low=-np.inf, high=np.inf, shape=sample_obs.shape, dtype=np.float32
-            )
-        else:
-            self.observation_space = spaces.Dict({
-                "top_materials": Box(low=0, high=NUM_MATERIALS-1, shape=(OBSERVATION_GRID_SIZE, OBSERVATION_GRID_SIZE), dtype=np.int32),
-                "tile_heights": Box(low=0, high=5, shape=(OBSERVATION_GRID_SIZE, OBSERVATION_GRID_SIZE), dtype=np.int32),
-                "player_pos": Box(low=-np.inf, high=np.inf, shape=(3,), dtype=np.int32),
-                "player_rot": Box(low=0, high=3, shape=(1,), dtype=np.int32),
-                "hp": Box(low=0, high=np.inf, shape=(1,), dtype=np.int32),
-                "time": Box(low=0, high=np.inf, shape=(1,), dtype=np.float32),
-                "inventory_state": Box(low=0, high=np.inf, shape=(INVENTORY_SIZE,), dtype=np.int32),
-                "mobs": Box(low=np.inf, high=np.inf, shape=(MAX_MOBS, MOB_INFO_SIZE), dtype=np.int32),
-                "loot": Box(low=np.inf, high=np.inf, shape=(MAX_MOBS, LOOT_INFO_SIZE), dtype=np.int32),
-                "action_mask": spaces.MultiBinary(NUM_ACTIONS),
-                "discovered_actions": spaces.MultiBinary(NUM_ACTIONS),
-            })
+        middle = (OBSERVATION_GRID_SIZE - 1) // 2
+        self.obs_grid_start = middle - self.observation_distance
+        self.obs_grid_end = middle + self.observation_distance + 1
+        span_length = self.observation_distance * 2 + 1
+
+        self.observation_space = spaces.Dict({
+            "top_materials": Box(low=0, high=NUM_MATERIALS-1, shape=(span_length, span_length), dtype=np.int32),
+            "tile_heights": Box(low=0, high=5, shape=(span_length, span_length), dtype=np.int32),
+            "player_pos": Box(low=-np.inf, high=np.inf, shape=(3,), dtype=np.int32),
+            "player_rot": Box(low=0, high=3, shape=(1,), dtype=np.int32),
+            "hp": Box(low=0, high=np.inf, shape=(1,), dtype=np.int32),
+            "time": Box(low=0, high=np.inf, shape=(1,), dtype=np.float32),
+            "inventory_state": Box(low=0, high=np.inf, shape=(INVENTORY_SIZE,), dtype=np.int32),
+            "mobs": Box(low=np.inf, high=np.inf, shape=(self.max_observable_mobs, MOB_INFO_SIZE), dtype=np.int32),
+            "loot": Box(low=np.inf, high=np.inf, shape=(self.max_observable_mobs, LOOT_INFO_SIZE), dtype=np.int32),
+            "action_mask": spaces.MultiBinary(NUM_ACTIONS),
+            "discovered_actions": spaces.MultiBinary(NUM_ACTIONS),
+        })
 
     def reset(
             self,
@@ -195,16 +194,18 @@ class Minecraft2dEnv(gym.Env):
         return obs
 
     def dict_observation(self, obs: ProcessedObservation) -> dict:
+        def crop(grid_obs):
+            return grid_obs[self.obs_grid_start:self.obs_grid_end, self.obs_grid_start:self.obs_grid_end]
         return {
-            "top_materials": obs.top_materials,
-            "tile_heights": obs.tile_heights,
+            "top_materials": crop(obs.top_materials),
+            "tile_heights": crop(obs.tile_heights),
             "player_pos": np.array(obs.player_pos, dtype=np.int32),
             "player_rot": np.array([obs.player_rot], dtype=np.int32),
             "hp": np.array([obs.hp], dtype=np.int32),
             "time": np.array([obs.time], dtype=np.float32),
             "inventory_state": obs.inventory_state,
-            "mobs": obs.mobs,
-            "loot": obs.loot,
+            "mobs": obs.mobs[:self.max_observable_mobs],
+            "loot": obs.loot[:self.max_observable_mobs],
             "action_mask": obs.action_mask,
             "discovered_actions": self.discovered_actions
         }

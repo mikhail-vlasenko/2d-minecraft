@@ -23,7 +23,7 @@ class EnvConfig:
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 128000
+    env_steps: int = 32_000_000
     time_total_s: Optional[int] = None  # if None, then env_steps is used
     iter_env_steps: int = 256
     load_from: str = None
@@ -50,8 +50,7 @@ class EvaluationConfig:
 @dataclass
 class ModelConfig:
     nonlinear: str = 'tanh'
-    extractor_dim: int = 256
-    dimensions: List[int] = field(default_factory=lambda: [128, 64])
+    dimensions: List[int] = field(default_factory=lambda: [256, 128, 64])
 
 
 @dataclass

@@ -13,11 +13,12 @@ class FeatureExtractor(nn.Module):
     def __init__(self, observation_space):
         super(FeatureExtractor, self).__init__()
 
-        # todo: center crop the height and material maps
         self.material_channels = 8
         self.height_channels = 8
-        self.mob_dim = 16
-        self.loot_dim = 8
+        self.mob_heads = 12
+        self.mob_dim = 8 * self.mob_heads
+        self.loot_heads = 12
+        self.loot_dim = 4 * self.loot_heads
 
         self.block_encoder = nn.Sequential(
             nn.Linear(NUM_MATERIALS, self.material_channels),
@@ -36,11 +37,11 @@ class FeatureExtractor(nn.Module):
             nn.ReLU(),
         )
         self.mob_pooler = nn.Sequential(
-            AttentivePooler(embed_dim=self.mob_dim, num_heads=1, complete_block=False),  # todo: heads
+            AttentivePooler(embed_dim=self.mob_dim, num_heads=self.mob_heads, complete_block=False),
             nn.ReLU(),
         )
         self.loot_pooler = nn.Sequential(
-            AttentivePooler(embed_dim=self.loot_dim, num_heads=1, complete_block=False),
+            AttentivePooler(embed_dim=self.loot_dim, num_heads=self.loot_heads, complete_block=False),
             nn.ReLU(),
         )
 
@@ -70,17 +71,15 @@ class FeatureExtractor(nn.Module):
         loot_pool = self.loot_pooler(loots)
         loot_pool = loot_pool.view(loot_pool.size(0), -1)
 
-        # todo: time modulo 2
-
         return torch.cat([materials, height_features, mob_pool, loot_pool,
                           self.extract_flat_features(observation)], dim=1)
 
     def extract_flat_features(self, observation: dict) -> torch.Tensor:
         player_pos = observation["player_pos"]
-        # sb3 one-hot encodes discrete spaces
         player_rot = observation["player_rot"]
         hp = observation["hp"]
         time = observation["time"]
+        time1 = time % 1  # cyclic time component
         inventory = observation["inventory_state"]
         action_mask = observation["action_mask"]
-        return torch.cat([player_pos, player_rot, hp, time, inventory, action_mask], dim=1)
+        return torch.cat([player_pos, player_rot, hp, time, time1, inventory, action_mask], dim=1)

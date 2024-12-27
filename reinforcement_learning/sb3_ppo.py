@@ -75,20 +75,6 @@ class LoggingCallback(BaseCallback):
             self.game_scores = []
 
 
-class CustomMLPFeatureExtractor(nn.Module):
-    def __init__(self, observation_space: spaces.Box, features_dim: int):
-        in_feats = observation_space.shape[0]
-        self.features_dim = features_dim
-        super(CustomMLPFeatureExtractor, self).__init__()
-        self.feature_extractor = nn.Sequential(
-            nn.Linear(in_feats, self.features_dim),
-            nn.Tanh(),
-        )
-
-    def forward(self, observations):
-        return self.feature_extractor(observations)
-
-
 def main():
     run = wandb.init(**WANDB_KWARGS)
 
