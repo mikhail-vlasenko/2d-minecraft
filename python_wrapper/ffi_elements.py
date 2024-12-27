@@ -18,19 +18,15 @@ def init_lib(path):
     c_lib.step_one.argtypes = [ctypes.c_int32, ctypes.c_int32]
     c_lib.get_one_observation.argtypes = [ctypes.c_int32]
     c_lib.close_one.argtypes = [ctypes.c_int32]
-    c_lib.valid_actions_mask.argtypes = [ctypes.c_int32]
     c_lib.set_record_replays.argtypes = [ctypes.c_bool]
     c_lib.set_start_loadout.argtypes = [ctypes.c_int32]
     c_lib.set_save_on_milestone.argtypes = [ctypes.c_bool]
     c_lib.get_batch_size.argtypes = []
-    c_lib.num_actions.argtypes = []
     c_lib.action_name.argtypes = [ctypes.c_int32]
 
     c_lib.connect_env.restype = ctypes.c_int32
     c_lib.get_one_observation.restype = Observation
-    c_lib.valid_actions_mask.restype = ActionMask
     c_lib.get_batch_size.restype = ctypes.c_int32
-    c_lib.num_actions.restype = ctypes.c_int32
     c_lib.action_name.restype = ctypes.POINTER(ctypes.c_int8)
 
 
@@ -84,20 +80,6 @@ def close_one(index: int):
  The game state is reset and can be connected to again."""
     return c_lib.close_one(index)
 
-def valid_actions_mask(index: int) -> ActionMask:
-    """ Gets the actions mask for the game state at the specified index.
- The mask is an array of integers where 1 means the action will lead to something happening with the games state,
- and 0 means taking the action will yield the same observation.
- 
- # Arguments
- 
- * `index` - The index of the game state to get the actions mask for.
- 
- # Returns
- 
- * `ActionMask` - The actions mask for the game state."""
-    return c_lib.valid_actions_mask(index)
-
 def set_record_replays(value: bool):
     """ Sets the record_replays setting to the given value.
  Training is better done with record_replays set to false, as it saves memory and time.
@@ -127,9 +109,6 @@ def set_save_on_milestone(value: bool):
 
 def get_batch_size() -> int:
     return c_lib.get_batch_size()
-
-def num_actions() -> int:
-    return c_lib.num_actions()
 
 def action_name(action: int) -> ctypes.POINTER(ctypes.c_int8):
     return c_lib.action_name(action)
@@ -182,26 +161,6 @@ class _Iter(object):
         return rval
 
 
-class ActionMask(ctypes.Structure):
-
-    # These fields represent the underlying C data layout
-    _fields_ = [
-        ("mask", ctypes.c_int32 * 39),
-    ]
-
-    def __init__(self, mask = None):
-        if mask is not None:
-            self.mask = mask
-
-    @property
-    def mask(self):
-        return ctypes.Structure.__get__(self, "mask")
-
-    @mask.setter
-    def mask(self, value):
-        return ctypes.Structure.__set__(self, "mask", value)
-
-
 class Observation(ctypes.Structure):
 
     # These fields represent the underlying C data layout
@@ -215,13 +174,13 @@ class Observation(ctypes.Structure):
         ("inventory_state", ctypes.c_int32 * 26),
         ("mobs", ctypes.c_int32 * 4 * 16),
         ("loot", ctypes.c_int32 * 3 * 16),
-        ("action_mask", ActionMask),
+        ("action_mask", ctypes.c_int32 * 39),
         ("score", ctypes.c_int32),
         ("message", ctypes.POINTER(ctypes.c_int8)),
         ("done", ctypes.c_bool),
     ]
 
-    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, loot = None, action_mask: ActionMask = None, score: int = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
+    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, loot = None, action_mask = None, score: int = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
         if top_materials is not None:
             self.top_materials = top_materials
         if tile_heights is not None:
@@ -322,11 +281,11 @@ class Observation(ctypes.Structure):
         return ctypes.Structure.__set__(self, "loot", value)
 
     @property
-    def action_mask(self) -> ActionMask:
+    def action_mask(self):
         return ctypes.Structure.__get__(self, "action_mask")
 
     @action_mask.setter
-    def action_mask(self, value: ActionMask):
+    def action_mask(self, value):
         return ctypes.Structure.__set__(self, "action_mask", value)
 
     @property

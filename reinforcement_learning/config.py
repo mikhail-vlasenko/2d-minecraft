@@ -13,7 +13,6 @@ class EnvConfig:
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     flatten_observation: bool = False
     discovered_actions_reward: float = 25.
-    include_actions_in_obs: bool = True
     observation_distance: int = 3
     max_observable_mobs: int = 8
     start_loadout: str = 'random'
@@ -102,7 +101,6 @@ ENV_KWARGS = {
     "observation_distance": CONFIG.env.observation_distance,
     "max_observable_mobs": CONFIG.env.max_observable_mobs,
     "discovered_actions_reward": CONFIG.env.discovered_actions_reward,
-    "include_actions_in_obs": CONFIG.env.include_actions_in_obs,
     "start_loadout": CONFIG.env.start_loadout,
     "checkpoint_starts": CONFIG.env.checkpoint_starts,
     "checkpoint_handler": checkpoint_handler,

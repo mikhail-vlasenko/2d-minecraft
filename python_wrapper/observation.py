@@ -3,8 +3,8 @@ from typing import Tuple, Optional
 
 import numpy as np
 
-from python_wrapper.ffi_elements import Observation, get_one_observation, action_name, valid_actions_mask, \
-    reset_one_to_saved, ActionMask, OBSERVATION_GRID_SIZE, MAX_MOBS, MOB_INFO_SIZE, LOOT_INFO_SIZE, INVENTORY_SIZE, \
+from python_wrapper.ffi_elements import Observation, get_one_observation, action_name, \
+    reset_one_to_saved, OBSERVATION_GRID_SIZE, MAX_MOBS, MOB_INFO_SIZE, LOOT_INFO_SIZE, INVENTORY_SIZE, \
     NUM_ACTIONS, NUM_MATERIALS
 
 
@@ -20,7 +20,6 @@ class ProcessedObservation:
                  mobs: np.ndarray,
                  loot: np.ndarray,
                  action_mask: np.ndarray,
-                 discovered_actions: Optional[np.ndarray],
                  score: int,
                  message: str,
                  done: bool = False):
@@ -34,7 +33,6 @@ class ProcessedObservation:
         self.mobs = mobs
         self.loot = loot
         self.action_mask = action_mask
-        self.discovered_actions = discovered_actions
         self.score = score
         self.message = message
         self.done = done
@@ -49,7 +47,6 @@ class ProcessedObservation:
                 f"Mobs: {self.mobs}\n"
                 f"Loot: {self.loot}\n"
                 f"Action Mask: {self.action_mask}\n"
-                f"Discovered Actions: {self.discovered_actions}\n"
                 f"Message: {self.message}\n"
                 f"Top Materials:\n{self.top_materials}\n"
                 f"Tile Heights:\n{self.tile_heights}\n"
@@ -67,8 +64,7 @@ class ProcessedObservation:
         inventory_state = np.ctypeslib.as_array(c_observation.inventory_state)
         mobs = np.ctypeslib.as_array(c_observation.mobs).reshape((MAX_MOBS, MOB_INFO_SIZE))
         loot = np.ctypeslib.as_array(c_observation.loot).reshape((MAX_MOBS, LOOT_INFO_SIZE))
-        actions_mask = _actions_mask_to_array(c_observation.action_mask)
-        discovered_actions = None
+        actions_mask = np.ctypeslib.as_array(c_observation.action_mask).astype(bool)
         score = c_observation.score
         message = ctypes.cast(c_observation.message, ctypes.c_char_p).value.decode('utf-8') if c_observation.message else ""
         done = c_observation.done
@@ -77,7 +73,7 @@ class ProcessedObservation:
             player_pos, player_rot,
             hp, time, inventory_state,
             mobs, loot,
-            actions_mask, discovered_actions,
+            actions_mask,
             score, message, done
         )
 
@@ -88,7 +84,7 @@ class ProcessedObservation:
             np.zeros((OBSERVATION_GRID_SIZE, OBSERVATION_GRID_SIZE)),
             (0, 0, 0), 0, 0, 0, np.zeros(INVENTORY_SIZE),
             np.zeros((MAX_MOBS, MOB_INFO_SIZE)), np.zeros((MAX_MOBS, LOOT_INFO_SIZE)),
-            np.zeros(NUM_ACTIONS), None,
+            np.zeros(NUM_ACTIONS),
             0, "", False
         )
 
@@ -101,15 +97,6 @@ def get_processed_observation(idx: int) -> ProcessedObservation:
 def get_action_name(action: int) -> str:
     name = action_name(action)
     return ctypes.cast(name, ctypes.c_char_p).value.decode('utf-8') if name else ""
-
-
-def _actions_mask_to_array(c_action_mask: ActionMask) -> np.ndarray:
-    return np.ctypeslib.as_array(c_action_mask.mask).astype(bool)
-
-
-def get_actions_mask(idx: int) -> np.ndarray:
-    c_action_mask = valid_actions_mask(idx)
-    return _actions_mask_to_array(c_action_mask)
 
 
 def reset_one_to_saved_wrapped(idx: int, save_name: str):

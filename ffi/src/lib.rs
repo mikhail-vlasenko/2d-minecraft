@@ -7,7 +7,7 @@ use game_logic::auxiliary::actions::Action;
 use game_logic::SETTINGS;
 
 use crate::game_state::GameState;
-use crate::observation::{ActionMask, NUM_ACTIONS, Observation};
+use crate::observation::Observation;
 
 pub mod game_state;
 pub mod observation;
@@ -144,28 +144,6 @@ pub extern "C" fn close_one(index: i32) {
     }
 }
 
-/// Gets the actions mask for the game state at the specified index.
-/// The mask is an array of integers where 1 means the action will lead to something happening with the games state,
-/// and 0 means taking the action will yield the same observation.
-/// 
-/// # Arguments
-/// 
-/// * `index` - The index of the game state to get the actions mask for.
-/// 
-/// # Returns
-/// 
-/// * `ActionMask` - The actions mask for the game state.
-#[ffi_function]
-#[no_mangle]
-pub extern "C" fn valid_actions_mask(index: i32) -> ActionMask {
-    let state = STATE.lock().unwrap();
-    if let Some(game_state) = state.get(index as usize) {
-        ActionMask::new(game_state)
-    } else {
-        panic!("Index {} out of bounds for batch size {}", index, state.len());
-    }
-}
-
 /// Sets the record_replays setting to the given value.
 /// Training is better done with record_replays set to false, as it saves memory and time.
 /// For evaluation and assessment one can consider setting it to true.
@@ -218,12 +196,6 @@ pub extern "C" fn get_batch_size() -> i32 {
 
 #[ffi_function]
 #[no_mangle]
-pub extern "C" fn num_actions() -> i32 {
-    NUM_ACTIONS as i32
-}
-
-#[ffi_function]
-#[no_mangle]
 pub extern "C" fn action_name(action: i32) -> *mut c_char {
     let action = Action::try_from(action).unwrap();
     let name = format!("{:?}", action);
@@ -241,12 +213,10 @@ pub fn ffi_inventory() -> Inventory {
         .register(function!(step_one))
         .register(function!(get_one_observation))
         .register(function!(close_one))
-        .register(function!(valid_actions_mask))
         .register(function!(set_record_replays))
         .register(function!(set_start_loadout))
         .register(function!(set_save_on_milestone))
         .register(function!(get_batch_size))
-        .register(function!(num_actions))
         .register(function!(action_name))
         
         .register(constant!(observation::OBSERVATION_GRID_SIZE))
@@ -287,5 +257,5 @@ fn verify_num_actions() {
         max += 1;
     }
     println!("Actual number of actions: {}", max);
-    assert_eq!(max, NUM_ACTIONS as i32, "change NUM_ACTIONS manually");
+    assert_eq!(max, observation::NUM_ACTIONS as i32, "change NUM_ACTIONS manually");
 }

@@ -11,7 +11,7 @@ use game_logic::map_generation::field::{absolute_to_relative, Field, RelativePos
 use game_logic::map_generation::field_observation::get_tile_observation;
 use game_logic::map_generation::mobs::mob_kind::MobKind;
 use game_logic::map_generation::save_load::load_game;
-use crate::observation::{ActionMask, LOOT_INFO_SIZE, MAX_MOBS, MOB_INFO_SIZE, Observation};
+use crate::observation::{LOOT_INFO_SIZE, make_action_mask, MAX_MOBS, MOB_INFO_SIZE, Observation};
 
 
 #[derive(Debug)]
@@ -61,7 +61,7 @@ impl GameState {
     pub fn get_observation(&self) -> Observation {
         let (top_materials, tile_heights) = get_tile_observation(&self.field, &self.player);
         let top_materials = top_materials.iter().map(|row| row.iter().map(|mat| (*mat).into()).collect()).collect();
-        Observation::new(top_materials, tile_heights, &self.field, &self.player, self.get_closest_mobs(), self.make_loot_array(), ActionMask::new(&self))
+        Observation::new(top_materials, tile_heights, &self.field, &self.player, self.get_closest_mobs(), self.make_loot_array(), make_action_mask(&self))
     }
 
     /// Produces a vector of 4-arrays of mob information: x, y, type, health

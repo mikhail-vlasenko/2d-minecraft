@@ -41,7 +41,7 @@ pub struct Observation {
     pub mobs: [[i32; MOB_INFO_SIZE as usize]; MAX_MOBS as usize],
     // player-relative x, player-relative y, content (1: arrow, 2: other loot, 3: arrow and other loot). content -1 for no loot
     pub loot: [[i32; LOOT_INFO_SIZE as usize]; MAX_MOBS as usize],
-    pub action_mask: ActionMask,
+    pub action_mask: [i32; NUM_ACTIONS as usize],
     pub score: i32,
     pub message: *mut c_char,
     pub done: bool,
@@ -54,7 +54,7 @@ impl Observation {
         field: &Field, player: &Player, 
         close_mobs: Vec<[i32; MOB_INFO_SIZE as usize]>, 
         close_loot: [[i32; LOOT_INFO_SIZE as usize]; MAX_MOBS as usize],
-        action_mask: ActionMask,
+        action_mask: [i32; NUM_ACTIONS as usize],
     ) -> Self {
         if vec_top_materials.len() != OBSERVATION_GRID_SIZE as usize || vec_tile_heights.len() != OBSERVATION_GRID_SIZE as usize {
             panic!("Invalid observation size");
@@ -118,7 +118,7 @@ impl Default for Observation {
             inventory_state: [0; INVENTORY_SIZE as usize],
             mobs: [[0, 0, -1, 0]; MAX_MOBS as usize],
             loot: [[0, 0, -1]; MAX_MOBS as usize],
-            action_mask: ActionMask::default(),
+            action_mask: [0; NUM_ACTIONS as usize],
             score: 0,
             message: CString::new(String::from("")).unwrap().into_raw(),
             done: false,
@@ -131,27 +131,15 @@ fn storable_to_inv_index(storable: &Storable) -> usize {
     ALL_STORABLES.iter().position(|s| s == storable).unwrap()
 }
 
-#[ffi_type]
-#[repr(C)]
-pub struct ActionMask {
-    // use a wrapper struct to have a clear layout for the FFI
-    pub mask: [i32; NUM_ACTIONS as usize],
-}
 
-impl ActionMask {
-    pub fn new(game_state: &GameState) -> Self {
-        let mut mask = [0; NUM_ACTIONS as usize];
-        if !game_state.is_done() {
-            for i in 0..NUM_ACTIONS as usize {
-                if game_state.can_take_action(i as i32) {
-                    mask[i] = 1;
-                }
+pub fn make_action_mask(game_state: &GameState) -> [i32; NUM_ACTIONS as usize] {
+    let mut mask = [0; NUM_ACTIONS as usize];
+    if !game_state.is_done() {
+        for i in 0..NUM_ACTIONS as usize {
+            if game_state.can_take_action(i as i32) {
+                mask[i] = 1;
             }
         }
-        Self { mask }
     }
-    
-    pub fn default() -> Self {
-        Self { mask: [0; NUM_ACTIONS as usize] }
-    }
+    mask
 }
