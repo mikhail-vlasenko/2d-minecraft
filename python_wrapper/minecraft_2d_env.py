@@ -2,7 +2,7 @@ import warnings
 
 import gymnasium as gym
 import numpy as np
-from gymnasium.spaces import Box, Discrete
+from gymnasium.spaces import Box
 from gymnasium import spaces
 from typing import Optional
 
@@ -109,9 +109,9 @@ class Minecraft2dEnv(gym.Env):
                 "top_materials": Box(low=0, high=NUM_MATERIALS-1, shape=(OBSERVATION_GRID_SIZE, OBSERVATION_GRID_SIZE), dtype=np.int32),
                 "tile_heights": Box(low=0, high=5, shape=(OBSERVATION_GRID_SIZE, OBSERVATION_GRID_SIZE), dtype=np.int32),
                 "player_pos": Box(low=-np.inf, high=np.inf, shape=(3,), dtype=np.int32),
-                "player_rot": Discrete(4),
-                "hp": Box(low=0, high=np.inf, shape=(), dtype=np.int32),
-                "time": Box(low=0, high=np.inf, shape=(), dtype=np.float32),
+                "player_rot": Box(low=0, high=3, shape=(1,), dtype=np.int32),
+                "hp": Box(low=0, high=np.inf, shape=(1,), dtype=np.int32),
+                "time": Box(low=0, high=np.inf, shape=(1,), dtype=np.float32),
                 "inventory_state": Box(low=0, high=np.inf, shape=(INVENTORY_SIZE,), dtype=np.int32),
                 "mobs": Box(low=np.inf, high=np.inf, shape=(MAX_MOBS, MOB_INFO_SIZE), dtype=np.int32),
                 "loot": Box(low=np.inf, high=np.inf, shape=(MAX_MOBS, LOOT_INFO_SIZE), dtype=np.int32),
@@ -199,9 +199,9 @@ class Minecraft2dEnv(gym.Env):
             "top_materials": obs.top_materials,
             "tile_heights": obs.tile_heights,
             "player_pos": np.array(obs.player_pos, dtype=np.int32),
-            "player_rot": obs.player_rot,
-            "hp": np.array(obs.hp, dtype=np.int32),
-            "time": np.array(obs.time, dtype=np.float32),
+            "player_rot": np.array([obs.player_rot], dtype=np.int32),
+            "hp": np.array([obs.hp], dtype=np.int32),
+            "time": np.array([obs.time], dtype=np.float32),
             "inventory_state": obs.inventory_state,
             "mobs": obs.mobs,
             "loot": obs.loot,

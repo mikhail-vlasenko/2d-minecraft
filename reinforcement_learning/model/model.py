@@ -44,25 +44,14 @@ class FeatureExtractor(nn.Module):
             nn.ReLU(),
         )
 
-        # sb3 seems to one-hot encode discrete spaces so that needs to be accounted for during initialization
-        discrete = []
-        for key, value in observation_space.spaces.items():
-            if isinstance(value, gym.spaces.Discrete):
-                discrete.append([key, value.n])
-
         sample_observation = gym.vector.utils.batch_space(observation_space, 2).sample()
-
         for key, value in sample_observation.items():
             sample_observation[key] = torch.tensor(value).float()
 
-        for key in discrete:
-            sample_observation[key[0]] = torch.eye(key[1])[sample_observation[key[0]].int()]
         self.features_dim = self.forward(sample_observation).size(1)
         print(f"Extractor features_dim: {self.features_dim}")
 
     def forward(self, observation: dict) -> torch.Tensor:
-        # for key, value in observation.items():
-        #     print(f"{key=}, {value.shape=}")
         materials = observation["top_materials"]
         materials = materials.view(materials.size(0), -1)  # (batch_size, 17x17)
         materials = torch.eye(NUM_MATERIALS).to(materials.device)[materials.int()]  # (batch_size, 17x17, num_materials)
@@ -90,19 +79,8 @@ class FeatureExtractor(nn.Module):
         player_pos = observation["player_pos"]
         # sb3 one-hot encodes discrete spaces
         player_rot = observation["player_rot"]
-        hp = observation["hp"].unsqueeze(1)
-        time = observation["time"].unsqueeze(1)
+        hp = observation["hp"]
+        time = observation["time"]
         inventory = observation["inventory_state"]
         action_mask = observation["action_mask"]
         return torch.cat([player_pos, player_rot, hp, time, inventory, action_mask], dim=1)
-
-
-class MainModel(nn.Module):
-    """
-    Applied after the feature extractor to predict the value function or policy.
-    """
-    def __init__(self, feature_extractor: FeatureExtractor, dimensions, is_policy: bool = True):
-        super(MainModel, self).__init__()
-
-        self.fc1 = nn.Linear(8 + 8 + 16 + 8, 64)
-        self.fc2 = nn.Linear(64, 1)
