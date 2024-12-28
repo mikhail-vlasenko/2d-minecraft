@@ -1,9 +1,9 @@
 use std::path::Path;
 use std::process::exit;
-use egui::{ScrollArea, Slider, TextEdit};
+use egui::{ComboBox, ScrollArea, Slider, TextEdit};
 use egui::{Align2, Color32, FontId, RichText, Context};
 use game_logic::character::player::Player;
-use game_logic::map_generation::save_load::{get_directories, get_files, get_full_path};
+use game_logic::map_generation::save_load::{list_directory, get_full_path};
 use game_logic::SETTINGS;
 use game_logic::settings::Settings;
 
@@ -15,6 +15,8 @@ pub struct MainMenu {
     pub save_name: String,
     pub replay_name: String,
     pub world_seed_buffer: String,
+    substring_search: String,
+    sorting_regime: SortingRegime,
 }
 
 impl MainMenu {
@@ -29,6 +31,8 @@ impl MainMenu {
             save_name: String::from("default_save"),
             replay_name: String::from("default_replay"),
             world_seed_buffer,
+            substring_search: String::new(),
+            sorting_regime: SortingRegime::DateDescending,
         }
     }
 
@@ -99,10 +103,14 @@ impl MainMenu {
 
                     let save_path_string = settings.save_folder.clone().into_owned();
                     let save_path = Path::new(&save_path_string);
-                    let save_names = get_directories(&save_path).unwrap_or(vec![]);
+
+                    let mut save_directories = list_directory(&save_path, true).unwrap_or(vec![]);
+                    save_directories.retain(|(name, _)| name.contains(&self.substring_search));
+                    self.sorting_regime.sort_directories(&mut save_directories);
 
                     match self.second_panel {
                         SecondPanelState::SaveGame => {
+                            self.render_search_bar(&mut columns[1]);
                             columns[1].horizontal(|ui| {
                                 ui.label("Save name:");
                                 ui.text_edit_singleline(&mut self.save_name);
@@ -111,15 +119,18 @@ impl MainMenu {
                                 self.selected_option = SelectedOption::SaveGame;
                             }
                             columns[1].label("Existing saves:");
-                            for name in save_names.iter() {
-                                columns[1].label(RichText::new(name).font(FontId::proportional(20.0)));
-                            }
+                            ScrollArea::vertical().show(&mut columns[1], |scroll| {
+                                for (name, _epoch_time) in save_directories.iter() {
+                                    scroll.label(RichText::new(name).font(FontId::proportional(20.0)));
+                                }
+                            });
 
                             self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::LoadGame => {
+                            self.render_search_bar(&mut columns[1]);
                             ScrollArea::vertical().show(&mut columns[1], |scroll| {
-                                for name in save_names.iter() {
+                                for (name, _epoch_time) in save_directories.iter() {
                                     if scroll.button(RichText::new(name)
                                         .font(FontId::proportional(20.0))).clicked() {
                                         self.save_name = name.clone();
@@ -128,7 +139,7 @@ impl MainMenu {
                                 }
                             });
                             
-                            if save_names.is_empty() {
+                            if save_directories.is_empty() {
                                 let full_path = get_full_path(&save_path);
                                 columns[1].label(format!("No saves found in \n{}", full_path.to_string_lossy()));
                             }
@@ -136,14 +147,15 @@ impl MainMenu {
                             self.back_button(&mut columns[1]);
                         }
                         SecondPanelState::Replays => {
+                            self.render_search_bar(&mut columns[1]);
                             let replay_path_string = settings.replay_folder.clone().into_owned();
                             let replay_path = Path::new(&replay_path_string);
-                            let mut replay_names = get_files(&replay_path).unwrap_or(vec![]);
-                            // files are already sorted alphabetically but recent replays should come first
-                            replay_names.reverse();
+                            let mut replay_names = list_directory(&replay_path, false).unwrap_or(vec![]);
+                            replay_names.retain(|(name, _)| name.contains(&self.substring_search));
+                            self.sorting_regime.sort_directories(&mut replay_names);
                             ScrollArea::vertical().show(&mut columns[1], |scroll| {
-                                for name in replay_names.iter() {
-                                    if scroll.button(RichText::new(name)
+                                for (name, _epoch_time) in replay_names.iter() {
+                                    if scroll.button(RichText::new(name.clone().replace(".postcard", ""))
                                         .font(FontId::proportional(20.0))).clicked() {
                                         self.replay_name = name.clone();
                                         self.selected_option = SelectedOption::WatchReplay;
@@ -320,6 +332,25 @@ impl MainMenu {
         );
     }
 
+    fn render_search_bar(&mut self, ui: &mut egui::Ui) {
+        use SortingRegime::*;
+        ui.horizontal(|ui| {
+            ui.label("Search:");
+            ui.add(TextEdit::singleline(&mut self.substring_search).desired_width(ui.available_width() / 1.75));
+            ComboBox::from_label("")
+                .selected_text(match self.sorting_regime {
+                    ref regime => regime.name(),
+                }).width(ui.available_width())
+                .show_ui(ui, |ui| {
+                    for regime in &[AlphaAscending, AlphaDescending, DateAscending, DateDescending] {
+                        if ui.selectable_label(*regime == self.sorting_regime, regime.name()).clicked() {
+                            self.sorting_regime = regime.clone();
+                        }
+                    }
+                });
+        });
+    }
+
     fn back_button(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if ui.button("Back").clicked() {
@@ -346,4 +377,32 @@ pub enum SecondPanelState {
     Replays,
     Settings,
     Controls,
+}
+
+#[derive(PartialEq, Clone)]
+enum SortingRegime {
+    AlphaAscending,
+    AlphaDescending,
+    DateAscending,
+    DateDescending,
+}
+
+impl SortingRegime {
+    fn sort_directories(&self, directories: &mut Vec<(String, i32)>) {
+        match self {
+            SortingRegime::AlphaAscending => directories.sort_by(|a, b| a.0.cmp(&b.0)),
+            SortingRegime::AlphaDescending => directories.sort_by(|a, b| b.0.cmp(&a.0)),
+            SortingRegime::DateAscending => directories.sort_by(|a, b| a.1.cmp(&b.1)),
+            SortingRegime::DateDescending => directories.sort_by(|a, b| b.1.cmp(&a.1)),
+        }
+    }
+    
+    fn name(&self) -> &str {
+        match self {
+            SortingRegime::AlphaAscending => "Name Asc.",
+            SortingRegime::AlphaDescending => "Name Desc.",
+            SortingRegime::DateAscending => "Date Asc.",
+            SortingRegime::DateDescending => "Date Desc.",
+        }
+    }
 }
