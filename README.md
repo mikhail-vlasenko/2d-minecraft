@@ -33,6 +33,9 @@ The grey circle on every game tile indicates the height of the tile. The darker 
 
 https://github.com/user-attachments/assets/8c894103-8a60-43f3-bcaa-776aa7a0b38b
 
+The agent is traveling instead of building a house, which is a viable strategy since the game has 2 kinds of mobs that are difficult to deal with when the player is camping behind walls. 
+It also makes sure to mine all diamonds it sees, as it significantly increases the game score.
+
 ## Repository Structure
 
 The `game_logic` crate serves as the game engine, computing all game state changes such as player actions, mob movements, and field generation.
