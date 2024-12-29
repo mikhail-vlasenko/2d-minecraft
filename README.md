@@ -24,9 +24,10 @@ But does not require computer vision, and runs significantly faster.
 ## Gameplay screenshots
 The grey circle on every game tile indicates the height of the tile. The darker the circle, the lower the block.
 
-<img width="500" alt="image" src="https://github.com/user-attachments/assets/87729b7f-567c-485d-a11f-c4150a5679ee">
+<p align="center">
+<img width="49%" alt="screenshot day" src="https://github.com/user-attachments/assets/87729b7f-567c-485d-a11f-c4150a5679ee">
 
-<img width="500" alt="image" src="https://github.com/mikhail-vlasenko/2d-minecraft/assets/27450370/2e5c9bd4-b2c1-4944-b81e-4e38d4375851">
+<img width="49%" alt="red moon night with damaged house" src="https://github.com/mikhail-vlasenko/2d-minecraft/assets/27450370/2e5c9bd4-b2c1-4944-b81e-4e38d4375851">
 
 ## Trained reinforcement learning agent (approximately human-level)
 
