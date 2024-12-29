@@ -43,7 +43,7 @@ impl GameState {
             // save the replay
             if SETTINGS.read().unwrap().record_replays && !self.recorded_replay.is_empty() {
                 let path = PathBuf::from(SETTINGS.read().unwrap().replay_folder.clone().into_owned());
-                let name = self.recorded_replay.make_save_name();
+                let name = self.recorded_replay.make_save_name().unwrap();  // unwrap is safe here because record_replays
                 let path = path.join(name.clone());
                 self.recorded_replay.save(path.as_path());
                 self.recorded_replay = Replay::new();

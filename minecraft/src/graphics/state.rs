@@ -17,7 +17,7 @@ use game_logic::crafting::consumable::Consumable;
 use game_logic::character::player::Player;
 use game_logic::crafting::interactable::InteractableKind;
 use crate::graphics::buffers::Buffers;
-use crate::graphics::ui::egui_manager::EguiManager;
+use crate::graphics::ui::egui_manager::{EguiManager, ReplaySaveStatus};
 use crate::graphics::instance::*;
 use crate::graphics::texture_bind_groups::TextureBindGroups;
 use crate::graphics::vertex::{CENTERED_SQUARE_VERTICES, HP_BAR_SCALING_COEF, INDICES, make_animation_vertices, make_hp_vertices, PROJECTILE_ARROW_VERTICES, Vertex, VERTICES};
@@ -179,6 +179,9 @@ impl<'a> State<'a> {
 
         let buffers = Buffers::new(&device, field.get_map_render_distance() as i32);
 
+        // Set the record_replays to true when running with graphics
+        SETTINGS.write().unwrap().record_replays = true;
+
         Self {
             surface,
             window,
@@ -206,6 +209,7 @@ impl<'a> State<'a> {
         self.player = player;
         self.recorded_replay = replay;
         self.milestone_tracker = milestone_tracker;
+        self.egui_manager.replay_save_status = ReplaySaveStatus::Empty;
     }
 
     pub fn get_size(&self) -> PhysicalSize<u32> {
@@ -337,10 +341,15 @@ impl<'a> State<'a> {
         if self.egui_manager.save_replay_clicked {
             let path = PathBuf::from(SETTINGS.read().unwrap().replay_folder.clone().into_owned());
             let name = self.recorded_replay.make_save_name();
-            let path = path.join(name.clone());
-            self.recorded_replay.save(path.as_path());
             self.egui_manager.save_replay_clicked = false;
-            self.egui_manager.replay_save_name = Some(name);
+            if let Some(name) = name {
+                let path = path.join(name.clone());
+                self.recorded_replay.save(path.as_path());
+                self.egui_manager.replay_save_status = ReplaySaveStatus::Saved(name);
+            } else {
+                self.egui_manager.replay_save_status = ReplaySaveStatus::Error;
+            }
+            
         }
 
         let mob_positions_and_hp = self.field.close_mob_info(|mob| {

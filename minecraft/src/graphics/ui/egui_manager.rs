@@ -25,7 +25,7 @@ pub struct EguiManager {
     pub main_menu: MainMenu,
     pub main_menu_open: RefCell<bool>,
     pub save_replay_clicked: bool,
-    pub replay_save_name: Option<String>,
+    pub replay_save_status: ReplaySaveStatus,
 }
 
 impl EguiManager {
@@ -36,7 +36,7 @@ impl EguiManager {
             main_menu: MainMenu::new(),
             main_menu_open: RefCell::new(true),
             save_replay_clicked: false,
-            replay_save_name: None,
+            replay_save_status: ReplaySaveStatus::Empty,
         }
     }
 
@@ -246,10 +246,15 @@ impl EguiManager {
                     .font(FontId::proportional(60.0))).clicked() {
                     self.save_replay_clicked = true;
                 }
-                if self.replay_save_name.is_some() {
+                if let ReplaySaveStatus::Saved(name) = &self.replay_save_status {
                     ui.add(Label::new(RichText::new(
-                        format!("Replay saved as: {}", self.replay_save_name.as_ref().unwrap()))
+                        format!("Replay saved as: {}", name))
                                           .font(FontId::proportional(20.0))
+                    ));
+                } else if let ReplaySaveStatus::Error = &self.replay_save_status {
+                    ui.add(Label::new(RichText::new("Could not save the replay. Check if replay recording is enabled in settings.")
+                                          .font(FontId::proportional(20.0))
+                                          .color(Color32::RED)
                     ));
                 }
             });
@@ -281,5 +286,11 @@ fn time_to_weekday(time: f32) -> String {
     };
 
     format!("Week {}, {}", week, weekday)
+}
+
+pub enum ReplaySaveStatus {
+    Empty,
+    Saved(String),
+    Error,
 }
 

@@ -178,7 +178,7 @@ impl MainMenu {
                             columns[1].add_space(10.0);
                             
                             columns[1].label("Replays:");
-                            columns[1].checkbox(&mut settings.record_replays, "Save Replays");
+                            columns[1].checkbox(&mut settings.record_replays, "Record Replays");
                             let mut replay_folder = settings.replay_folder.clone().into_owned();
                             columns[1].horizontal(|ui| {
                                 ui.label("Replay Folder:");

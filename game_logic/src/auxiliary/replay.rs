@@ -83,13 +83,20 @@ impl Replay {
         Self::from_binary_string(&data)
     }
     
-    pub fn make_save_name(&self) -> String {
+    /// Returns the name of the save file based on the current time and player score.
+    /// Returns None if there are no states and the save is not possible.
+    pub fn make_save_name(&self) -> Option<String> {
         let mut name = String::from("replay_");
         name.push_str(&chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string());
-        let score = self.states.last().unwrap().player.get_score();
-        name.push_str(&format!("_score_{}", score));
-        name.push_str(".postcard");
-        name
+        let state_option = self.states.last();
+        if let Some(state) = state_option {
+            name.push_str(&format!("_score_{}", state.player.get_score()));
+            name.push_str(".postcard");
+            Some(name)
+        } else {
+            None
+        }
+
     }
     
     pub fn apply_state(&mut self, field: &mut Field, player: &mut Player) {
