@@ -23,7 +23,7 @@ class EnvConfig:
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 32_000_000
+    env_steps: int = 64_000_000
     time_total_s: Optional[int] = None  # if None, then env_steps is used
     iter_env_steps: int = 256
     load_from: str = None
@@ -51,13 +51,17 @@ class EvaluationConfig:
 class ModelConfig:
     nonlinear: str = 'tanh'
     dimensions: List[int] = field(default_factory=lambda: [1024, 512, 512, 512])
+    residual: bool = True
+    residual_main_dim: int = 1024
+    residual_hidden_dim: int = 1536
+    residual_num_blocks: int = 3
 
 
 @dataclass
 class PPOConfig:
     lr: float = 3e-4
     gamma: float = 0.995
-    update_epochs: int = 5  # todo: 1
+    update_epochs: int = 2  # todo: 1
     ent_coef: float = 0.01
     batch_size: int = 512
     rollout_fragment_length: Union[int, str] = 'auto'

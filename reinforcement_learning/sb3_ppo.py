@@ -9,7 +9,8 @@ from torch import nn
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
 from reinforcement_learning.config import CONFIG, ENV_KWARGS, WANDB_KWARGS
-from reinforcement_learning.model.model import FeatureExtractor
+from reinforcement_learning.model.feature_extractor import FeatureExtractor
+from reinforcement_learning.model.policy_network import CustomActorCriticPolicy
 
 
 class LoggingCallback(BaseCallback):
@@ -84,17 +85,24 @@ def main():
 
     env = make_vec_env(Minecraft2dEnv, n_envs=CONFIG.env.num_envs, env_kwargs=ENV_KWARGS, wrapper_class=wrapper_class)
 
-    policy_kwargs = dict(
-        net_arch=dict(pi=CONFIG.model.dimensions, vf=CONFIG.model.dimensions),
-        features_extractor_class=FeatureExtractor,
-        features_extractor_kwargs=dict(),
-    )
+    if CONFIG.model.residual:
+        policy = CustomActorCriticPolicy
+        policy_kwargs = dict(
+            features_extractor_class=FeatureExtractor,
+        )
+    else:
+        policy = "MultiInputPolicy"
+        policy_kwargs = dict(
+            net_arch=dict(pi=CONFIG.model.dimensions, vf=CONFIG.model.dimensions),
+            features_extractor_class=FeatureExtractor,
+            features_extractor_kwargs=dict(),
+        )
 
     if CONFIG.train.load_checkpoint is not None:
         print(f"Loading checkpoint from {CONFIG.train.load_checkpoint}")
         model = PPO.load(CONFIG.train.load_checkpoint, env, tensorboard_log=f"runs/{run.id}")
     else:
-        model = PPO("MultiInputPolicy", env, policy_kwargs=policy_kwargs,
+        model = PPO(policy, env, policy_kwargs=policy_kwargs,
                     verbose=0, tensorboard_log=f"runs/{run.id}",
                     learning_rate=CONFIG.ppo.lr,
                     n_steps=CONFIG.train.iter_env_steps,
