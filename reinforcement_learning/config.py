@@ -50,7 +50,7 @@ class EvaluationConfig:
 @dataclass
 class ModelConfig:
     nonlinear: str = 'tanh'
-    dimensions: List[int] = field(default_factory=lambda: [512, 512, 256, 256])
+    dimensions: List[int] = field(default_factory=lambda: [1024, 512, 512, 512])
 
 
 @dataclass

@@ -1,4 +1,5 @@
 use std::{fs, io};
+use std::error::Error;
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -87,42 +88,31 @@ pub fn load_game(path: &Path) -> Result<(Field, Player, Replay, MilestoneTracker
     Ok((field, player, Replay::new(), milestone_tracker))
 }
 
-pub fn get_directories(path: &Path) -> io::Result<Vec<String>> {
-    let mut directories = Vec::new();
+/// Returns a list of directories or files in the given path.
+/// Name and seconds since epoch of last modification are returned.
+/// 
+/// # Arguments
+/// 
+/// * `path` - The path to list directories or files in.
+/// * `directories` - If true, directories are listed. If false, files are listed.
+pub fn list_directory(path: &Path, directories: bool) -> Result<Vec<(String, i32)>, Box<dyn Error>> {
+    let mut result = Vec::new();
 
     for entry in fs::read_dir(path)? {
         let entry = entry?;
         let path = entry.path();
 
         // If the entry is a directory, add it to the list
-        if path.is_dir() {
+        if (directories && path.is_dir()) || (!directories && path.is_file()) {
             if let Some(filename) = path.file_name() {
-                directories.push(filename.to_string_lossy().into_owned());
+                let metadata = fs::metadata(&path)?;
+                let modified = metadata.modified()?.duration_since(std::time::SystemTime::UNIX_EPOCH)?.as_secs() as i32;
+                result.push((filename.to_string_lossy().into_owned(), modified));
             }
         }
     }
-    directories.sort();
 
-    Ok(directories)
-}
-
-pub fn get_files(path: &Path) -> io::Result<Vec<String>> {
-    let mut files = Vec::new();
-
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        // If the entry is a file, add it to the list
-        if path.is_file() {
-            if let Some(filename) = path.file_name() {
-                files.push(filename.to_string_lossy().into_owned());
-            }
-        }
-    }
-    files.sort();
-
-    Ok(files)
+    Ok(result)
 }
 
 pub fn get_full_path(path: &Path) -> PathBuf {

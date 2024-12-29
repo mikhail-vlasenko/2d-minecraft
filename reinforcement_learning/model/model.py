@@ -15,17 +15,21 @@ class FeatureExtractor(nn.Module):
 
         self.material_channels = 8
         self.height_channels = 8
-        self.mob_heads = 12
-        self.mob_dim = 8 * self.mob_heads
-        self.loot_heads = 12
-        self.loot_dim = 4 * self.loot_heads
+        self.mob_heads = 16
+        self.mob_dim = 16 * self.mob_heads
+        self.loot_heads = 8
+        self.loot_dim = 8 * self.loot_heads
 
         self.block_encoder = nn.Sequential(
             nn.Linear(NUM_MATERIALS, self.material_channels),
             nn.Tanh(),  # relu will likely lead to dead neurons, as input is one-hot
         )
-        self.height_conv = nn.Sequential(
-            nn.Conv2d(1, self.height_channels, kernel_size=3, stride=(1, 1), padding=(0, 0)),
+        self.height_conv_hor = nn.Sequential(
+            nn.Conv2d(1, self.height_channels, kernel_size=(1, 3), stride=(1, 1), padding=(0, 0)),
+            nn.GELU(),
+        )
+        self.height_conv_vert = nn.Sequential(
+            nn.Conv2d(1, self.height_channels, kernel_size=(3, 1), stride=(1, 1), padding=(0, 0)),
             nn.GELU(),
         )
         self.mob_encoder = nn.Sequential(
@@ -85,8 +89,10 @@ class FeatureExtractor(nn.Module):
         tile_heights = observation["tile_heights"] / 4  # max height is 4
         tile_heights = tile_heights[:, self.height_grid_start:self.height_grid_end,
                                        self.height_grid_start:self.height_grid_end].unsqueeze(1)
-        height_features = self.height_conv(tile_heights)
-        height_features = height_features.view(height_features.size(0), -1)
+        height_features_hor = self.height_conv_hor(tile_heights)
+        height_features_hor = height_features_hor.view(height_features_hor.size(0), -1)
+        height_features_vert = self.height_conv_vert(tile_heights)
+        height_features_vert = height_features_vert.view(height_features_vert.size(0), -1)
 
         mobs = observation["mobs"]  # (batch_size, NUM_MOBS, MOB_INFO_SIZE)
         # first two mob features are x and y positions, which should be log-scaled
@@ -106,8 +112,11 @@ class FeatureExtractor(nn.Module):
         inventory = observation["inventory_state"] / 4  # arbitrary downscaling
         inventory = self.inventory_encoder(inventory)
 
-        return torch.cat([near_materials, pooled_materials, height_features, mob_pool, loot_pool, inventory,
-                          self.extract_flat_features(observation)], dim=1)
+        return torch.cat([
+            near_materials, pooled_materials, height_features_hor, height_features_vert,
+            mob_pool, loot_pool, inventory,
+            self.extract_flat_features(observation)
+        ], dim=1)
 
     def extract_flat_features(self, observation: dict) -> torch.Tensor:
         player_pos = observation["player_pos"]
