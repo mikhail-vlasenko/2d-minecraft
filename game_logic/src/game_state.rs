@@ -65,7 +65,7 @@ impl GameState {
 
     pub fn step(&mut self, action: &Action, main_menu_open: &RefCell<bool>, craft_menu_open: &RefCell<bool>) {
         if action == &Action::ToggleMainMenu || (!self.is_done() && !*main_menu_open.borrow()) {
-            self.player.message = String::new();
+            self.player.reset_message();
             // different actions take different time, so sometimes mobs are not allowed to step
             let passed_time = act(
                 action,

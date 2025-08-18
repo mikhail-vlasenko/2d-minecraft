@@ -386,7 +386,7 @@ impl<'a> State<'a> {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
-            if !self.game_state.player.viewing_map {
+            if !self.game_state.player.is_viewing_map() {
                 self.render_game(&mut render_pass);
             } else {
                 self.render_map(&mut render_pass);

@@ -19,7 +19,7 @@ pub fn map_key_to_action(key: &KeyCode, player: &Player) -> Option<Action> {
         KeyCode::Space => Some(Action::ToggleCraftMenu),
         KeyCode::Escape => {
             // if player is interacting, close the interaction, otherwise toggle the main menu
-            if player.interacting_with.is_some() {
+            if player.get_interacting_with().is_some() {
                 Some(Action::CloseInteractableMenu)
             } else {
                 Some(Action::ToggleMainMenu)

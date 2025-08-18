@@ -23,7 +23,7 @@ impl InteractablesMenu {
         field: &mut Field,
         width: f32,
     ) {
-        let inter_pos = player.interacting_with.unwrap();
+        let inter_pos = player.get_interacting_with().unwrap();
         let kind = field.get_interactable_kind_at(inter_pos).unwrap();
         egui::Window::new(format!("{} menu", kind))
             .anchor(Align2::CENTER_CENTER, [0., 0.])

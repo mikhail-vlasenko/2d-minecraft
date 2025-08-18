@@ -86,7 +86,7 @@ impl Observation {
         }
         let loot = close_loot;
         let score = player.get_score();
-        let message = CString::new(player.message.clone()).unwrap().into_raw();
+        let message = CString::new(player.get_message()).unwrap().into_raw();
         let done = is_done;
         Self {
             top_materials,

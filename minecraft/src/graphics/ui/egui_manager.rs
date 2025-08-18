@@ -66,11 +66,11 @@ impl EguiManager {
             |context| {
                 if *self.main_menu_open.borrow() {
                     self.main_menu.render_main_menu(context, config.width as f32 / 2.1);
-                } else if !player.viewing_map {
+                } else if !player.is_viewing_map() {
                     self.render_place_craft_menu(context, player);
                     self.render_inventory(context, player);
                     self.render_info(context, player, field.get_time());
-                    if player.interacting_with.is_some() {
+                    if player.get_interacting_with().is_some() {
                         self.interactables_menu.render_interact_menu(context, player, field, config.width as f32 / 2.1);
                     }
                     if *self.craft_menu_open.borrow() {
@@ -229,7 +229,7 @@ impl EguiManager {
                 ui.label(format!("Time: {}", time));
                 ui.label(time_to_weekday(time));
                 ui.label(format!("Score: {}", player.get_score()));
-                ui.label(format!("{}", player.message));
+                ui.label(format!("{}", player.get_message()));
             });
     }
 

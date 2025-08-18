@@ -29,18 +29,20 @@ pub struct Player {
     /// list of status effects and their remaining duration
     status_effects: Vec<(StatusEffect, i32)>,
 
-    // Storables that will be used for the corresponding actions
-    // Are set though UI
+    /// Storables that will be used for the corresponding actions
+    /// Are set though UI
     pub placement_storable: Storable,
     pub crafting_item: Storable,
     pub consumable: Consumable,
     pub ranged_weapon: RangedWeapon,
+    
     /// The absolute map location of the interactable the player is currently interacting with.
-    pub interacting_with: Option<(i32, i32)>,
-    pub viewing_map: bool,
+    interacting_with: Option<(i32, i32)>,
+    viewing_map: bool,
 
-    pub message: String,
-    pub score: i32,
+    message: String,
+    pub(in crate::character) score: i32,
+    /// Buffer for animations that are not yet rendered.
     pub animations_buffer: AnimationsBuffer,
 }
 
@@ -202,9 +204,7 @@ impl Player {
     ///
     /// returns: how much action was spent.
     fn step(&mut self, field: &mut Field, delta: (i32, i32)) -> f32 {
-        if self.interacting_with.is_some() {
-            self.interacting_with = None;
-        }
+        self.stop_interacting();
         let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
         if field.len_at(new_pos) <= self.pos.z + 1 {
             // fighting
@@ -394,6 +394,14 @@ impl Player {
             self.add_message(&format!("Interactable does not have {} of {}", amount, item));
         }
     }
+    
+    pub fn get_interacting_with(&self) -> Option<(i32, i32)> {
+        self.interacting_with
+    }
+    
+    pub fn stop_interacting(&mut self) {
+        self.interacting_with = None;
+    }
 
     fn damage_mob(&mut self, field: &mut Field, pos: (i32, i32), dmg: i32) {
         let mob_kind = field.get_mob_kind_at(pos).unwrap();
@@ -410,9 +418,7 @@ impl Player {
     /// * `side`: -1 or 1; 1 is counterclockwise.
     /// returns: how much action was spent.
     pub fn turn(&mut self, side: i32) -> f32 {
-        if self.interacting_with.is_some() {
-            self.interacting_with = None;
-        }
+        self.stop_interacting();
         self.rotation += side as f32;
         0.25 * self.get_speed_multiplier()
     }
@@ -476,8 +482,16 @@ impl Player {
         self.inventory.get_all()
     }
 
+    pub fn is_viewing_map(&self) -> bool {
+        self.viewing_map
+    }
+    
     pub fn toggle_map(&mut self) {
         self.viewing_map = !self.viewing_map;
+    }
+
+    pub fn get_message(&self) -> &str {
+        &self.message
     }
 
     pub fn add_message(&mut self, new: &str) {

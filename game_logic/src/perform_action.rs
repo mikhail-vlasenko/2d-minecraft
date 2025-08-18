@@ -17,7 +17,7 @@ pub fn act(action: &Action, player: &mut Player, field: &mut Field, craft_menu_o
         Craft => player.craft_current(field),
         Consume => player.consume_current(),
         Shoot => player.shoot_current(field),
-        CloseInteractableMenu => { player.interacting_with = None; 0. },
+        CloseInteractableMenu => { player.stop_interacting(); 0. },
         ToggleMap => { player.toggle_map(); 0. },
         ToggleCraftMenu => { craft_menu_open.replace(!craft_menu_open.take()); 0. },
         ToggleMainMenu => { main_menu_open.replace(!main_menu_open.take()); 0. },
