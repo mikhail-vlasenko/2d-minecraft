@@ -37,5 +37,6 @@ pub fn act(action: &Action, player: &mut Player, field: &mut Field, craft_menu_o
             player.consumable = consumable.clone();
             player.consume_current()
         }
+        UseAbility(ability) => player.use_ability(ability, field),
     }
 }

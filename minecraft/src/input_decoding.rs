@@ -1,5 +1,6 @@
 use winit::keyboard::KeyCode;
 use game_logic::auxiliary::actions::Action;
+use game_logic::character::abilities::Ability::{Barricade, Charge, SecondWind, WhirlAttack};
 use game_logic::character::player::Player;
 
 pub fn map_key_to_action(key: &KeyCode, player: &Player) -> Option<Action> {
@@ -15,6 +16,10 @@ pub fn map_key_to_action(key: &KeyCode, player: &Player) -> Option<Action> {
         KeyCode::KeyC => Some(Action::Craft),
         KeyCode::KeyF => Some(Action::Consume),
         KeyCode::KeyX => Some(Action::Shoot),
+        KeyCode::Digit1 => Some(Action::UseAbility(WhirlAttack)),
+        KeyCode::Digit2 => Some(Action::UseAbility(Charge)),
+        KeyCode::Digit3 => Some(Action::UseAbility(Barricade)),
+        KeyCode::Digit4 => Some(Action::UseAbility(SecondWind)),
         KeyCode::KeyM => Some(Action::ToggleMap),
         KeyCode::Space => Some(Action::ToggleCraftMenu),
         KeyCode::Escape => {

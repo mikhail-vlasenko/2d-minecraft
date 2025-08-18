@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
+use crate::character::abilities::Ability;
 use crate::character::player::Player;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::InteractableKind;
@@ -30,6 +31,8 @@ pub enum Action {
     PlaceSpecificInteractable(InteractableKind),
     CraftSpecific(Storable),
     ConsumeSpecific(Consumable),
+    
+    UseAbility(Ability),
 }
 
 impl Action {
@@ -50,10 +53,7 @@ pub fn can_take_action(action: &Action, player: &Player, field: &Field) -> bool 
     use Action::*;
     match action {
         WalkNorth | WalkWest | WalkSouth | WalkEast => {
-            let delta = player.walk_delta(action);
-            let player_pos = player.get_position();
-            let new_pos = (player_pos.x + delta.0, player_pos.y + delta.1);
-            field.len_at(new_pos) <= player_pos.z + 1
+            player.can_walk(action, field)
         } 
         TurnLeft | TurnRight => true, 
         Mine => {
@@ -81,5 +81,8 @@ pub fn can_take_action(action: &Action, player: &Player, field: &Field) -> bool 
         ConsumeSpecific(consumable) => {
             player.has(&C(*consumable))
         },
+        UseAbility(ability) => {
+            player.is_ability_ready(ability)
+        }
     }
 }

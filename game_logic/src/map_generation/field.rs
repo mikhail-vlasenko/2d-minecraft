@@ -112,6 +112,7 @@ impl Field {
         self.accumulated_time += passed_time;
         while self.accumulated_time >= 1. {
             player.step_status_effects();
+            player.step_ability_cooldowns();
             self.step_interactables(player);
             let rng: f32 = rand::random();
             if rng > 0.9 {

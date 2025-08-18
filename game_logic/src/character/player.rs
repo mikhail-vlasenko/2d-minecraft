@@ -3,11 +3,12 @@ use std::f32::consts::PI;
 use serde::{Serialize, Deserialize};
 use crate::auxiliary::actions::Action;
 use crate::auxiliary::animations::{AnimationsBuffer, ProjectileType};
+use crate::character::abilities::AbilityState;
 use crate::character::status_effects::StatusEffect;
 use crate::crafting::consumable::Consumable;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::map_generation::block::Block;
-use crate::map_generation::field::{AbsoluteChunkPos, AbsolutePos, Field};
+use crate::map_generation::field::{AbsoluteChunkPos, AbsolutePos, Field, RelativePos};
 use crate::crafting::inventory::Inventory;
 use crate::crafting::items::Item::Arrow;
 use crate::crafting::material::Material;
@@ -28,6 +29,7 @@ pub struct Player {
     inventory: Inventory,
     /// list of status effects and their remaining duration
     status_effects: Vec<(StatusEffect, i32)>,
+    pub(in crate::character) ability_state: AbilityState,
 
     /// Storables that will be used for the corresponding actions
     /// Are set though UI
@@ -35,7 +37,7 @@ pub struct Player {
     pub crafting_item: Storable,
     pub consumable: Consumable,
     pub ranged_weapon: RangedWeapon,
-    
+
     /// The absolute map location of the interactable the player is currently interacting with.
     interacting_with: Option<(i32, i32)>,
     viewing_map: bool,
@@ -58,6 +60,7 @@ impl Player {
             hp: SETTINGS.read().unwrap().player.max_hp,
             inventory: Inventory::new(),
             status_effects: Vec::new(),
+            ability_state: AbilityState::new(),
             placement_storable: Plank.into(),
             crafting_item: Storable::M(Plank),
             consumable: Consumable::Apple,
@@ -189,10 +192,20 @@ impl Player {
             _ => unreachable!()
         }
     }
-    
+
     pub fn walk(&mut self, walk_action: &Action, field: &mut Field) -> f32 {
         let delta = self.walk_delta(walk_action);
+        if !self.can_walk(walk_action, field) {
+            self.add_message(&"Too high to step on");
+            return 0.;
+        }
         self.step(field, delta)
+    }
+
+    pub fn can_walk(&self, walk_action: &Action, field: &Field) -> bool {
+        let delta = self.walk_delta(walk_action);
+        let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
+        field.len_at(new_pos) <= self.pos.z + 1
     }
 
     /// Moves the Player by (delta_x, delta_y), checking for height conditions.
@@ -206,36 +219,31 @@ impl Player {
     fn step(&mut self, field: &mut Field, delta: (i32, i32)) -> f32 {
         self.stop_interacting();
         let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
-        if field.len_at(new_pos) <= self.pos.z + 1 {
-            // fighting
-            if field.is_occupied(new_pos) {
-                self.damage_mob(field, new_pos, self.get_melee_damage());
-                return self.get_speed_multiplier()
-            }
-            // movement
-            self.pos.x += delta.0;
-            self.pos.y += delta.1;
-            self.land(field);
-
-            // loot
-            let loot = field.gather_loot_at(self.xy());
-            if loot.len() > 0 {
-                for l in loot {
-                    self.add_message(&format!("Looted {}", l));
-                    self.pickup(l, 1);
-                }
-            }
-
-            // chunk loading
-            let curr_chunk: AbsoluteChunkPos = (field.chunk_pos(self.pos.x), field.chunk_pos(self.pos.y));
-            if curr_chunk != field.get_central_chunk() {
-                field.load(curr_chunk.0, curr_chunk.1);
-            }
-            self.get_speed_multiplier()
-        } else {
-            self.add_message(&"Too high to step on");
-            0.
+        // fighting
+        if field.is_occupied(new_pos) {
+            self.damage_mob(field, new_pos, self.get_melee_damage());
+            return self.get_speed_multiplier()
         }
+        // movement
+        self.pos.x += delta.0;
+        self.pos.y += delta.1;
+        self.land(field);
+
+        // loot
+        let loot = field.gather_loot_at(self.xy());
+        if loot.len() > 0 {
+            for l in loot {
+                self.add_message(&format!("Looted {}", l));
+                self.pickup(l, 1);
+            }
+        }
+
+        // chunk loading
+        let curr_chunk: AbsoluteChunkPos = (field.chunk_pos(self.pos.x), field.chunk_pos(self.pos.y));
+        if curr_chunk != field.get_central_chunk() {
+            field.load(curr_chunk.0, curr_chunk.1);
+        }
+        self.get_speed_multiplier()
     }
 
     /// Sets the z coordinate of the Player
@@ -253,7 +261,7 @@ impl Player {
                 }
             }
         }
-        return false;
+        false
     }
 
     /// Returns Ok if the player can craft the item, 
@@ -314,6 +322,10 @@ impl Player {
 
     pub fn pickup(&mut self, storable: Storable, amount: u32) {
         self.inventory.pickup(storable, amount)
+    }
+
+    pub(in crate::character) fn drop(&mut self, storable: &Storable, amount: u32) -> bool {
+        self.inventory.drop(storable, amount)
     }
 
     pub fn consume(&mut self, consumable: Consumable) -> f32 {
@@ -394,16 +406,16 @@ impl Player {
             self.add_message(&format!("Interactable does not have {} of {}", amount, item));
         }
     }
-    
+
     pub fn get_interacting_with(&self) -> Option<(i32, i32)> {
         self.interacting_with
     }
-    
+
     pub fn stop_interacting(&mut self) {
         self.interacting_with = None;
     }
 
-    fn damage_mob(&mut self, field: &mut Field, pos: (i32, i32), dmg: i32) {
+    pub fn damage_mob(&mut self, field: &mut Field, pos: (i32, i32), dmg: i32) {
         let mob_kind = field.get_mob_kind_at(pos).unwrap();
         let died = field.damage_mob(pos, dmg);
         if died {
@@ -424,7 +436,7 @@ impl Player {
     }
 
     /// Computes delta_x and delta_y that, added to the Player position, give a cell in front of him.
-    pub fn coords_from_rotation(&self) -> (i32, i32) {
+    pub fn coords_from_rotation(&self) -> RelativePos {
         (-(self.rotation * PI / 2.).cos() as i32, -(self.rotation * PI / 2.).sin() as i32)
     }
 
@@ -438,7 +450,7 @@ impl Player {
         }
     }
     
-    pub fn coords_infront(&self) -> (i32, i32) {
+    pub fn coords_infront(&self) -> AbsolutePos {
         let (delta_x, delta_y) = self.coords_from_rotation();
         (self.pos.x + delta_x, self.pos.y + delta_y)
     }
@@ -485,7 +497,7 @@ impl Player {
     pub fn is_viewing_map(&self) -> bool {
         self.viewing_map
     }
-    
+
     pub fn toggle_map(&mut self) {
         self.viewing_map = !self.viewing_map;
     }
