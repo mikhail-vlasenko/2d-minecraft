@@ -93,9 +93,11 @@ impl TileAnimation {
     }
 }
 
+#[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct AnimationManager {
     tile_animations: Vec<TileAnimation>,
     projectile_animations: Vec<ProjectileAnimation>,
+    enabled: bool,
 }
 
 impl AnimationManager {
@@ -103,7 +105,16 @@ impl AnimationManager {
         Self {
             tile_animations: Vec::new(),
             projectile_animations: Vec::new(),
+            enabled: false,
         }
+    }
+    
+    pub fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+    
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
     }
 
     pub fn get_tile_animations(&self) -> &Vec<TileAnimation> {

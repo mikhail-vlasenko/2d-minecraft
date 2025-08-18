@@ -4,10 +4,8 @@ use std::os::raw::c_char;
 use interoptopus::{ffi_constant, ffi_type};
 use game_logic::character::player::Player;
 use game_logic::crafting::storable::{ALL_STORABLES, Storable};
-use game_logic::is_game_over;
-use game_logic::map_generation::field::Field;
+use game_logic::game_state::GameState;
 use game_logic::settings::DEFAULT_SETTINGS;
-use crate::game_state::GameState;
 
 
 // use constants for array sizes to avoid dynamically sized arrays that may leak memory during FFI
@@ -53,7 +51,7 @@ impl Observation {
     pub fn new(
         vec_top_materials: Vec<Vec<i32>>, 
         vec_tile_heights: Vec<Vec<i32>>, 
-        field: &Field, player: &Player, 
+        time: f32, player: &Player, is_done: bool,
         close_mobs: Vec<[i32; MOB_INFO_SIZE as usize]>, 
         close_loot: [[i32; LOOT_INFO_SIZE as usize]; MAX_MOBS as usize],
         action_mask: [i32; NUM_ACTIONS as usize],
@@ -72,8 +70,7 @@ impl Observation {
         let player_pos = [player.x, player.y, player.z as i32];
         let player_rot = player.get_rotation() as i32;
         let hp = player.get_hp();
-        let time = field.get_time();
-        
+
         let mut inventory_state = [0; INVENTORY_SIZE as usize];
         for (storable, n) in player.get_inventory() {
             let idx = storable_to_inv_index(storable);
@@ -89,7 +86,7 @@ impl Observation {
         let loot = close_loot;
         let score = player.get_score();
         let message = CString::new(player.message.clone()).unwrap().into_raw();
-        let done = is_game_over(player);
+        let done = is_done;
         Self {
             top_materials,
             tile_heights,

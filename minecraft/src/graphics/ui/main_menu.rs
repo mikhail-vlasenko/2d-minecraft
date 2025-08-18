@@ -2,7 +2,6 @@ use std::path::Path;
 use std::process::exit;
 use egui::{ComboBox, ScrollArea, Slider, TextEdit};
 use egui::{Align2, Color32, FontId, RichText, Context};
-use game_logic::character::player::Player;
 use game_logic::map_generation::save_load::{list_directory, get_full_path};
 use game_logic::SETTINGS;
 use game_logic::settings::Settings;
@@ -39,7 +38,6 @@ impl MainMenu {
     pub fn render_main_menu(
         &mut self,
         context: &Context,
-        player: &mut Player,
         width: f32,
     ) {
         let mut settings = SETTINGS.write().unwrap();  // lock SETTINGS once at the beginning

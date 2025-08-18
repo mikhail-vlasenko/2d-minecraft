@@ -32,9 +32,10 @@ use crate::graphics::ui::main_menu::{SecondPanelState, SelectedOption};
 use game_logic::map_generation::chunk::Chunk;
 use game_logic::map_generation::read_chunk::read_file;
 use game_logic::map_generation::save_load::{load_game, save_game};
-use game_logic::{handle_action, init_game, SETTINGS};
+use game_logic::SETTINGS;
 use game_logic::auxiliary::replay::Replay;
 use game_logic::character::milestones::MilestoneTracker;
+use game_logic::game_state::GameState;
 use crate::graphical_config::CONFIG;
 use crate::input_decoding::map_key_to_action;
 
@@ -59,12 +60,8 @@ pub struct State<'a> {
     bind_groups: TextureBindGroups,
     pub egui_renderer: EguiRenderer,
     egui_manager: EguiManager,
-    animation_manager: AnimationManager,
-    recorded_replay: Replay,
     active_replay: Option<Replay>,
-    milestone_tracker: MilestoneTracker,
-    field: Field,
-    player: Player,
+    game_state: GameState,
 }
 
 impl<'a> State<'a> {
@@ -171,13 +168,12 @@ impl<'a> State<'a> {
 
         let egui_manager = EguiManager::new();
 
-        let animation_manager = AnimationManager::new();
-        
         let active_replay = None;
 
-        let (field, player, recorded_replay, milestone_tracker) = init_game();
+        let mut game_state = GameState::new();
+        game_state.enable_animations();
 
-        let buffers = Buffers::new(&device, field.get_map_render_distance() as i32);
+        let buffers = Buffers::new(&device, game_state.field.get_map_render_distance() as i32);
 
         // Set the record_replays to true when running with graphics
         SETTINGS.write().unwrap().record_replays = true;
@@ -194,21 +190,13 @@ impl<'a> State<'a> {
             bind_groups,
             egui_renderer,
             egui_manager,
-            animation_manager,
-            recorded_replay,
             active_replay,
-            milestone_tracker,
-            field,
-            player,
+            game_state,
         }
     }
 
     pub fn new_game(&mut self) {
-        let (field, player, replay, milestone_tracker) = init_game();
-        self.field = field;
-        self.player = player;
-        self.recorded_replay = replay;
-        self.milestone_tracker = milestone_tracker;
+        self.game_state.reset();
         self.egui_manager.replay_save_status = ReplaySaveStatus::Empty;
     }
 
@@ -234,29 +222,25 @@ impl<'a> State<'a> {
             KeyCode::F1 => {
                 if self.active_replay.is_some() {
                     let replay = self.active_replay.as_mut().unwrap();
-                    replay.step_back(&mut self.field, &mut self.player)
+                    replay.step_back(&mut self.game_state.field, &mut self.game_state.player)
                 }
             }
             KeyCode::F2 => { 
                 if self.active_replay.is_some() {
                     let replay = self.active_replay.as_mut().unwrap();
                     if !replay.finished() {
-                        replay.apply_state(&mut self.field, &mut self.player);
+                        replay.apply_state(&mut self.game_state.field, &mut self.game_state.player);
                     }
                 }
             }
             _ => {
-                let action = map_key_to_action(virtual_keycode, &self.player);
+                let action = map_key_to_action(virtual_keycode, &self.game_state.player);
                 if action.is_some() {
-                    handle_action(
+                    self.game_state.step(
                         &action.unwrap(),
-                        &mut self.field, &mut self.player,
                         &self.egui_manager.main_menu_open,
                         &self.egui_manager.craft_menu_open,
-                        Some(&mut self.animation_manager),
-                        &mut self.recorded_replay,
-                        &mut self.milestone_tracker,
-                    );
+                    )
                 }
             }
         }
@@ -307,7 +291,7 @@ impl<'a> State<'a> {
         if self.egui_manager.main_menu.selected_option == SelectedOption::SaveGame {
             let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
             path.push(self.egui_manager.main_menu.save_name.clone());
-            save_game(&self.field, &self.player, &self.milestone_tracker, path.as_path());
+            self.game_state.save_game(path.as_path());
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
         }
@@ -315,15 +299,10 @@ impl<'a> State<'a> {
         if self.egui_manager.main_menu.selected_option == SelectedOption::LoadGame {
             let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
             path.push(self.egui_manager.main_menu.save_name.clone());
-            let (field, player, replay, milestone_tracker) = load_game(path.as_path()).unwrap();
-            self.field = field;
-            self.player = player;
-            self.recorded_replay = replay;
-            self.milestone_tracker = milestone_tracker;
+            self.game_state.load_game(path.as_path());
             self.egui_manager.main_menu_open.replace(false);
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
-            self.animation_manager.clear();
         }
         
         if self.egui_manager.main_menu.selected_option == SelectedOption::WatchReplay {
@@ -333,18 +312,18 @@ impl<'a> State<'a> {
             self.egui_manager.main_menu_open.replace(false);
             self.egui_manager.main_menu.selected_option = SelectedOption::Nothing;
             self.egui_manager.main_menu.second_panel = SecondPanelState::About;
-            self.animation_manager.clear();
+            self.game_state.animation_manager.clear();
             // start the replay
             self.handle_action(&KeyCode::F2);
         }
         
         if self.egui_manager.save_replay_clicked {
             let path = PathBuf::from(SETTINGS.read().unwrap().replay_folder.clone().into_owned());
-            let name = self.recorded_replay.make_save_name();
+            let name = self.game_state.recorded_replay.make_save_name();
             self.egui_manager.save_replay_clicked = false;
             if let Some(name) = name {
                 let path = path.join(name.clone());
-                self.recorded_replay.save(path.as_path());
+                self.game_state.recorded_replay.save(path.as_path());
                 self.egui_manager.replay_save_status = ReplaySaveStatus::Saved(name);
             } else {
                 self.egui_manager.replay_save_status = ReplaySaveStatus::Error;
@@ -352,10 +331,10 @@ impl<'a> State<'a> {
             
         }
 
-        let mob_positions_and_hp = self.field.close_mob_info(|mob| {
-                let pos = absolute_to_relative((mob.pos.x, mob.pos.y), &self.player);
+        let mob_positions_and_hp = self.game_state.field.close_mob_info(|mob| {
+                let pos = absolute_to_relative((mob.pos.x, mob.pos.y), &self.game_state.player);
                 (pos, mob.get_hp_share())
-            }, &self.player);
+            }, &self.game_state.player);
 
         self.buffers.hp_bar_vertex_buffers = vec![];
         for mob_info in &mob_positions_and_hp {
@@ -407,7 +386,7 @@ impl<'a> State<'a> {
 
             render_pass.set_pipeline(&self.render_pipeline);
 
-            if !self.player.viewing_map {
+            if !self.game_state.player.viewing_map {
                 self.render_game(&mut render_pass);
             } else {
                 self.render_map(&mut render_pass);
@@ -417,7 +396,7 @@ impl<'a> State<'a> {
         self.egui_manager.render_ui(
             &mut self.egui_renderer,
             &self.config, &self.device, &self.queue, &mut encoder, &view, self.window,
-            &mut self.player, &mut self.field,
+            &mut self.game_state.player, &mut self.game_state.field,
         );
 
         self.queue.submit(iter::once(encoder.finish()));
@@ -438,7 +417,7 @@ impl<'a> State<'a> {
         render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.player_instance_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_player(), &[]);
-        let idx = self.player.get_rotation();
+        let idx = self.game_state.player.get_rotation();
         render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
         
         self.render_animations(render_pass);
@@ -515,14 +494,14 @@ impl<'a> State<'a> {
 
     /// Draws top material or texture. in case of texture also draws material underneath
     fn draw_material(&'a self, pos: AbsolutePos, render_pass: &mut RenderPass<'a>, map: bool) {
-        let material = self.field.top_material_at(pos);
+        let material = self.game_state.field.top_material_at(pos);
         let idx = if map {
-            self.convert_map_view_index(pos.0 - self.player.x, pos.1 - self.player.y)
+            self.convert_map_view_index(pos.0 - self.game_state.player.x, pos.1 - self.game_state.player.y)
         } else {
-            State::convert_index((pos.0 - self.player.x, pos.1 - self.player.y), 0)
+            State::convert_index((pos.0 - self.game_state.player.x, pos.1 - self.game_state.player.y), 0)
         };
         if let Material::Texture(_) = material {
-            let non_texture = self.field.non_texture_material_at(pos);
+            let non_texture = self.game_state.field.non_texture_material_at(pos);
             render_pass.set_bind_group(
                 0, self.bind_groups.get_bind_group_material(non_texture), &[]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
@@ -541,8 +520,8 @@ impl<'a> State<'a> {
     fn render_field(&'a self, render_pass: &mut RenderPass<'a>) {
         // let now = Instant::now();
         // draw materials of top block in tiles
-        for i in (self.player.x - CONFIG.render_distance as i32)..=(self.player.x + CONFIG.render_distance as i32) {
-            for j in (self.player.y - CONFIG.render_distance as i32)..=(self.player.y + CONFIG.render_distance as i32) {
+        for i in (self.game_state.player.x - CONFIG.render_distance as i32)..=(self.game_state.player.x + CONFIG.render_distance as i32) {
+            for j in (self.game_state.player.y - CONFIG.render_distance as i32)..=(self.game_state.player.y + CONFIG.render_distance as i32) {
                 self.draw_material((i, j), render_pass, false);
             }
         }
@@ -550,7 +529,7 @@ impl<'a> State<'a> {
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_depth(i), &[]);
-            let depth = self.field.depth_indices(&self.player, i + 2);
+            let depth = self.game_state.field.depth_indices(&self.game_state.player, i + 2);
             self.draw_at_grid_positions(&depth, &mut *render_pass, None);
         }
 
@@ -559,18 +538,18 @@ impl<'a> State<'a> {
             render_pass.set_bind_group(0,
                                        &self.bind_groups.get_bind_group_interactable(interactable),
                                        &[]);
-            let interactables = self.field.interactable_indices(&self.player, interactable);
+            let interactables = self.game_state.field.interactable_indices(&self.game_state.player, interactable);
             self.draw_at_grid_positions(&interactables, &mut *render_pass, None);
         }
 
         // draw loot where exists
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_loot(), &[]);
-        let loot = self.field.loot_indices(&self.player);
+        let loot = self.game_state.field.loot_indices(&self.game_state.player);
         self.draw_at_grid_positions(&loot, &mut *render_pass, None);
 
         // draw arrows left from shooting
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_arrow(), &[]);
-        let loot = self.field.arrow_indices(&self.player);
+        let loot = self.game_state.field.arrow_indices(&self.game_state.player);
         self.draw_at_grid_positions(&loot, &mut *render_pass, None);
         // let elapsed = now.elapsed();
         // println!("Elapsed: {:.2?}", elapsed);
@@ -583,7 +562,7 @@ impl<'a> State<'a> {
             render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_mob(mob_kind), &[]);
 
-            let mut mobs = self.field.mob_indices(&self.player, mob_kind);
+            let mut mobs = self.game_state.field.mob_indices(&self.game_state.player, mob_kind);
             mobs = mobs.into_iter().filter(
                 |(pos, _)| pos.0.abs() <= max_drawable_index && pos.1.abs() <= max_drawable_index
             ).collect();
@@ -607,17 +586,17 @@ impl<'a> State<'a> {
     fn render_animations(&'a self, render_pass: &mut RenderPass<'a>) {
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
         for i in 0..self.buffers.animation_vertex_buffers.len() {
-            let animation = self.animation_manager.get_tile_animations()[i];
+            let animation = self.game_state.animation_manager.get_tile_animations()[i];
             render_pass.set_vertex_buffer(0, self.buffers.animation_vertex_buffers[i].slice(..));
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_animation(*animation.get_animation_type()), &[]);
-            let mut rel_animation_positions = vec![absolute_to_relative(*animation.get_pos(), &self.player)];
+            let mut rel_animation_positions = vec![absolute_to_relative(*animation.get_pos(), &self.game_state.player)];
             rel_animation_positions = self.filter_out_of_view_tiles(rel_animation_positions);
             self.draw_at_grid_positions(&rel_animation_positions, render_pass, None);
         }
 
         render_pass.set_vertex_buffer(1, self.buffers.projectile_instance_buffer.slice(..));
         for i in 0..self.buffers.projectile_vertex_buffers.len() {
-            let animation = self.animation_manager.get_projectile_animations()[i];
+            let animation = self.game_state.animation_manager.get_projectile_animations()[i];
             render_pass.set_vertex_buffer(0, self.buffers.projectile_vertex_buffers[i].slice(..));
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_projectile(*animation.get_projectile_type()), &[]);
             render_pass.draw_indexed(0..INDICES.len() as u32, 0, i as u32..(i+1) as u32);
@@ -625,8 +604,8 @@ impl<'a> State<'a> {
     }
 
     fn render_night(&'a self, render_pass: &mut RenderPass<'a>) {
-        if self.field.is_night() {
-            if self.field.is_red_moon() {
+        if self.game_state.field.is_night() {
+            if self.game_state.field.is_red_moon() {
                 render_pass.set_bind_group(0, self.bind_groups.get_bind_group_red_moon(), &[]);
             } else {
                 render_pass.set_bind_group(0, self.bind_groups.get_bind_group_night(), &[]);
@@ -639,10 +618,10 @@ impl<'a> State<'a> {
     
     fn update_animations(&mut self) {
         // update before writing vertices. new animations will not change
-        self.animation_manager.update();
+        self.game_state.animation_manager.update();
         // tile animations are animated by moving texture coordinates, so a separate vertex buffer is needed per animation
         self.buffers.animation_vertex_buffers = vec![];
-        for tile_animation in self.animation_manager.get_tile_animations() {
+        for tile_animation in self.game_state.animation_manager.get_tile_animations() {
             self.buffers.animation_vertex_buffers.push(self.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: Some("Animation Vertex Buffer"),
@@ -657,7 +636,7 @@ impl<'a> State<'a> {
         // so it needs an instance per animation,
         // and also a separate vertex buffer per animation as projectile animations come in different shapes
         self.buffers.projectile_vertex_buffers = vec![];
-        for projectile_animation in self.animation_manager.get_projectile_animations() {
+        for projectile_animation in self.game_state.animation_manager.get_projectile_animations() {
             let vertices = match projectile_animation.get_projectile_type() {
                 ProjectileType::Arrow => PROJECTILE_ARROW_VERTICES,
                 ProjectileType::GelatinousCube => CENTERED_SQUARE_VERTICES,
@@ -671,9 +650,9 @@ impl<'a> State<'a> {
             ));
         }
         let mut projectile_instances = vec![];
-        for projectile_animation in self.animation_manager.get_projectile_animations() {
+        for projectile_animation in self.game_state.animation_manager.get_projectile_animations() {
             projectile_instances.push(self.projectile_instance(
-                projectile_animation.get_relative_position(&self.player), projectile_animation.get_rotation()));
+                projectile_animation.get_relative_position(&self.game_state.player), projectile_animation.get_rotation()));
         }
         let projectile_instance_data = projectile_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         self.buffers.projectile_instance_buffer = self.device.create_buffer_init(
@@ -686,9 +665,9 @@ impl<'a> State<'a> {
     }
 
     fn convert_map_view_index(&self, x: i32, y: i32) -> u32 {
-        (-x + self.field.get_map_render_distance() as i32) as u32 *
-            ((self.field.get_map_render_distance() as u32 * 2) + 1) +
-            (y + self.field.get_map_render_distance() as i32) as u32
+        (-x + self.game_state.field.get_map_render_distance() as i32) as u32 *
+            ((self.game_state.field.get_map_render_distance() as u32 * 2) + 1) +
+            (y + self.game_state.field.get_map_render_distance() as i32) as u32
     }
     
     fn filter_out_of_view_tiles(&self, positions: Vec<RelativePos>) -> Vec<RelativePos> {
@@ -704,9 +683,9 @@ impl<'a> State<'a> {
         render_pass.set_vertex_buffer(1, self.buffers.map_instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        let radius = self.field.get_map_render_distance() as i32;
-        for i in (self.player.x - radius)..=(self.player.x + radius) {
-            for j in (self.player.y - radius)..=(self.player.y + radius) {
+        let radius = self.game_state.field.get_map_render_distance() as i32;
+        for i in (self.game_state.player.x - radius)..=(self.game_state.player.x + radius) {
+            for j in (self.game_state.player.y - radius)..=(self.game_state.player.y + radius) {
                 self.draw_material((i, j), render_pass, true);
             }
         }

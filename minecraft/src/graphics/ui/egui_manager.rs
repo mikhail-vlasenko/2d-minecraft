@@ -65,7 +65,7 @@ impl EguiManager {
             screen_descriptor,
             |context| {
                 if *self.main_menu_open.borrow() {
-                    self.main_menu.render_main_menu(context, player, config.width as f32 / 2.1);
+                    self.main_menu.render_main_menu(context, config.width as f32 / 2.1);
                 } else if !player.viewing_map {
                     self.render_place_craft_menu(context, player);
                     self.render_inventory(context, player);

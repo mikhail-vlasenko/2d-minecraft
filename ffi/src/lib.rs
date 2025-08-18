@@ -4,12 +4,13 @@ use interoptopus::{ffi_function, Inventory, InventoryBuilder, function, constant
 use interoptopus::{Error, Interop};
 use lazy_static::lazy_static;
 use game_logic::auxiliary::actions::Action;
+use game_logic::game_state::GameState;
 use game_logic::SETTINGS;
 
-use crate::game_state::GameState;
+use crate::observation_provider::ObservationProvider;
 use crate::observation::Observation;
 
-pub mod game_state;
+pub mod observation_provider;
 pub mod observation;
 pub mod ffi_config;
 
