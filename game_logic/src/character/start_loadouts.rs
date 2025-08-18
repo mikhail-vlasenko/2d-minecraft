@@ -82,7 +82,7 @@ fn spawn_close_zombies(field: &mut Field, player: &Player, amount: usize) {
     }
     positions = positions.into_iter().unique().collect();
     for pos in positions {
-        let abs_pos = relative_to_absolute(pos, player);
+        let abs_pos = relative_to_absolute(pos, player.xy());
         let mut mob = Mob::new(Position::new(abs_pos, field), MobKind::Zombie);
         if random() {
             mob.receive_damage(MobKind::Zombie.get_max_hp() / 2);

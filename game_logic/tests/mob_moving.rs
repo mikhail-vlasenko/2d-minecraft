@@ -116,8 +116,7 @@ fn test_gelatinous_cubes_jump_and_kill() {
         }
     }
 
-    data.player.x = 5;
-    data.player.y = 6;
+    data.place_player((5, 6));
     for i in 0..3 {
         let pos = Position { x: 4, y: -i, z: 2 };
         let mob = Mob::new(pos, GelatinousCube);

@@ -10,8 +10,7 @@ use game_logic::map_generation::mobs::mob_kind::MobKind::{Baneling, Zergling};
 #[test]
 fn test_placed_turret_kills() {
     let mut data = Data::new();
-    data.player.x = 10;
-    data.player.y = 9;
+    data.place_player((10, 9));
     let pos = Position {
         x: 8,
         y: 8,
@@ -33,8 +32,7 @@ fn test_placed_turret_kills() {
 #[test]
 fn test_placed_turret_targets_only_banes() {
     let mut data = Data::new();
-    data.player.x = 10;
-    data.player.y = 9;
+    data.place_player((10, 9));
     let pos = Position {
         x: 8,
         y: 8,
@@ -68,8 +66,7 @@ fn test_placed_turret_targets_only_banes() {
 #[test]
 fn test_loading_turret() {
     let mut data = Data::new();
-    data.player.x = 10;
-    data.player.y = 9;
+    data.place_player((10, 9));
     let pos = Position {
         x: 8,
         y: 8,
@@ -87,8 +84,7 @@ fn test_loading_turret() {
 #[test]
 fn test_turret_limited_range() {
     let mut data = Data::new();
-    data.player.x = 15;
-    data.player.y = 15;
+    data.place_player((15, 15));
     let pos = Position {
         x: 0,
         y: 0,

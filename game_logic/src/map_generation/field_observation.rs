@@ -46,10 +46,11 @@ impl Field {
 
     fn indices_around_player<F: Fn(AbsolutePos) -> bool>(&self, player: &Player, condition: F, radius: i32) -> Vec<RelativePos> {
         let mut res = Vec::new();
-        for i in (player.x - radius)..=(player.x + radius) {
-            for j in (player.y - radius)..=(player.y + radius) {
+        let (player_x, player_y) = player.xy();
+        for i in (player_x - radius)..=(player_x + radius) {
+            for j in (player_y - radius)..=(player_y + radius) {
                 if condition((i, j)) {
-                    res.push((i - player.x, j - player.y));
+                    res.push((i - player_x, j - player_y));
                 }
             }
         }
@@ -98,13 +99,14 @@ impl Field {
     /// Positions are centered on the player.
     /// Checks stray mobs, so can be used during mob turns.
     pub fn mob_indices(&self, player: &Player, kind: MobKind) -> Vec<(RelativePos, u32)> {
+        let (player_x, player_y) = player.xy();
         let mut res= self.conditional_close_mob_info(|m| {
-            ((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation())
+            ((m.pos.x - player_x, m.pos.y - player_y), m.get_rotation())
         }, player, |m: &Mob| { m.get_kind() == &kind });
 
         for m in self.get_stray_mobs() {
             if m.get_kind() == &kind && self.is_position_visible(player, (m.pos.x, m.pos.y)) {
-                res.push(((m.pos.x - player.x, m.pos.y - player.y), m.get_rotation()));
+                res.push(((m.pos.x - player_x, m.pos.y - player_y), m.get_rotation()));
             }
         }
         res
@@ -113,6 +115,7 @@ impl Field {
     /// Makes a list of infos for mobs that are close enough to be visible.
     /// Can't be used during mob turns, as it doesn't account for stray mobs
     pub fn conditional_close_mob_info<F: Fn(&Mob) -> T, T, C: Fn(&Mob) -> bool>(&self, info_extractor: F, player: &Player, condition: C) -> Vec<T> {
+        let (player_x, player_y) = player.xy();
         let mut res= Vec::new();
 
         // selects a square of chunks around the player that are close enough to have some tiles in view
@@ -124,8 +127,8 @@ impl Field {
 
                 // a position on the target chunk
                 let absolute_pos: AbsolutePos = (
-                    (i as i32 - middle_idx) * self.get_chunk_size() as i32 + player.x, 
-                    (j as i32 - middle_idx) * self.get_chunk_size() as i32 + player.y);
+                    (i as i32 - middle_idx) * self.get_chunk_size() as i32 + player_x, 
+                    (j as i32 - middle_idx) * self.get_chunk_size() as i32 + player_y);
                 for m in self.get_chunk_immut(absolute_pos.0, absolute_pos.1).get_mobs() {
                     if self.is_position_visible(player, (m.pos.x, m.pos.y)) && condition(m) {
                         res.push(info_extractor(m));
@@ -153,21 +156,23 @@ impl Field {
     }
 
     fn is_position_visible(&self, player: &Player, pos: AbsolutePos) -> bool {
-        (pos.0 - player.x).abs() <= self.get_render_distance() as i32 &&
-            (pos.1 - player.y).abs() <= self.get_render_distance() as i32
+        let (player_x, player_y) = player.xy();
+        (pos.0 - player_x).abs() <= self.get_render_distance() as i32 &&
+            (pos.1 - player_y).abs() <= self.get_render_distance() as i32
     }
 }
 
 pub fn get_tile_observation(field: &Field, player: &Player) -> (Vec<Vec<Material>>, Vec<Vec<i32>>) {
+    let (player_x, player_y) = player.xy();
     let render_distance = field.get_render_distance() as i32;
     let observation_grid_size = render_distance as usize * 2 + 1;
     let mut top_materials = vec![vec![Material::default(); observation_grid_size]; observation_grid_size];
     let mut tile_heights = vec![vec![0; observation_grid_size]; observation_grid_size];
-    for i in (player.x - render_distance)..=(player.x + render_distance) {
-        for j in (player.y - render_distance)..=(player.y + render_distance) {
+    for i in (player_x - render_distance)..=(player_x + render_distance) {
+        for j in (player_y - render_distance)..=(player_y + render_distance) {
             let pos: AbsolutePos = (i, j);
-            let idx = ((i - player.x + render_distance) as usize,
-                       (j - player.y + render_distance) as usize);
+            let idx = ((i - player_x + render_distance) as usize,
+                       (j - player_y + render_distance) as usize);
             top_materials[idx.0][idx.1] = field.top_material_at(pos);
             tile_heights[idx.0][idx.1] = field.len_at(pos) as i32;
         }

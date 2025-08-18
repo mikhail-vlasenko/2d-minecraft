@@ -332,7 +332,7 @@ impl<'a> State<'a> {
         }
 
         let mob_positions_and_hp = self.game_state.field.close_mob_info(|mob| {
-                let pos = absolute_to_relative((mob.pos.x, mob.pos.y), &self.game_state.player);
+                let pos = absolute_to_relative((mob.pos.x, mob.pos.y), self.game_state.player.xy());
                 (pos, mob.get_hp_share())
             }, &self.game_state.player);
 
@@ -494,11 +494,12 @@ impl<'a> State<'a> {
 
     /// Draws top material or texture. in case of texture also draws material underneath
     fn draw_material(&'a self, pos: AbsolutePos, render_pass: &mut RenderPass<'a>, map: bool) {
+        let (player_x, player_y) = self.game_state.player.xy();
         let material = self.game_state.field.top_material_at(pos);
         let idx = if map {
-            self.convert_map_view_index(pos.0 - self.game_state.player.x, pos.1 - self.game_state.player.y)
+            self.convert_map_view_index(pos.0 - player_x, pos.1 - player_y)
         } else {
-            State::convert_index((pos.0 - self.game_state.player.x, pos.1 - self.game_state.player.y), 0)
+            State::convert_index((pos.0 - player_x, pos.1 - player_y), 0)
         };
         if let Material::Texture(_) = material {
             let non_texture = self.game_state.field.non_texture_material_at(pos);
@@ -519,9 +520,10 @@ impl<'a> State<'a> {
     /// * `render_pass`: the primary render pass
     fn render_field(&'a self, render_pass: &mut RenderPass<'a>) {
         // let now = Instant::now();
+        let (player_x, player_y) = self.game_state.player.xy();
         // draw materials of top block in tiles
-        for i in (self.game_state.player.x - CONFIG.render_distance as i32)..=(self.game_state.player.x + CONFIG.render_distance as i32) {
-            for j in (self.game_state.player.y - CONFIG.render_distance as i32)..=(self.game_state.player.y + CONFIG.render_distance as i32) {
+        for i in (player_x - CONFIG.render_distance as i32)..=(player_x + CONFIG.render_distance as i32) {
+            for j in (player_y - CONFIG.render_distance as i32)..=(player_y + CONFIG.render_distance as i32) {
                 self.draw_material((i, j), render_pass, false);
             }
         }
@@ -589,7 +591,7 @@ impl<'a> State<'a> {
             let animation = self.game_state.animation_manager.get_tile_animations()[i];
             render_pass.set_vertex_buffer(0, self.buffers.animation_vertex_buffers[i].slice(..));
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_animation(*animation.get_animation_type()), &[]);
-            let mut rel_animation_positions = vec![absolute_to_relative(*animation.get_pos(), &self.game_state.player)];
+            let mut rel_animation_positions = vec![absolute_to_relative(*animation.get_pos(), self.game_state.player.xy())];
             rel_animation_positions = self.filter_out_of_view_tiles(rel_animation_positions);
             self.draw_at_grid_positions(&rel_animation_positions, render_pass, None);
         }
@@ -652,7 +654,7 @@ impl<'a> State<'a> {
         let mut projectile_instances = vec![];
         for projectile_animation in self.game_state.animation_manager.get_projectile_animations() {
             projectile_instances.push(self.projectile_instance(
-                projectile_animation.get_relative_position(&self.game_state.player), projectile_animation.get_rotation()));
+                projectile_animation.get_relative_position(self.game_state.player.xy()), projectile_animation.get_rotation()));
         }
         let projectile_instance_data = projectile_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         self.buffers.projectile_instance_buffer = self.device.create_buffer_init(
@@ -683,9 +685,10 @@ impl<'a> State<'a> {
         render_pass.set_vertex_buffer(1, self.buffers.map_instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
+        let (player_x, player_y) = self.game_state.player.xy();
         let radius = self.game_state.field.get_map_render_distance() as i32;
-        for i in (self.game_state.player.x - radius)..=(self.game_state.player.x + radius) {
-            for j in (self.game_state.player.y - radius)..=(self.game_state.player.y + radius) {
+        for i in (player_x - radius)..=(player_x + radius) {
+            for j in (player_y - radius)..=(player_y + radius) {
                 self.draw_material((i, j), render_pass, true);
             }
         }

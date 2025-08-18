@@ -15,15 +15,14 @@ use crate::crafting::material::Material::*;
 use crate::crafting::ranged_weapon::RangedWeapon;
 use crate::crafting::storable::Storable;
 use crate::crafting::storable::Storable::{I, RW};
+use crate::map_generation::mobs::mob::Position;
 use crate::SETTINGS;
 
 
 /// The player.
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Player {
-    pub x: i32,
-    pub y: i32,
-    pub z: usize,
+    pos: Position,
     rotation: f32,
     hp: i32,
     inventory: Inventory,
@@ -47,10 +46,12 @@ pub struct Player {
 
 impl Player {
     pub fn new(field: &Field) -> Self {
-        let mut player = Self {
-            x: 0,
-            y: 0,
-            z: 0,
+        Self::new_at(field, (0, 0))
+    }
+
+    pub fn new_at(field: &Field, xy: (i32, i32)) -> Self {
+        Self {
+            pos: Position::new(xy, field),
             rotation: 0.,
             hp: SETTINGS.read().unwrap().player.max_hp,
             inventory: Inventory::new(),
@@ -64,9 +65,7 @@ impl Player {
             message: String::new(),
             score: 0,
             animations_buffer: AnimationsBuffer::new(),
-        };
-        player.land(field);
-        player
+        }
     }
     /// Breaks the top block or picks up the interactable at the given position.
     /// Returns how much action was spent.
@@ -171,6 +170,14 @@ impl Player {
         }
     }
 
+    pub fn get_position(&self) -> &Position {
+        &self.pos
+    }
+
+    pub fn xy(&self) -> (i32, i32) {
+        (self.pos.x, self.pos.y)
+    }
+
     pub fn walk_delta(&self, walk_action: &Action) -> (i32, i32) {
         match walk_action {
             Action::WalkNorth => (-1, 0),
@@ -198,20 +205,20 @@ impl Player {
         if self.interacting_with.is_some() {
             self.interacting_with = None;
         }
-        let new_pos = (self.x + delta.0, self.y + delta.1);
-        if field.len_at(new_pos) <= self.z + 1 {
+        let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
+        if field.len_at(new_pos) <= self.pos.z + 1 {
             // fighting
             if field.is_occupied(new_pos) {
                 self.damage_mob(field, new_pos, self.get_melee_damage());
                 return self.get_speed_multiplier()
             }
             // movement
-            self.x += delta.0;
-            self.y += delta.1;
+            self.pos.x += delta.0;
+            self.pos.y += delta.1;
             self.land(field);
 
             // loot
-            let loot = field.gather_loot_at((self.x, self.y));
+            let loot = field.gather_loot_at(self.xy());
             if loot.len() > 0 {
                 for l in loot {
                     self.add_message(&format!("Looted {}", l));
@@ -220,7 +227,7 @@ impl Player {
             }
 
             // chunk loading
-            let curr_chunk: AbsoluteChunkPos = (field.chunk_pos(self.x), field.chunk_pos(self.y));
+            let curr_chunk: AbsoluteChunkPos = (field.chunk_pos(self.pos.x), field.chunk_pos(self.pos.y));
             if curr_chunk != field.get_central_chunk() {
                 field.load(curr_chunk.0, curr_chunk.1);
             }
@@ -233,7 +240,7 @@ impl Player {
 
     /// Sets the z coordinate of the Player
     pub fn land(&mut self, field: &Field) {
-        self.z = field.len_at((self.x, self.y));
+        self.pos.z = field.len_at(self.xy());
     }
 
     fn exists_around(&self, field: &Field, material: &Material) -> bool {
@@ -241,7 +248,7 @@ impl Player {
         let y_indices = vec![-1, 0, 1];
         for x in x_indices {
             for y in &y_indices {
-                if &field.top_material_at((self.x + x, self.y + y)) == material {
+                if &field.top_material_at((self.pos.x + x, self.pos.y + y)) == material {
                     return true;
                 }
             }
@@ -333,8 +340,8 @@ impl Player {
             return 0.;
         }
         let direction = self.coords_from_rotation();
-        let mut curr_tile = (self.x, self. y);
-        let height = self.z + 1;
+        let mut curr_tile = self.xy();
+        let height = self.pos.z + 1;
         for _ in 0..weapon.range() {
             curr_tile = (curr_tile.0 + direction.0, curr_tile.1 + direction.1);
             if field.len_at(curr_tile) > height {
@@ -353,7 +360,7 @@ impl Player {
             } else {
                 self.add_message(&"Arrow broke");
             }
-            self.animations_buffer.add_projectile_animation(ProjectileType::Arrow, (self.x, self.y), curr_tile);
+            self.animations_buffer.add_projectile_animation(ProjectileType::Arrow, self.xy(), curr_tile);
         }
         self.get_speed_multiplier()
     }
@@ -427,7 +434,7 @@ impl Player {
     
     pub fn coords_infront(&self) -> (i32, i32) {
         let (delta_x, delta_y) = self.coords_from_rotation();
-        (self.x + delta_x, self.y + delta_y)
+        (self.pos.x + delta_x, self.pos.y + delta_y)
     }
 
     pub fn add_status_effect(&mut self, effect: StatusEffect, duration: i32) {

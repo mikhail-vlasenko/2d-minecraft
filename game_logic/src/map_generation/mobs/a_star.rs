@@ -79,14 +79,10 @@ impl AStar {
                         println!("Max priority: {}", max_priority);
                         println!("Source: {:?}", source);
                         println!("Destination: {:?}", destination);
-                        let mut dummy_player = Player::new(field);
-                        dummy_player.x = destination.0;
-                        dummy_player.y = destination.1;
-                        dummy_player.land(field);
                         let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
                         let num: u16 = random();
                         path.push(format!("a_star_error_{}", num));
-                        save_game(field, &dummy_player, &MilestoneTracker::new(), &path);
+                        save_game(field, &Player::new(field), &MilestoneTracker::new(), &path);
                         println!("Saved the game to {:?}", path);
                         unreachable!("A* backtracking loop should finish before reaching this point");
                     }

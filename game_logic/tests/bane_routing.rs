@@ -8,8 +8,7 @@ use game_logic::map_generation::mobs::mob_kind::MobKind::{Baneling};
 #[test]
 fn test_horizontal_wall_explode() {
     let mut data = Data::maze();
-    data.player.x = 2;
-    data.player.y = 3;
+    data.place_player((2, 3));
     let pos = Position {
         x: 0,
         y: 3,
@@ -27,8 +26,7 @@ fn test_horizontal_wall_explode() {
 #[test]
 fn test_vertical_wall_explode() {
     let mut data = Data::maze();
-    data.player.x = 3;
-    data.player.y = 13;
+    data.place_player((3, 13));
     let pos = Position {
         x: 3,
         y: 15,
@@ -46,8 +44,7 @@ fn test_vertical_wall_explode() {
 #[test]
 fn test_shorter_horizontal_wall_explode() {
     let mut data = Data::maze();
-    data.player.x = 2;
-    data.player.y = 2;
+    data.place_player((2, 2));
     let pos = Position {
         x: 0,
         y: 2,
@@ -65,8 +62,7 @@ fn test_shorter_horizontal_wall_explode() {
 #[test]
 fn test_horizontal_wall_go_around() {
     let mut data = Data::maze();
-    data.player.x = 2;
-    data.player.y = 1;
+    data.place_player((2, 1));
     let pos = Position {
         x: 0,
         y: 1,
@@ -102,8 +98,7 @@ fn test_banes_kill() {
 #[test]
 fn test_banes_bust_and_kill() {
     let mut data = Data::maze();
-    data.player.x = 5;
-    data.player.y = 6;
+    data.place_player((5, 6));
     for i in 0..20 {
         let pos = Position { x: 4, y: -i, z: 2 };
         let mob = Mob::new(pos, Baneling);

@@ -103,7 +103,7 @@ impl Replay {
         let state = &self.states[self.current_step];
         player.clone_from(&state.player);
         field.set_time(state.time);
-        field.set_visible_tiles(&state.top_materials, &state.tile_heights, (player.x, player.y));
+        field.set_visible_tiles(&state.top_materials, &state.tile_heights, player.xy());
         field.set_mobs(state.mobs.clone());
         self.clear_field_loot(field, player);
         self.place_field_loot(field);
@@ -152,6 +152,6 @@ impl Replay {
     }
     
     fn vec_to_absolute(&self, vec: Vec<RelativePos>, player: &Player) -> Vec<AbsolutePos> {
-        vec.iter().map(|pos| relative_to_absolute(*pos, player)).collect()
+        vec.iter().map(|pos| relative_to_absolute(*pos, player.xy())).collect()
     }
 }

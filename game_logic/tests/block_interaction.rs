@@ -63,7 +63,7 @@ fn test_player_good_weather() {
     assert!(!data.player.has(&Storable::I(IronSword)));
 
     data.act(WalkSouth);
-    assert_eq!(data.player.z, 1);
+    assert_eq!(data.player.get_position().z, 1);
     data.act(TurnLeft);
     data.mine();
     data.mine();

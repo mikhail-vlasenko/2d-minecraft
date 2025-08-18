@@ -25,6 +25,16 @@ impl Position {
         let z = field.len_at(xy);
         Position { x, y, z }
     }
+
+    pub fn manhattan_distance(&self, other: &Position) -> i32 {
+        (self.x - other.x).abs() + (self.y - other.y).abs()
+    }
+}
+
+impl From<(i32, i32)> for Position {
+    fn from(xy: (i32, i32)) -> Self {
+        Position { x: xy.0, y: xy.1, z: 0 }
+    }
 }
 
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
@@ -65,7 +75,8 @@ impl Mob {
             can_step(field, (self.pos.x, self.pos.y), new_pos) {
 
             self.set_rotation(Self::coords_to_rotation(delta));
-            if player.x == new_pos.0 && player.y == new_pos.1 {
+            let (player_x, player_y) = player.xy();
+            if player_x == new_pos.0 && player_y == new_pos.1 {
                 player.receive_damage(self.kind.get_melee_damage());
             } else {
                 self.pos.x = new_pos.0;
@@ -90,11 +101,12 @@ impl Mob {
 
     fn step_relative_to_player(&mut self, field: &mut Field, player: &mut Player,
                                min_loaded: (i32, i32), max_loaded: (i32, i32), towards: bool) {
+        let (player_x, player_y) = player.xy();
         let directions = if towards {
-            ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum())
+            ((player_x - self.pos.x).signum(), (player_y - self.pos.y).signum())
         } else {
             // otherwise, move away from player
-            ((self.pos.x - player.x).signum(), (self.pos.y - player.y).signum())
+            ((self.pos.x - player_x).signum(), (self.pos.y - player_y).signum())
         };
 
         let mut possible = Vec::new();
@@ -117,7 +129,8 @@ impl Mob {
     }
 
     fn check_baneling_explosion(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        let directions = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
+        let (player_x, player_y) = player.xy();
+        let directions = ((player_x - self.pos.x).signum(), (player_y - self.pos.y).signum());
 
         // baneling will explode if the shortest path to player is blocked, or it is next to the player
         let this_height = field.len_at((self.pos.x, self.pos.y));
@@ -126,15 +139,15 @@ impl Mob {
         let horizontal_cant_go = directions.1 == 0 ||
             field.len_at((self.pos.x, self.pos.y + directions.1)) > this_height + 1;
 
-        let next_to_player = self.pos.x + directions.0 == player.x && self.pos.y + directions.1 == player.y;
-        let visible = (max((player.x - self.pos.x).abs(),
-                           (player.y - self.pos.y).abs()) as usize) <= SETTINGS.read().unwrap().window.render_distance as usize;
+        let next_to_player = self.pos.x + directions.0 == player_x && self.pos.y + directions.1 == player_y;
+        let visible = (max((player_x - self.pos.x).abs(),
+                           (player_y - self.pos.y).abs()) as usize) <= SETTINGS.read().unwrap().window.render_distance as usize;
 
         if (vertical_cant_go && horizontal_cant_go  || next_to_player) && visible {
             let (a_star_directions, len) = field.full_pathing(
                 (self.pos.x, self.pos.y),
-                (player.x, player.y),
-                (player.x, player.y),
+                (player_x, player_y),
+                (player_x, player_y),
                 Some(2)
             );
             if a_star_directions == (0, 0) || next_to_player {
@@ -151,15 +164,16 @@ impl Mob {
     }
     
     fn jump_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+        let (player_x, player_y) = player.xy();
+        let dist = (player_x - self.pos.x).abs() + (player_y - self.pos.y).abs();
         let mut new_pos = (self.pos.x, self.pos.y);
         if dist <= self.kind.jump_distance() {
             // jump on the player
-            new_pos = (player.x, player.y);
+            new_pos = (player_x, player_y);
             player.receive_damage(self.kind.get_melee_damage());
         } else {
             // jump in the direction of the player
-            let dir = ((player.x - self.pos.x).signum(), (player.y - self.pos.y).signum());
+            let dir = ((player_x - self.pos.x).signum(), (player_y - self.pos.y).signum());
             for _ in 0..self.kind.jump_distance() {
                 if rand::random() {
                     new_pos.0 += dir.0;
@@ -183,7 +197,7 @@ impl Mob {
 
     pub fn update_state(&mut self, field: &Field, player: &mut Player) {
         if self.kind == Zergling && self.state == MobState::Searching {
-            let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+            let dist = self.pos.manhattan_distance(player.get_position());
             if dist <= ZERGLING_ATTACK_RANGE {
                 // check if there are at least 2 other zerglings near the player
                 let indices = field.mob_indices(player, Zergling);
@@ -276,7 +290,7 @@ impl ActingWithSpeed for Mob {
             }
         }
 
-        let dist = (player.x - self.pos.x).abs() + (player.y - self.pos.y).abs();
+        let dist = self.pos.manhattan_distance(player.get_position());
 
         if dist == 0 {
             // deal damage because mob stands on the player
@@ -300,8 +314,8 @@ impl ActingWithSpeed for Mob {
             // within a* range, so do full path search
             let (direction, _) = field.full_pathing(
                 (self.pos.x, self.pos.y),
-                (player.x, player.y),
-                (player.x, player.y),
+                player.xy(),
+                player.xy(),
                 None
             );
             if self.kind == GelatinousCube && direction == (0, 0) && self.kind.jump_distance() >= dist {

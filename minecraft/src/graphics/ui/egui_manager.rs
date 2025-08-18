@@ -210,8 +210,11 @@ impl EguiManager {
     fn render_info(&self, context: &Context, player: &Player, time: f32) {
         egui::Window::new("Info").anchor(Align2::RIGHT_TOP, [0., 0.])
             .show(context, |ui| {
-                ui.add(Label::new(
-                    format!("Position: {}, {}, {}", player.x, player.y, player.z)
+                ui.add(Label::new({
+                    let player_pos = player.get_position();
+                    format!("Position: {}, {}, {}", 
+                            player_pos.x, player_pos.y, player_pos.z)
+                }
                 ).wrap(false));
                 ui.add(Label::new({
                     let mut text = RichText::new(format!("HP: {}/100", player.get_hp()));

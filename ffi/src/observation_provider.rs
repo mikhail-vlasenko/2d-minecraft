@@ -29,7 +29,7 @@ impl ObservationProvider for GameState {
     fn get_closest_mobs(&self) -> Vec<[i32; MOB_INFO_SIZE as usize]> {
         let mob_kinds = MobKind::iter().collect::<Vec<MobKind>>();
         let mut mobs = self.field.close_mob_info(|mob| {
-            let pos = absolute_to_relative((mob.pos.x, mob.pos.y), &self.player);
+            let pos = absolute_to_relative((mob.pos.x, mob.pos.y), self.player.xy());
             let mut arr = [0; MOB_INFO_SIZE as usize];
             let idx = mob_kinds.iter().position(| kind | { kind == mob.get_kind() }).unwrap();
             arr[0] = pos.0;

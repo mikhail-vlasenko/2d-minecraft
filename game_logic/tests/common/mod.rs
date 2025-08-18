@@ -38,6 +38,10 @@ impl Data {
         let test_chunk = Chunk::from(read_file(String::from("res/chunks/maze_chunk.txt")));
         Self::create_with_chunk(test_chunk)
     }
+    
+    pub fn place_player(&mut self, xy: (i32, i32)) {
+        self.player = Player::new_at(&self.field, xy);
+    }
 
     pub fn act(&mut self, action: Action) -> f32 {
         act(&action, &mut self.player, &mut self.field,

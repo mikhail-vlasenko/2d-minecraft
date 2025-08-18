@@ -51,8 +51,9 @@ pub fn can_take_action(action: &Action, player: &Player, field: &Field) -> bool 
     match action {
         WalkNorth | WalkWest | WalkSouth | WalkEast => {
             let delta = player.walk_delta(action);
-            let new_pos = (player.x + delta.0, player.y + delta.1);
-            field.len_at(new_pos) <= player.z + 1
+            let player_pos = player.get_position();
+            let new_pos = (player_pos.x + delta.0, player_pos.y + delta.1);
+            field.len_at(new_pos) <= player_pos.z + 1
         } 
         TurnLeft | TurnRight => true, 
         Mine => {

@@ -17,7 +17,7 @@ use crate::map_generation::block::Block;
 use crate::map_generation::chunk::Chunk;
 use crate::map_generation::chunk_loader::ChunkLoader;
 use crate::map_generation::mobs::a_star::AStar;
-use crate::map_generation::mobs::mob::{Mob};
+use crate::map_generation::mobs::mob::{Mob, Position};
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::map_generation::mobs::spawning::create_mob;
 use crate::SETTINGS;
@@ -184,7 +184,7 @@ impl Field {
         for _ in 0..amount {
             let tile = self.pick_tile();
             // not too close
-            if ((tile.0 - player.x).abs() + (tile.1 - player.y).abs()) >
+            if player.get_position().manhattan_distance(&tile.into()) >
                 (2 * self.render_distance) as i32 {
 
                 let is_red_moon = self.is_red_moon();
@@ -226,7 +226,7 @@ impl Field {
                 if self.is_occupied((i, j)) {
                     self.damage_mob((i, j), damage);
                 }
-                if player.x == i && player.y == j {
+                if player.xy() == (i, j) {
                     player.receive_damage(damage);
                 }
             }
@@ -541,10 +541,10 @@ pub type AbsolutePos = (i32, i32);
 pub type RelativePos = (i32, i32);  // relative to the player
 pub type AbsoluteChunkPos = (i32, i32);
 
-pub fn absolute_to_relative((x, y): AbsolutePos, player: &Player) -> RelativePos {
-    (x - player.x, y - player.y)
+pub fn absolute_to_relative((x, y): AbsolutePos, player_xy: (i32, i32)) -> RelativePos {
+    (x - player_xy.0, y - player_xy.1)
 }
 
-pub fn relative_to_absolute((x, y): RelativePos, player: &Player) -> AbsolutePos {
-    (x + player.x, y + player.y)
+pub fn relative_to_absolute((x, y): RelativePos, player_xy: (i32, i32)) -> AbsolutePos {
+    (x + player_xy.0, y + player_xy.1)
 }

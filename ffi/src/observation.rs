@@ -67,7 +67,8 @@ impl Observation {
                 tile_heights[i][j] = vec_tile_heights[i][j];
             }
         }
-        let player_pos = [player.x, player.y, player.z as i32];
+        let player_pos = player.get_position();
+        let player_pos = [player_pos.x, player_pos.y, player_pos.z as i32];
         let player_rot = player.get_rotation() as i32;
         let hp = player.get_hp();
 

@@ -108,11 +108,11 @@ impl AnimationManager {
             enabled: false,
         }
     }
-    
+
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
-    
+
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
@@ -233,9 +233,9 @@ impl ProjectileAnimation {
         (x, y)
     }
 
-    pub fn get_relative_position(&self, player: &Player) -> (f32, f32) {
+    pub fn get_relative_position(&self, player_xy: (i32, i32)) -> (f32, f32) {
         let (x, y) = self.get_position();
-        (x - player.x as f32, y - player.y as f32)
+        (x - player_xy.0 as f32, y - player_xy.1 as f32)
     }
 
     pub fn get_rotation(&self) -> f32 {
