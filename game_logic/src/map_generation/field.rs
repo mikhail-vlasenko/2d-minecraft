@@ -339,12 +339,12 @@ impl Field {
     /// returns: mutable reference to the Chunk at this position, or panics if the Chunk is not loaded
     pub fn get_chunk(&mut self, x: i32, y: i32) -> std::sync::MutexGuard<Chunk> {
         let chunk_idx = self.chunk_idx_from_pos(x, y);
-        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].lock().unwrap();
+        self.loaded_chunks[chunk_idx.0][chunk_idx.1].lock().unwrap()
     }
 
     pub fn get_chunk_immut(&self, x: i32, y: i32) -> std::sync::MutexGuard<Chunk> {
         let chunk_idx = self.chunk_idx_from_pos(x, y);
-        return self.loaded_chunks[chunk_idx.0][chunk_idx.1].lock().unwrap();
+        self.loaded_chunks[chunk_idx.0][chunk_idx.1].lock().unwrap()
     }
 
     /// Chunk's index in the loaded_chunks vector.

@@ -116,7 +116,7 @@ impl Player {
 
         for (dx, dy) in deltas {
             let target_pos = (player_x + dx, player_y + dy);
-            if field.is_occupied(target_pos) {
+            if field.is_occupied(target_pos) & (field.len_at(target_pos) <= self.get_position().z + 1)  {
                 self.damage_mob(field, target_pos, self.get_melee_damage());
                 enemies_hit += 1;
             }
