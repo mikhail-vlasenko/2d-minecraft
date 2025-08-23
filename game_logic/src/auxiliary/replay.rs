@@ -44,10 +44,11 @@ impl Replay {
     }
     
     pub fn record_state(&mut self, field: &Field, player: &Player, ) {
+        let player_pos = player.xy();
         let (top_materials, tile_heights) = get_tile_observation(field, player);
-        let loot_positions = self.vec_to_absolute(field.loot_indices(player), player);
-        let arrow_positions = self.vec_to_absolute(field.arrow_indices(player), player);
-        let mobs = field.close_mob_info(|mob| mob.clone(), player);
+        let loot_positions = self.vec_to_absolute(field.loot_indices(player_pos), player_pos);
+        let arrow_positions = self.vec_to_absolute(field.arrow_indices(player_pos), player_pos);
+        let mobs = field.close_mob_info(|mob| mob.clone(), player_pos);
         let time = field.get_time();
         self.states.push(ObservableState {
             top_materials,
@@ -130,8 +131,9 @@ impl Replay {
     }
     
     fn clear_field_loot(&self, field: &mut Field, player: &Player) {
-        let loot_positions = self.vec_to_absolute(field.loot_indices(player), player);
-        let arrow_positions = self.vec_to_absolute(field.arrow_indices(player), player);
+        let player_pos = player.xy();
+        let loot_positions = self.vec_to_absolute(field.loot_indices(player_pos), player_pos);
+        let arrow_positions = self.vec_to_absolute(field.arrow_indices(player_pos), player_pos);
         for pos in loot_positions {
             field.gather_loot_at(pos);
         }
@@ -151,7 +153,7 @@ impl Replay {
         }
     }
     
-    fn vec_to_absolute(&self, vec: Vec<RelativePos>, player: &Player) -> Vec<AbsolutePos> {
-        vec.iter().map(|pos| relative_to_absolute(*pos, player.xy())).collect()
+    fn vec_to_absolute(&self, vec: Vec<RelativePos>, player_pos: AbsolutePos) -> Vec<AbsolutePos> {
+        vec.iter().map(|pos| relative_to_absolute(*pos, player_pos)).collect()
     }
 }

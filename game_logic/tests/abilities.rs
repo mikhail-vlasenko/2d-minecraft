@@ -27,7 +27,7 @@ fn whirlwind_hits() {
 
     let mob_hp = data.field.close_mob_info(|mob| {
         mob.get_hp_share()},
-        &data.player,
+        data.player.xy(),
     );
     for hp in mob_hp {
         assert_eq!(hp, 1.0);
@@ -38,7 +38,7 @@ fn whirlwind_hits() {
             let pos = (mob.pos.x, mob.pos.y);
             (pos, mob.get_hp_share())
         },
-        &data.player,
+        data.player.xy(),
     );
     for (pos, hp) in mobs {
         if pos == (1, 2) {
@@ -58,7 +58,7 @@ fn abilities_cooldown() {
     data.act(Action::UseAbility(WhirlAttack));
     data.step_time();
     assert!(!data.player.is_ability_ready(&WhirlAttack));
-    
+
     let kind = Zombie;
     let pos = Position::new((0, 0), &mut data.field);
     let mob = Mob::new(pos, kind);
@@ -70,7 +70,7 @@ fn abilities_cooldown() {
             let pos = (mob.pos.x, mob.pos.y);
             (pos, mob.get_hp_share())
         },
-        &data.player,
+        data.player.xy(),
     );
     for (pos, hp) in mobs {
         if pos == (0, 0) {

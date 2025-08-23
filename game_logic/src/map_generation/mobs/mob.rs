@@ -37,6 +37,12 @@ impl From<(i32, i32)> for Position {
     }
 }
 
+impl Into<(i32, i32)> for Position {
+    fn into(self) -> (i32, i32) {
+        (self.x, self.y)
+    }
+}
+
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Mob {
     pub pos: Position,
@@ -195,12 +201,12 @@ impl Mob {
         self.land(field);
     }
 
-    pub fn update_state(&mut self, field: &Field, player: &mut Player) {
+    pub fn update_state(&mut self, field: &Field, player_pos: &Position) {
         if self.kind == Zergling && self.state == MobState::Searching {
-            let dist = self.pos.manhattan_distance(player.get_position());
+            let dist = self.pos.manhattan_distance(player_pos);
             if dist <= ZERGLING_ATTACK_RANGE {
                 // check if there are at least 2 other zerglings near the player
-                let indices = field.mob_indices(player, Zergling);
+                let indices = field.mob_indices(player_pos.clone().into(), Zergling);
                 // indices will never have the current mob because it is neither in stray nor in chunk
                 let mut close_count = 0;
                 for ind in indices {
@@ -275,7 +281,7 @@ impl ActingWithSpeed for Mob {
     /// * `min_loaded` - the minimum loaded coordinate
     /// * `max_loaded` - the maximum loaded coordinate
     fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        self.update_state(field, player);
+        self.update_state(field, player.get_position());
         if let MobState::Channeling(turns) = self.state {
             if turns != 0 {
                 self.state = MobState::Channeling(turns - 1);

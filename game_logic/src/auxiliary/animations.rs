@@ -169,10 +169,10 @@ impl AnimationManager {
         });
     }
     
-    pub fn add_channeling_animations(&mut self, field: &Field, player: &Player) {
+    pub fn add_channeling_animations(&mut self, field: &Field, player_pos: AbsolutePos) {
         for mob_pos in field.conditional_close_mob_info(
             |mob| { (mob.pos.x, mob.pos.y) },
-            player,
+            player_pos,
             |mob| { mob.is_channeling() } 
         ) {
             self.add_tile_animation(TileAnimation::new(TileAnimationType::Channelling, mob_pos));

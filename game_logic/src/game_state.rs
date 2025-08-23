@@ -85,7 +85,7 @@ impl GameState {
                 if passed_time > 0. {
                     // drop continuous animations if player made an action
                     self.animation_manager.drop_continuous_animations();
-                    self.animation_manager.add_channeling_animations(&self.field, &self.player);
+                    self.animation_manager.add_channeling_animations(&self.field, self.player.xy());
                 }
                 self.animation_manager.absorb_buffer(&mut self.field.animations_buffer);
                 self.animation_manager.absorb_buffer(&mut self.player.animations_buffer);

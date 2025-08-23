@@ -37,7 +37,7 @@ impl ObservationProvider for GameState {
             arr[2] = (mob.get_hp_share() * 100.0) as i32;
             arr[3 + idx] = 1;
             arr
-        }, &self.player);
+        }, self.player.xy());
 
         // Sorting the mobs by manhattan distance from the player
         mobs.sort_by(|a, b| {
@@ -60,9 +60,9 @@ impl ObservationProvider for GameState {
             let dist_b = b.0.abs() + b.1.abs();
             dist_a.cmp(&dist_b)
         };
-        let mut loot_indices = self.field.loot_indices(&self.player);
+        let mut loot_indices = self.field.loot_indices(self.player.xy());
         loot_indices.sort_by(player_dist_cmp);
-        let mut arrow_indices = self.field.arrow_indices(&self.player);
+        let mut arrow_indices = self.field.arrow_indices(self.player.xy());
         arrow_indices.sort_by(player_dist_cmp);
         let mut min_empty_loot_position = 0;
         // record loot and loot+arrow positions

@@ -2,3 +2,10 @@
 /.idea
 game_saves/
 replays/
+*__pycache__*/
+*.pyc
+wandb/
+runs/
+results/
+reinforcement_learning/saved_models/
+reinforcement_learning/ray_results/

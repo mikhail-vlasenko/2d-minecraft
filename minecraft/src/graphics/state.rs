@@ -331,10 +331,12 @@ impl<'a> State<'a> {
             
         }
 
+        let player_pos = self.game_state.player.xy();
+
         let mob_positions_and_hp = self.game_state.field.close_mob_info(|mob| {
-                let pos = absolute_to_relative((mob.pos.x, mob.pos.y), self.game_state.player.xy());
+                let pos = absolute_to_relative((mob.pos.x, mob.pos.y), player_pos);
                 (pos, mob.get_hp_share())
-            }, &self.game_state.player);
+            }, player_pos);
 
         self.buffers.hp_bar_vertex_buffers = vec![];
         for mob_info in &mob_positions_and_hp {
@@ -355,7 +357,7 @@ impl<'a> State<'a> {
             }
         );
 
-        self.update_animations();
+        self.update_animations(player_pos);
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -385,11 +387,14 @@ impl<'a> State<'a> {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
+            
+            let player_pos = self.game_state.player.xy();
+            let player_rotation = self.game_state.player.get_rotation();
 
             if !self.game_state.player.is_viewing_map() {
-                self.render_game(&mut render_pass);
+                self.render_game(&mut render_pass, player_pos, player_rotation);
             } else {
-                self.render_map(&mut render_pass);
+                self.render_map(&mut render_pass, player_pos);
             }
         }
 
@@ -405,22 +410,21 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    fn render_game(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_game(&'a self, render_pass: &mut RenderPass<'a>, player_pos: AbsolutePos, player_rotation: u32) {
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        self.render_field(render_pass);
-        self.render_mobs(render_pass);
+        self.render_field(render_pass, player_pos);
+        self.render_mobs(render_pass, player_pos);
 
         // render player
         render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.player_instance_buffer.slice(..));
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_player(), &[]);
-        let idx = self.game_state.player.get_rotation();
-        render_pass.draw_indexed(0..INDICES.len() as u32, 0, idx..idx + 1);
+        render_pass.draw_indexed(0..INDICES.len() as u32, 0, player_rotation..player_rotation + 1);
         
-        self.render_animations(render_pass);
+        self.render_animations(render_pass, player_pos);
 
         self.render_hp_bars(render_pass);
 
@@ -518,9 +522,9 @@ impl<'a> State<'a> {
     /// # Arguments
     ///
     /// * `render_pass`: the primary render pass
-    fn render_field(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_field(&'a self, render_pass: &mut RenderPass<'a>, player_pos: AbsolutePos) {
         // let now = Instant::now();
-        let (player_x, player_y) = self.game_state.player.xy();
+        let (player_x, player_y) = player_pos;
         // draw materials of top block in tiles
         for i in (player_x - CONFIG.render_distance as i32)..=(player_x + CONFIG.render_distance as i32) {
             for j in (player_y - CONFIG.render_distance as i32)..=(player_y + CONFIG.render_distance as i32) {
@@ -531,7 +535,7 @@ impl<'a> State<'a> {
         // draw depth indicators on top of the tiles
         for i in 0..=3 {
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_depth(i), &[]);
-            let depth = self.game_state.field.depth_indices(&self.game_state.player, i + 2);
+            let depth = self.game_state.field.depth_indices(player_pos, i + 2);
             self.draw_at_grid_positions(&depth, &mut *render_pass, None);
         }
 
@@ -540,31 +544,31 @@ impl<'a> State<'a> {
             render_pass.set_bind_group(0,
                                        &self.bind_groups.get_bind_group_interactable(interactable),
                                        &[]);
-            let interactables = self.game_state.field.interactable_indices(&self.game_state.player, interactable);
+            let interactables = self.game_state.field.interactable_indices(player_pos, interactable);
             self.draw_at_grid_positions(&interactables, &mut *render_pass, None);
         }
 
         // draw loot where exists
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_loot(), &[]);
-        let loot = self.game_state.field.loot_indices(&self.game_state.player);
+        let loot = self.game_state.field.loot_indices(player_pos);
         self.draw_at_grid_positions(&loot, &mut *render_pass, None);
 
         // draw arrows left from shooting
         render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_arrow(), &[]);
-        let loot = self.game_state.field.arrow_indices(&self.game_state.player);
+        let loot = self.game_state.field.arrow_indices(player_pos);
         self.draw_at_grid_positions(&loot, &mut *render_pass, None);
         // let elapsed = now.elapsed();
         // println!("Elapsed: {:.2?}", elapsed);
     }
 
-    fn render_mobs(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_mobs(&'a self, render_pass: &mut RenderPass<'a>, player_pos: AbsolutePos) {
         let max_drawable_index = ((CONFIG.tiles_per_row - 1) / 2) as i32;
         for mob_kind in MobKind::iter() {
             render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
             render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_mob(mob_kind), &[]);
 
-            let mut mobs = self.game_state.field.mob_indices(&self.game_state.player, mob_kind);
+            let mut mobs = self.game_state.field.mob_indices(player_pos, mob_kind);
             mobs = mobs.into_iter().filter(
                 |(pos, _)| pos.0.abs() <= max_drawable_index && pos.1.abs() <= max_drawable_index
             ).collect();
@@ -585,13 +589,13 @@ impl<'a> State<'a> {
         }
     }
 
-    fn render_animations(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_animations(&'a self, render_pass: &mut RenderPass<'a>, player_pos: AbsolutePos) {
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
         for i in 0..self.buffers.animation_vertex_buffers.len() {
             let animation = self.game_state.animation_manager.get_tile_animations()[i];
             render_pass.set_vertex_buffer(0, self.buffers.animation_vertex_buffers[i].slice(..));
             render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_animation(*animation.get_animation_type()), &[]);
-            let mut rel_animation_positions = vec![absolute_to_relative(*animation.get_pos(), self.game_state.player.xy())];
+            let mut rel_animation_positions = vec![absolute_to_relative(*animation.get_pos(), player_pos)];
             rel_animation_positions = self.filter_out_of_view_tiles(rel_animation_positions);
             self.draw_at_grid_positions(&rel_animation_positions, render_pass, None);
         }
@@ -618,7 +622,7 @@ impl<'a> State<'a> {
         }
     }
     
-    fn update_animations(&mut self) {
+    fn update_animations(&mut self, player_pos: AbsolutePos) {
         // update before writing vertices. new animations will not change
         self.game_state.animation_manager.update();
         // tile animations are animated by moving texture coordinates, so a separate vertex buffer is needed per animation
@@ -654,7 +658,7 @@ impl<'a> State<'a> {
         let mut projectile_instances = vec![];
         for projectile_animation in self.game_state.animation_manager.get_projectile_animations() {
             projectile_instances.push(self.projectile_instance(
-                projectile_animation.get_relative_position(self.game_state.player.xy()), projectile_animation.get_rotation()));
+                projectile_animation.get_relative_position(player_pos), projectile_animation.get_rotation()));
         }
         let projectile_instance_data = projectile_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         self.buffers.projectile_instance_buffer = self.device.create_buffer_init(
@@ -680,12 +684,12 @@ impl<'a> State<'a> {
     }
 
     /// Only renders the materials, but with a much larger render distance.
-    fn render_map(&'a self, render_pass: &mut RenderPass<'a>) {
+    fn render_map(&'a self, render_pass: &mut RenderPass<'a>, player_pos: AbsolutePos) {
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.map_instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        let (player_x, player_y) = self.game_state.player.xy();
+        let (player_x, player_y) = player_pos;
         let radius = self.game_state.field.get_map_render_distance() as i32;
         for i in (player_x - radius)..=(player_x + radius) {
             for j in (player_y - radius)..=(player_y + radius) {
