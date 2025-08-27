@@ -46,6 +46,9 @@ player:
     cheating_start: false  # gives the player practically everything
     loadout: fighter  # empty, apples, fighter, archer, random. Fighter and archer start with extra enemies
 
+multiplayer:
+  num_players: 4
+
 save_folder: game_saves
 save_on_milestone: true
 replay_folder: replays

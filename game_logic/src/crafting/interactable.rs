@@ -4,7 +4,7 @@ use strum_macros::EnumIter;
 use serde::{Serialize, Deserialize};
 use Storable::*;
 use crate::character::acting_with_speed::ActingWithSpeed;
-use crate::character::player::Player;
+use crate::character::p2p_interactions::P2PInteraction;
 use crate::crafting::items::Item::*;
 use crate::crafting::material::Material;
 use crate::crafting::storable::{Craftable, CraftMenuSection, Storable};
@@ -13,7 +13,7 @@ use crate::crafting::interactable::InteractableKind::*;
 use crate::crafting::inventory::Inventory;
 use crate::crafting::turret::TargetingData;
 use crate::map_generation::field::{AbsolutePos, Field};
-
+use crate::map_generation::mobs::mob::Position;
 
 #[derive(PartialEq, Clone, Serialize, Deserialize, Debug)]
 pub struct Interactable {
@@ -64,10 +64,10 @@ impl Interactable {
 }
 
 impl ActingWithSpeed for Interactable {
-    fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    fn act(&mut self, field: &mut Field, player_pos: &Position, min_loaded: (i32, i32), max_loaded: (i32, i32)) -> Vec<(P2PInteraction, AbsolutePos)> {
         match self.kind {
             CrossbowTurret => {
-                self.act_turret(field, player, min_loaded, max_loaded);
+                self.act_turret(field, player_pos, min_loaded, max_loaded)
             }
         }
     }

@@ -3,16 +3,14 @@ use wgpu::{Buffer, Device};
 use wgpu::util::DeviceExt;
 use crate::graphical_config::CONFIG;
 use crate::graphics::instance::{Instance, InstanceRaw};
-use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, PLAYER_VERTICES, VERTICES};
+use crate::graphics::vertex::{INDICES, NIGHT_FILTER_VERTICES, VERTICES};
 
 
 /// Creates and stores wgpu buffers
 pub struct Buffers {
     pub vertex_buffer: Buffer,
-    pub player_vertex_buffer: Buffer,
     pub index_buffer: Buffer,
     pub instance_buffer: Buffer,
-    pub player_instance_buffer: Buffer,
     pub night_vertex_buffer: Buffer,
     pub night_instance_buffer: Buffer,
     pub map_instance_buffer: Buffer,
@@ -25,6 +23,7 @@ pub struct Buffers {
 
 impl Buffers {
     pub fn new(device: &Device, map_render_distance: i32) -> Self {
+        // instances hold every possible render tile with every rotation
         let instances = (0..4).flat_map(|angle| {
             let x_rot_compensation = if angle == 1 || angle == 2 { 1 } else { 0 };
             let y_rot_compensation = if angle > 1 { 1 } else { 0 };
@@ -51,6 +50,7 @@ impl Buffers {
         }).collect::<Vec<_>>();
 
         let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        // used to draw anything with any rotation on the usual tile positions
         let instance_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
@@ -63,42 +63,6 @@ impl Buffers {
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Vertex Buffer"),
                 contents: bytemuck::cast_slice(VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-
-        let player_instances = (0..4).map(move |angle| {
-            let position =
-                cgmath::Vector3 {
-                    x: (CONFIG.render_distance as f32 + 0.5) * CONFIG.disp_coef,
-                    y: (CONFIG.render_distance as f32 + 0.5) * CONFIG.disp_coef,
-                    z: 0.0,
-                }
-                    + INITIAL_POS;
-
-            let rotation =
-                cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_z(), cgmath::Deg(90.0 * angle as f32));
-
-            Instance {
-                position,
-                rotation,
-                scaling: CONFIG.disp_coef,
-            }
-        }).collect::<Vec<_>>();
-
-        let player_instance_data = player_instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
-        let player_instance_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: bytemuck::cast_slice(&player_instance_data),
-                usage: wgpu::BufferUsages::VERTEX,
-            }
-        );
-
-        let player_vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Player Buffer"),
-                contents: bytemuck::cast_slice(PLAYER_VERTICES),
                 usage: wgpu::BufferUsages::VERTEX,
             }
         );
@@ -185,10 +149,8 @@ impl Buffers {
 
         Self {
             vertex_buffer,
-            player_vertex_buffer,
             index_buffer,
             instance_buffer,
-            player_instance_buffer,
             night_vertex_buffer,
             night_instance_buffer,
             map_instance_buffer,

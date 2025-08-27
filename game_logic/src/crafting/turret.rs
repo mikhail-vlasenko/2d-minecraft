@@ -3,12 +3,14 @@ use serde::{Serialize, Deserialize};
 use strum::IntoEnumIterator;
 use crate::auxiliary::animations::ProjectileType;
 use crate::character::acting_with_speed::ActingWithSpeed;
-use crate::character::player::Player;
+use crate::character::game_score::score_killed_mob;
+use crate::character::p2p_interactions::P2PInteraction;
 use crate::crafting::interactable::{Interactable, InteractableKind};
 use crate::crafting::interactable::InteractableKind::*;
 use crate::crafting::items::Item;
 use crate::crafting::items::Item::Arrow;
-use crate::map_generation::field::Field;
+use crate::map_generation::field::{AbsolutePos, Field};
+use crate::map_generation::mobs::mob::Position;
 use crate::map_generation::mobs::mob_kind::MobKind;
 use crate::SETTINGS;
 
@@ -24,13 +26,14 @@ pub struct TargetingData {
 }
 
 impl Interactable {
-    pub fn act_turret(&mut self, field: &mut Field, player: &mut Player,
-                      min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    pub fn act_turret(&mut self, field: &mut Field, player_pos: &Position,
+                      min_loaded: (i32, i32), max_loaded: (i32, i32)) -> Vec<(P2PInteraction, AbsolutePos)> {
+        let mut interactions = Vec::new();
         let targeting = self.get_targeting_data();
 
         if !self.get_inventory().contains(&targeting.ammo.into()) {
             // no ammo, do nothing
-            return;
+            return interactions;
         }
 
         let middle_idx = (field.chunk_pos(self.get_position().0),
@@ -61,7 +64,8 @@ impl Interactable {
                     let mob_kind = field.get_mob_kind_at(mob_pos).unwrap();
                     let died = field.damage_mob(mob_pos, targeting.damage);
                     if died {
-                        player.score_killed_mob(&mob_kind);
+                        // todo: add score to the player who placed the turret, not the player standing next to it
+                        interactions.push((P2PInteraction::IncreaseScore(score_killed_mob(&mob_kind)), player_pos.xy()));
                     }
                     // put the arrow on the field
                     if targeting.ammo == Arrow {
@@ -73,13 +77,19 @@ impl Interactable {
                     // remove the arrow from the turret
                     self.unload_item(&targeting.ammo.into(), 1);
                     field.animations_buffer.add_projectile_animation(ProjectileType::Arrow, self.get_position(), mob_pos);
-                    player.add_message(&format!("Turret shot mob at ({}, {})", mob_pos.0, mob_pos.1));
-                    return;
+                    interactions.push(
+                        (P2PInteraction::AddMessage(
+                            format!("Turret shot mob at ({}, {})", mob_pos.0, mob_pos.1)
+                        ),
+                         player_pos.xy())
+                    );
+                    return interactions;
                 }
             }
         }
         // nothing was shot, so it should be able to make a turn on the next tick
         self.add_to_speed_buffer(1. - self.get_speed());
+        interactions
     }
 
     pub fn get_targets(&self) -> Vec<MobKind> {

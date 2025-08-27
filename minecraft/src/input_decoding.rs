@@ -1,9 +1,8 @@
 use winit::keyboard::KeyCode;
 use game_logic::auxiliary::actions::Action;
 use game_logic::character::abilities::Ability::{Barricade, Charge, SecondWind, WhirlAttack};
-use game_logic::character::player::Player;
 
-pub fn map_key_to_action(key: &KeyCode, player: &Player) -> Option<Action> {
+pub fn map_key_to_action(key: &KeyCode, is_player_interacting: bool) -> Option<Action> {
     match key {
         KeyCode::KeyW => Some(Action::WalkNorth),
         KeyCode::KeyA => Some(Action::WalkWest),
@@ -24,7 +23,7 @@ pub fn map_key_to_action(key: &KeyCode, player: &Player) -> Option<Action> {
         KeyCode::Space => Some(Action::ToggleCraftMenu),
         KeyCode::Escape => {
             // if player is interacting, close the interaction, otherwise toggle the main menu
-            if player.get_interacting_with().is_some() {
+            if is_player_interacting {
                 Some(Action::CloseInteractableMenu)
             } else {
                 Some(Action::ToggleMainMenu)

@@ -1,9 +1,9 @@
 use std::cmp::{max};
 use serde::{Serialize, Deserialize};
-use crate::auxiliary::animations::{ProjectileType, TileAnimationType};
+use crate::auxiliary::animations::ProjectileType;
 use crate::character::acting_with_speed::ActingWithSpeed;
+use crate::character::p2p_interactions::{InteractionStore, P2PInteraction};
 use crate::map_generation::mobs::a_star::can_step;
-use crate::character::player::Player;
 use crate::map_generation::field::{AbsolutePos, Field, RelativePos};
 use crate::map_generation::field::DIRECTIONS;
 use crate::map_generation::mobs::mob_kind::{BANELING_EXPLOSION_PWR, BANELING_EXPLOSION_RAD, MobKind, MobState, ZERGLING_ATTACK_RANGE};
@@ -28,6 +28,10 @@ impl Position {
 
     pub fn manhattan_distance(&self, other: &Position) -> i32 {
         (self.x - other.x).abs() + (self.y - other.y).abs()
+    }
+    
+    pub fn xy(&self) -> AbsolutePos {
+        (self.x, self.y)
     }
 }
 
@@ -72,8 +76,9 @@ impl Mob {
 
     /// Makes a step, or a melee hit, if it is possible.
     /// Returns whether an action was made.
-    fn step(&mut self, field: &Field, player: &mut Player, delta: (i32, i32),
-            min_loaded: (i32, i32), max_loaded: (i32, i32)) -> bool {
+    fn step(&mut self, field: &Field, player_pos: &Position, delta: (i32, i32),
+            min_loaded: (i32, i32), max_loaded: (i32, i32)) -> InteractionStore {
+        let mut interactions = Vec::new();
         let new_pos = (self.pos.x + delta.0, self.pos.y + delta.1);
 
         if min_loaded.0 <= new_pos.0 && new_pos.0 <= max_loaded.0 &&
@@ -81,17 +86,17 @@ impl Mob {
             can_step(field, (self.pos.x, self.pos.y), new_pos) {
 
             self.set_rotation(Self::coords_to_rotation(delta));
-            let (player_x, player_y) = player.xy();
+            let (player_x, player_y) = player_pos.xy();
             if player_x == new_pos.0 && player_y == new_pos.1 {
-                player.receive_damage(self.kind.get_melee_damage());
+                interactions.push((P2PInteraction::DealDamage(self.kind.get_melee_damage()), player_pos.xy()));
             } else {
                 self.pos.x = new_pos.0;
                 self.pos.y = new_pos.1;
                 self.land(field);
             }
-            return true;
+            return interactions;
         }
-        false
+        interactions
     }
 
     pub fn land(&mut self, field: &Field) {
@@ -99,15 +104,15 @@ impl Mob {
     }
 
     /// Moves in a random direction, not walking out of loaded chunks
-    fn random_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
+    fn random_step(&mut self, field: &mut Field, player_pos: &Position, min_loaded: (i32, i32), max_loaded: (i32, i32)) -> InteractionStore {
         let number: usize = rand::random();
         let direction_idx = number % 4;
-        self.step(field, player, DIRECTIONS[direction_idx], min_loaded, max_loaded);
+        self.step(field, player_pos, DIRECTIONS[direction_idx], min_loaded, max_loaded)
     }
 
-    fn step_relative_to_player(&mut self, field: &mut Field, player: &mut Player,
-                               min_loaded: (i32, i32), max_loaded: (i32, i32), towards: bool) {
-        let (player_x, player_y) = player.xy();
+    fn step_relative_to_player(&mut self, field: &mut Field, player_pos: &Position,
+                               min_loaded: (i32, i32), max_loaded: (i32, i32), towards: bool) -> InteractionStore {
+        let (player_x, player_y) = player_pos.xy();
         let directions = if towards {
             ((player_x - self.pos.x).signum(), (player_y - self.pos.y).signum())
         } else {
@@ -128,14 +133,16 @@ impl Mob {
         }
         let idx: usize = rand::random();
         if good.len() > 0 {
-            self.step(field, player, good[idx % good.len()], min_loaded, max_loaded);
+            self.step(field, player_pos, good[idx % good.len()], min_loaded, max_loaded)
         } else if possible.len() > 0 {
-            self.step(field, player, possible[idx % possible.len()], min_loaded, max_loaded);
+            self.step(field, player_pos, possible[idx % possible.len()], min_loaded, max_loaded)
+        } else {
+            Vec::new()
         }
     }
 
-    fn check_baneling_explosion(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        let (player_x, player_y) = player.xy();
+    fn check_baneling_explosion(&mut self, field: &mut Field, player_pos: &Position, min_loaded: (i32, i32), max_loaded: (i32, i32)) -> InteractionStore {
+        let (player_x, player_y) = player_pos.xy();
         let directions = ((player_x - self.pos.x).signum(), (player_y - self.pos.y).signum());
 
         // baneling will explode if the shortest path to player is blocked, or it is next to the player
@@ -158,25 +165,27 @@ impl Mob {
             );
             if a_star_directions == (0, 0) || next_to_player {
                 // no route found with tiny detour or already near player
-                field.explosion((self.pos.x, self.pos.y),
+                let interactions = field.explosion((self.pos.x, self.pos.y),
                                 BANELING_EXPLOSION_RAD,
                                 BANELING_EXPLOSION_PWR,
-                                player);
+                                player_pos);
                 // baneling dies
                 self.receive_damage(self.kind.get_max_hp());
-                return;
+                return interactions;
             }
         }
+        Vec::new()
     }
     
-    fn jump_step(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        let (player_x, player_y) = player.xy();
+    fn jump_step(&mut self, field: &mut Field, player_pos: &Position, min_loaded: (i32, i32), max_loaded: (i32, i32)) -> InteractionStore {
+        let mut interactions = Vec::new();
+        let (player_x, player_y) = player_pos.xy();
         let dist = (player_x - self.pos.x).abs() + (player_y - self.pos.y).abs();
         let mut new_pos = (self.pos.x, self.pos.y);
         if dist <= self.kind.jump_distance() {
             // jump on the player
             new_pos = (player_x, player_y);
-            player.receive_damage(self.kind.get_melee_damage());
+            interactions.push((P2PInteraction::DealDamage(self.kind.get_melee_damage()), player_pos.xy()));
         } else {
             // jump in the direction of the player
             let dir = ((player_x - self.pos.x).signum(), (player_y - self.pos.y).signum());
@@ -189,7 +198,7 @@ impl Mob {
             }
         }
         if field.is_occupied(new_pos) {
-            return;
+            return interactions;
         }
         if self.kind == GelatinousCube {
             field.animations_buffer.add_projectile_animation(
@@ -199,6 +208,7 @@ impl Mob {
         self.pos.x = new_pos.0;
         self.pos.y = new_pos.1;
         self.land(field);
+        interactions
     }
 
     pub fn update_state(&mut self, field: &Field, player_pos: &Position) {
@@ -206,7 +216,7 @@ impl Mob {
             let dist = self.pos.manhattan_distance(player_pos);
             if dist <= ZERGLING_ATTACK_RANGE {
                 // check if there are at least 2 other zerglings near the player
-                let indices = field.mob_indices(player_pos.clone().into(), Zergling);
+                let indices = field.mob_indices(player_pos.xy(), Zergling);
                 // indices will never have the current mob because it is neither in stray nor in chunk
                 let mut close_count = 0;
                 for ind in indices {
@@ -280,66 +290,80 @@ impl ActingWithSpeed for Mob {
     /// * `player` - the player
     /// * `min_loaded` - the minimum loaded coordinate
     /// * `max_loaded` - the maximum loaded coordinate
-    fn act(&mut self, field: &mut Field, player: &mut Player, min_loaded: (i32, i32), max_loaded: (i32, i32)) {
-        self.update_state(field, player.get_position());
+    fn act(&mut self, field: &mut Field, player_pos: &Position, min_loaded: (i32, i32), max_loaded: (i32, i32)) -> InteractionStore {
+        let mut interactions = Vec::new();
+        self.update_state(field, player_pos);
         if let MobState::Channeling(turns) = self.state {
             if turns != 0 {
                 self.state = MobState::Channeling(turns - 1);
                 // end turn immediately
-                return;
+                return interactions;
             }
             if self.kind == GelatinousCube {
                 // cube jumps
                 self.state = MobState::default();
-                self.jump_step(field, player, min_loaded, max_loaded);
-                return;
+                interactions.extend(
+                    self.jump_step(field, player_pos, min_loaded, max_loaded)
+                );
+                return interactions;
             }
         }
 
-        let dist = self.pos.manhattan_distance(player.get_position());
+        let dist = self.pos.manhattan_distance(player_pos);
 
         if dist == 0 {
             // deal damage because mob stands on the player
-            player.receive_damage(self.kind.get_melee_damage());
-            return;
+            interactions.push(
+                (P2PInteraction::DealDamage(self.kind.get_melee_damage()), player_pos.xy())
+            );
+            return interactions;
         }
 
         if dist <= field.get_towards_player_radius() && self.kind == Baneling {
             // a bane can explode if the path is blocked
-            self.check_baneling_explosion(field, player, min_loaded, max_loaded);
+            interactions.extend(self.check_baneling_explosion(field, player_pos, min_loaded, max_loaded));
         }
 
         // hostile mobs within smaller range use optimal pathing. Banelings always go head on
         if self.kind.hostile() && dist <= field.get_a_star_radius() {
             if self.kind == Zergling && self.state != MobState::Attacking && dist + 2 < ZERGLING_ATTACK_RANGE {
                 // zerglings that are not attacking will not go close to player
-                self.step_relative_to_player(field, player, min_loaded, max_loaded, false);
-                return;
+                interactions.extend(
+                    self.step_relative_to_player(field, player_pos, min_loaded, max_loaded, false)
+                );
+                return interactions;
             }
 
             // within a* range, so do full path search
             let (direction, _) = field.full_pathing(
                 (self.pos.x, self.pos.y),
-                player.xy(),
-                player.xy(),
+                player_pos.xy(),
+                player_pos.xy(),
                 None
             );
             if self.kind == GelatinousCube && direction == (0, 0) && self.kind.jump_distance() >= dist {
                 // route not found, so jump
                 self.state = MobState::Channeling(2);
-                return;
+                return interactions;
             }
             if direction != (0, 0) {
-                self.step(field, player, direction, min_loaded, max_loaded);
-                return;
+                interactions.extend(
+                    self.step(field, player_pos, direction, min_loaded, max_loaded)
+                );
+                return interactions;
             }
         }
         if self.kind.hostile() && dist <= field.get_towards_player_radius() {
-            self.step_relative_to_player(field, player, min_loaded, max_loaded, true);
-            return;
+            interactions.extend(
+                self.step_relative_to_player(field, player_pos, min_loaded, max_loaded, true)
+            );
+            return interactions;
         }
         // not hostile, or too far away, so just wander
-        self.random_step(field, player, min_loaded, max_loaded);
+        interactions.extend(
+            self.random_step(field, player_pos, min_loaded, max_loaded)
+        );
+        interactions
     }
     
     fn get_speed(&self) -> f32 {

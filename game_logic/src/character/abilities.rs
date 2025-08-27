@@ -2,11 +2,13 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 use crate::auxiliary::actions::Action;
+use crate::character::p2p_interactions::InteractionStore;
 use crate::character::player::Player;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
 use crate::map_generation::block::Block;
 use crate::map_generation::field::Field;
+use crate::map_generation::mobs::mob::Position;
 use crate::SETTINGS;
 
 #[derive(PartialEq, Copy, Clone, EnumIter, Serialize, Deserialize, Debug, Hash, Eq)]
@@ -81,18 +83,18 @@ impl AbilityState {
 }
 
 impl Player {
-    pub fn use_ability(&mut self, ability: &Ability, field: &mut Field) -> f32 {
+    pub fn use_ability(&mut self, ability: &Ability, field: &mut Field, player_positions: &Vec<Position>) -> (f32, InteractionStore) {
         self.stop_interacting();
         if self.ability_state.is_on_cooldown(ability) {
             let remaining = self.ability_state.get_remaining_cooldown(ability);
             self.add_message(&format!("{} is on cooldown ({} turns remaining)",
                                       ability.get_name(), remaining));
-            return 0.0;
+            return (0., vec![]);
         }
 
-        let action_spent = match ability {
-            Ability::WhirlAttack => self.use_whirl_attack(field),
-            Ability::Charge => self.use_charge(field),
+        let (action_spent, interactions) = match ability {
+            Ability::WhirlAttack => self.use_whirl_attack(field, player_positions),
+            Ability::Charge => self.use_charge(field, player_positions),
             Ability::Barricade => self.use_barricade(field),
             Ability::SecondWind => self.use_second_wind(),
         };
@@ -102,10 +104,10 @@ impl Player {
             self.ability_state.set_cooldown(ability);
         }
 
-        action_spent
+        (action_spent, interactions)
     }
 
-    fn use_whirl_attack(&mut self, field: &mut Field) -> f32 {
+    fn use_whirl_attack(&mut self, field: &mut Field, player_positions: &Vec<Position>) -> (f32, InteractionStore) {
         let deltas = vec![
             (-1, -1), (-1, 0), (-1, 1),
             (0,  -1),          (0,  1),
@@ -113,20 +115,25 @@ impl Player {
         ];
         let (player_x, player_y) = self.xy();
         let mut enemies_hit = 0;
+        let mut interactions = vec![];
 
         for (dx, dy) in deltas {
             let target_pos = (player_x + dx, player_y + dy);
-            if field.is_occupied(target_pos) & (field.len_at(target_pos) <= self.get_position().z + 1)  {
-                self.damage_mob(field, target_pos, self.get_melee_damage());
-                enemies_hit += 1;
+            if field.len_at(target_pos) <= self.get_position().z + 1 {
+                let (was_hit, new_interactions) = 
+                    self.deal_damage(field, player_positions, target_pos, self.get_melee_damage());
+                interactions.extend(new_interactions);
+                if was_hit {
+                    enemies_hit += 1;
+                }
             }
         }
 
         self.add_message(&format!("Whirl attack hit {} enemies!", enemies_hit));
-        self.get_speed_multiplier()
+        (self.get_speed_multiplier(), interactions)
     }
 
-    fn use_charge(&mut self, field: &mut Field) -> f32 {
+    fn use_charge(&mut self, field: &mut Field, player_positions: &Vec<Position>) -> (f32, InteractionStore) {
         let direction = self.coords_from_rotation();
         let walk_action = match direction {
             (-1, 0) => Action::WalkNorth,
@@ -137,6 +144,7 @@ impl Player {
         };
         let max_distance = 3;
         let (start_x, start_y) = self.xy();
+        let mut interactions = vec![];
 
         // Move forward up to 2 tiles or until hitting obstacle/enemy
         for step in 1..=max_distance {
@@ -154,17 +162,22 @@ impl Player {
                     _ => 2.0,
                 };
                 let damage = (self.get_melee_damage() as f32 * damage_multiplier) as i32;
-                self.damage_mob(field, target_pos, damage);
-                self.add_message(&format!("Charge attack deals {} damage!", damage));
-                break;
+                let (was_hit, new_interactions) = 
+                    self.deal_damage(field, player_positions, target_pos, damage);
+                interactions.extend(new_interactions);
+                if was_hit {
+                    self.add_message(&format!("Charge attack deals {} damage!", damage));
+                    break;
+                }
             }
 
-            self.walk(&walk_action, field);
+            let (_, new_interactions) = self.walk(&walk_action, field, player_positions);
+            interactions.extend(new_interactions);
         }
-        self.get_speed_multiplier()
+        (self.get_speed_multiplier(), interactions)
     }
 
-    fn use_barricade(&mut self, field: &mut Field) -> f32 {
+    fn use_barricade(&mut self, field: &mut Field) -> (f32, InteractionStore) {
         let forward = self.coords_from_rotation();
         let perpendicular = (-forward.1, forward.0); // Rotate 90 degrees
 
@@ -187,12 +200,12 @@ impl Player {
                 }
             }
         }
-        self.get_speed_multiplier()
+        (self.get_speed_multiplier(), vec![])
     }
 
-    fn use_second_wind(&mut self) -> f32 {
+    fn use_second_wind(&mut self) -> (f32, InteractionStore) {
         self.heal(SETTINGS.read().unwrap().player.max_hp);
-        self.get_speed_multiplier()
+        (self.get_speed_multiplier(), vec![])
     }
 
     pub fn get_ability_cooldown(&self, ability: &Ability) -> i32 {

@@ -45,14 +45,6 @@ pub const INDICES: &[u16] = &[
     2, 3, 0,
 ];
 
-pub const PLAYER_VERTICES: &[Vertex] = &[
-    // player square, always in one place
-    Vertex { position: [-0.5, -0.5, 0.0], tex_coords: [0.0, 1.0], },
-    Vertex { position: [0.5, -0.5, 0.0], tex_coords: [1.0, 1.0], },
-    Vertex { position: [0.5, 0.5, 0.0], tex_coords: [1.0, 0.0], },
-    Vertex { position: [-0.5, 0.5, 0.0], tex_coords: [0.0, 0.0], },
-];
-
 pub const NIGHT_FILTER_VERTICES: &[Vertex] = &[
     Vertex { position: [-1.0, -1.0, 0.0], tex_coords: [0.0, 1.0], },
     Vertex { position: [1.0, -1.0, 0.0], tex_coords: [1.0, 1.0], },

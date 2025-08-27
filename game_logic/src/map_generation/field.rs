@@ -8,6 +8,7 @@ use serde::{Serialize, Deserialize};
 use derivative::Derivative;
 use crate::auxiliary::animations::{AnimationsBuffer, TileAnimationType};
 use crate::character::acting_with_speed::ActingWithSpeed;
+use crate::character::p2p_interactions::{InteractionStore, P2PInteraction};
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
 use crate::character::player::Player;
@@ -108,23 +109,22 @@ impl Field {
     ///
     /// * `passed_time`: for how long the field should be ran
     /// * `player`: the player
-    pub fn step_time(&mut self, passed_time: f32, player: &mut Player) {
+    pub fn step_time(&mut self, passed_time: f32, player_positions: &Vec<Position>) -> InteractionStore {
+        let mut interactions = Vec::new();
         self.accumulated_time += passed_time;
         while self.accumulated_time >= 1. {
-            player.step_status_effects();
-            player.step_ability_cooldowns();
-            self.step_interactables(player);
+            interactions.extend(self.step_interactables(player_positions));
             let rng: f32 = rand::random();
             if rng > 0.9 {
-                self.spawn_mobs(player,
+                self.spawn_mobs(player_positions,
                                 self.get_mob_spawn_amount(),
                                 self.is_night())
             }
-            self.step_mobs(player);
+            interactions.extend(self.step_mobs(player_positions));
             self.accumulated_time -= 1.;
             self.time += 1.;
-            player.score_passed_time(1., self.get_time());
         }
+        interactions
     }
     
     fn detach_mobs(&mut self) {
@@ -135,7 +135,8 @@ impl Field {
         }
     }
 
-    pub fn step_mobs(&mut self, player: &mut Player) {
+    pub fn step_mobs(&mut self, player_positions: &Vec<Position>) -> InteractionStore {
+        let mut interactions = Vec::new();
         self.detach_mobs();
         for _ in 0..self.stray_mobs.len() {
             let optional_mob = self.stray_mobs.pop();
@@ -143,33 +144,44 @@ impl Field {
                 break;
             }
             let mut mob = optional_mob.unwrap();
-            mob.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
+
+            let closest_player_pos = player_positions.iter()
+                .min_by_key(|p| p.manhattan_distance(&mob.pos))
+                .unwrap();
+
+            interactions.extend(mob.act_with_speed(self, closest_player_pos, self.min_loaded_idx(), self.max_loaded_idx()));
 
             if mob.is_alive() {
                 // mobs can self-destruct, dont add them in that case.
                 self.place_mob(mob);
             }
         }
+        interactions
     }
 
-    pub fn step_turrets(&mut self, player: &mut Player) {
+    pub fn step_turrets(&mut self, player_positions: &Vec<Position>) -> InteractionStore {
         let mut turrets = Vec::new();
         for i in 0..self.loaded_chunks.len() {
             for j in 0..self.loaded_chunks[i].len() {
                 turrets.extend(self.loaded_chunks[i][j].lock().unwrap().transfer_turrets());
             }
         }
+        let mut interactions = Vec::new();
         for _ in 0..turrets.len() {
             let mut turret = turrets.pop().unwrap();
-            turret.act_with_speed(self, player, self.min_loaded_idx(), self.max_loaded_idx());
+            let closest_player_pos = player_positions.iter()
+                .min_by_key(|p| p.manhattan_distance(&Position::from(turret.get_position())))
+                .unwrap();
+            interactions.extend(turret.act_with_speed(self, closest_player_pos, self.min_loaded_idx(), self.max_loaded_idx()));
             let (x_chunk, y_chunk) =
                 self.chunk_idx_from_pos(turret.get_position().0, turret.get_position().1);
             self.loaded_chunks[x_chunk][y_chunk].lock().unwrap().add_interactable(turret);
         }
+        interactions
     }
 
-    pub fn step_interactables(&mut self, player: &mut Player) {
-        self.step_turrets(player);
+    pub fn step_interactables(&mut self, player_positions: &Vec<Position>) -> InteractionStore {
+        self.step_turrets(player_positions)
     }
 
     /// Spawns mobs on the loaded chunks.
@@ -180,12 +192,15 @@ impl Field {
     ///
     /// * `player`: the player (for its position)
     /// * `amount`: how many mobs should be spawn (at most)
-    pub fn spawn_mobs(&mut self, player: &Player, amount: i32, hostile: bool) {
+    pub fn spawn_mobs(&mut self, player_positions: &Vec<Position>, amount: i32, hostile: bool) {
         let game_time = self.time;
         for _ in 0..amount {
             let tile = self.pick_tile();
+            let closest_player_pos = player_positions.iter()
+                .min_by_key(|p| p.manhattan_distance(&Position::from(tile)))
+                .unwrap();
             // not too close
-            if player.get_position().manhattan_distance(&tile.into()) >
+            if closest_player_pos.manhattan_distance(&tile.into()) >
                 (2 * self.render_distance) as i32 {
 
                 let is_red_moon = self.is_red_moon();
@@ -208,7 +223,8 @@ impl Field {
     /// * `center`: x and y of tile that is the epicenter
     /// * `radius`: radius in manhattan distance
     /// * `destruction_power`: mining power applied to remove blocks
-    pub fn explosion(&mut self, center: AbsolutePos, radius: i32, destruction_power: i32, player: &mut Player) {
+    pub fn explosion(&mut self, center: AbsolutePos, radius: i32, destruction_power: i32, player_pos: &Position) -> InteractionStore {
+        let mut interactions = Vec::new();
         let start_height = self.len_at(center);
         let damage = destruction_power * 10;
         for i in (center.0 - radius)..=(center.0 + radius) {
@@ -227,12 +243,13 @@ impl Field {
                 if self.is_occupied((i, j)) {
                     self.damage_mob((i, j), damage);
                 }
-                if player.xy() == (i, j) {
-                    player.receive_damage(damage);
+                if player_pos.xy() == (i, j) {
+                    interactions.push((P2PInteraction::DealDamage(damage), player_pos.xy()));
                 }
             }
         }
-        player.add_message(&format!("BOOM!!! (at {}, {})", center.0, center.1));
+        interactions.push((P2PInteraction::AddMessage(format!("BOOM!!! (at {}, {})", center.0, center.1)), player_pos.xy()));
+        interactions
     }
 
     /// Perform a full A* pathing from source to destination.

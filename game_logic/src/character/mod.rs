@@ -6,3 +6,4 @@ pub mod game_score;
 pub mod start_loadouts;
 pub mod milestones;
 pub mod abilities;
+pub mod p2p_interactions;

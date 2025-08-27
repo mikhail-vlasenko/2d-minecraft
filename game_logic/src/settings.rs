@@ -8,6 +8,7 @@ use std::borrow::Cow;
 pub struct Settings {
     pub field: _Config__field,
     pub mobs: _Config__mobs,
+    pub multiplayer: _Config__multiplayer,
     pub pathing: _Config__pathing,
     pub player: _Config__player,
     pub record_replays: bool,
@@ -69,6 +70,12 @@ pub struct _Config__mobs__spawning__probabilities {
     pub bane: f32,
     pub gelatinous_cube: f32,
     pub ling: f32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(non_camel_case_types)]
+pub struct _Config__multiplayer {
+    pub num_players: i32,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -188,6 +195,9 @@ pub const DEFAULT_SETTINGS: Settings = Settings {
                 ling: 0.2,
             },
         },
+    },
+    multiplayer: _Config__multiplayer {
+        num_players: 4,
     },
     pathing: _Config__pathing {
         a_star_radius: 20,

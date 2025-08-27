@@ -2,6 +2,7 @@ use std::{iter};
 use std::path::{PathBuf};
 
 use cgmath::{Rotation3};
+use egui::emath::Rot2;
 use strum::IntoEnumIterator;
 use egui_wgpu::wgpu;
 use egui_wgpu::wgpu::{Buffer, include_wgsl, InstanceDescriptor, RenderPass, StoreOp};
@@ -12,6 +13,8 @@ use egui_winit::winit::{
 };
 use egui_winit::winit::dpi::PhysicalSize;
 use egui_winit::winit::keyboard::{KeyCode, PhysicalKey};
+use rand::random;
+use game_logic::auxiliary::actions::Action;
 use game_logic::crafting::consumable::Consumable;
 
 use game_logic::character::player::Player;
@@ -218,29 +221,45 @@ impl<'a> State<'a> {
     }
 
     fn handle_action(&mut self, virtual_keycode: &KeyCode) {
-        match virtual_keycode { 
-            KeyCode::F1 => {
-                if self.active_replay.is_some() {
-                    let replay = self.active_replay.as_mut().unwrap();
-                    replay.step_back(&mut self.game_state.field, &mut self.game_state.player)
-                }
-            }
-            KeyCode::F2 => { 
-                if self.active_replay.is_some() {
-                    let replay = self.active_replay.as_mut().unwrap();
-                    if !replay.finished() {
-                        replay.apply_state(&mut self.game_state.field, &mut self.game_state.player);
-                    }
-                }
-            }
+        match virtual_keycode {
+            // todo
+            // KeyCode::F1 => {
+            //     if self.active_replay.is_some() {
+            //         let replay = self.active_replay.as_mut().unwrap();
+            //         replay.step_back(&mut self.game_state.field, &mut self.game_state.player)
+            //     }
+            // }
+            // KeyCode::F2 => {
+            //     if self.active_replay.is_some() {
+            //         let replay = self.active_replay.as_mut().unwrap();
+            //         if !replay.finished() {
+            //             replay.apply_state(&mut self.game_state.field, &mut self.game_state.player);
+            //         }
+            //     }
+            // }
             _ => {
-                let action = map_key_to_action(virtual_keycode, &self.game_state.player);
+                let is_primary_interacting = self.game_state.get_primary_player().get_interacting_with().is_some();
+                let action = map_key_to_action(virtual_keycode, is_primary_interacting);
                 if action.is_some() {
                     self.game_state.step(
+                        self.game_state.get_primary_player_id(),
                         &action.unwrap(),
                         &self.egui_manager.main_menu_open,
                         &self.egui_manager.craft_menu_open,
                     )
+                }
+                let mut next_id = self.game_state.get_id_next_to_move();
+                while next_id.is_some() && next_id.unwrap() != self.game_state.get_primary_player_id() {
+                    let action_id: usize = random();
+                    let action_options = vec![Action::WalkNorth, Action::WalkSouth, Action::WalkEast, Action::WalkWest];
+                    let action = action_options.get(action_id % action_options.len()).unwrap();
+                    self.game_state.step(
+                        next_id.unwrap(),
+                        action,
+                        &self.egui_manager.main_menu_open,
+                        &self.egui_manager.craft_menu_open,
+                    );
+                    next_id = self.game_state.get_id_next_to_move();
                 }
             }
         }
@@ -331,7 +350,7 @@ impl<'a> State<'a> {
             
         }
 
-        let player_pos = self.game_state.player.xy();
+        let player_pos = self.game_state.get_primary_player().xy();
 
         let mob_positions_and_hp = self.game_state.field.close_mob_info(|mob| {
                 let pos = absolute_to_relative((mob.pos.x, mob.pos.y), player_pos);
@@ -388,21 +407,23 @@ impl<'a> State<'a> {
 
             render_pass.set_pipeline(&self.render_pipeline);
             
-            let player_pos = self.game_state.player.xy();
-            let player_rotation = self.game_state.player.get_rotation();
+            let player = self.game_state.get_primary_player();
+            let player_pos = player.xy();
 
-            if !self.game_state.player.is_viewing_map() {
-                self.render_game(&mut render_pass, player_pos, player_rotation);
+            if !player.is_viewing_map() {
+                self.render_game(&mut render_pass, player_pos);
             } else {
                 self.render_map(&mut render_pass, player_pos);
             }
         }
 
+        let mut player = self.game_state.borrow_primary_player();
         self.egui_manager.render_ui(
             &mut self.egui_renderer,
             &self.config, &self.device, &self.queue, &mut encoder, &view, self.window,
-            &mut self.game_state.player, &mut self.game_state.field,
+            &mut player, &mut self.game_state.field,
         );
+        self.game_state.return_primary_player(player);
 
         self.queue.submit(iter::once(encoder.finish()));
         output.present();
@@ -410,7 +431,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    fn render_game(&'a self, render_pass: &mut RenderPass<'a>, player_pos: AbsolutePos, player_rotation: u32) {
+    fn render_game(&'a self, render_pass: &mut RenderPass<'a>, player_pos: AbsolutePos) {
         render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
         render_pass.set_index_buffer(self.buffers.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
@@ -418,11 +439,7 @@ impl<'a> State<'a> {
         self.render_field(render_pass, player_pos);
         self.render_mobs(render_pass, player_pos);
 
-        // render player
-        render_pass.set_vertex_buffer(0, self.buffers.player_vertex_buffer.slice(..));
-        render_pass.set_vertex_buffer(1, self.buffers.player_instance_buffer.slice(..));
-        render_pass.set_bind_group(0, &self.bind_groups.get_bind_group_player(), &[]);
-        render_pass.draw_indexed(0..INDICES.len() as u32, 0, player_rotation..player_rotation + 1);
+        self.render_players(render_pass, &self.game_state.get_all_rendering_info(), player_pos);
         
         self.render_animations(render_pass, player_pos);
 
@@ -497,8 +514,8 @@ impl<'a> State<'a> {
     }
 
     /// Draws top material or texture. in case of texture also draws material underneath
-    fn draw_material(&'a self, pos: AbsolutePos, render_pass: &mut RenderPass<'a>, map: bool) {
-        let (player_x, player_y) = self.game_state.player.xy();
+    fn draw_material(&'a self, pos: AbsolutePos, render_pass: &mut RenderPass<'a>, map: bool, player_pos: AbsolutePos) {
+        let (player_x, player_y) = player_pos;
         let material = self.game_state.field.top_material_at(pos);
         let idx = if map {
             self.convert_map_view_index(pos.0 - player_x, pos.1 - player_y)
@@ -528,7 +545,7 @@ impl<'a> State<'a> {
         // draw materials of top block in tiles
         for i in (player_x - CONFIG.render_distance as i32)..=(player_x + CONFIG.render_distance as i32) {
             for j in (player_y - CONFIG.render_distance as i32)..=(player_y + CONFIG.render_distance as i32) {
-                self.draw_material((i, j), render_pass, false);
+                self.draw_material((i, j), render_pass, false, player_pos);
             }
         }
 
@@ -569,6 +586,7 @@ impl<'a> State<'a> {
             render_pass.set_bind_group(0, self.bind_groups.get_bind_group_mob(mob_kind), &[]);
 
             let mut mobs = self.game_state.field.mob_indices(player_pos, mob_kind);
+            // todo: check if this can be removed
             mobs = mobs.into_iter().filter(
                 |(pos, _)| pos.0.abs() <= max_drawable_index && pos.1.abs() <= max_drawable_index
             ).collect();
@@ -576,6 +594,25 @@ impl<'a> State<'a> {
             let positions = mobs.into_iter().map(|(pos, _)| pos).collect();
             self.draw_at_grid_positions(&positions, &mut *render_pass, Some(rotations));
         }
+    }
+
+    fn render_players(&'a self, render_pass: &mut RenderPass<'a>, player_infos: &Vec<(AbsolutePos, u32)>, player_pos: AbsolutePos) {
+        let max_drawable_index = ((CONFIG.tiles_per_row - 1) / 2) as i32;
+
+        render_pass.set_vertex_buffer(0, self.buffers.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.buffers.instance_buffer.slice(..));
+        render_pass.set_bind_group(0, self.bind_groups.get_bind_group_player(), &[]);
+
+        let mut positions = vec![];
+        let mut rotations = vec![];
+        for (pos, rot) in player_infos {
+            let rel_pos = absolute_to_relative(*pos, player_pos);
+            if rel_pos.0.abs() <= max_drawable_index && rel_pos.1.abs() <= max_drawable_index {
+                positions.push(rel_pos);
+                rotations.push(*rot);
+            }
+        }
+        self.draw_at_grid_positions(&positions, &mut *render_pass, Some(rotations));
     }
 
     fn render_hp_bars(&'a self, render_pass: &mut RenderPass<'a>) {
@@ -693,7 +730,7 @@ impl<'a> State<'a> {
         let radius = self.game_state.field.get_map_render_distance() as i32;
         for i in (player_x - radius)..=(player_x + radius) {
             for j in (player_y - radius)..=(player_y + radius) {
-                self.draw_material((i, j), render_pass, true);
+                self.draw_material((i, j), render_pass, true, player_pos);
             }
         }
     }
