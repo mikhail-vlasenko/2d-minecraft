@@ -3,12 +3,12 @@ import numpy as np
 import gymnasium as gym
 from ray.rllib.core.rl_module import RLModule
 from ray.rllib.env.env_runner import EnvRunner
-from ray.rllib.evaluation.episode_v2 import EpisodeV2
+from ray.rllib.env.multi_agent_episode import MultiAgentEpisode
+from ray.rllib.env.single_agent_episode import SingleAgentEpisode
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
-from ray.rllib.utils.typing import PolicyID, EpisodeType
+from ray.rllib.utils.typing import PolicyID
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.env import BaseEnv
-from ray.rllib.evaluation import Episode
 from ray.rllib.policy import Policy
 from typing import Dict, Union, Optional
 
@@ -22,7 +22,7 @@ class MinecraftMetricsCallback(DefaultCallbacks):
     def on_episode_end(
         self,
         *,
-        episode: Union[EpisodeType, Episode, EpisodeV2],
+        episode: Union[SingleAgentEpisode, MultiAgentEpisode],
         env_runner: Optional[EnvRunner] = None,
         metrics_logger: Optional[MetricsLogger] = None,
         env: Optional[gym.Env] = None,
@@ -33,10 +33,18 @@ class MinecraftMetricsCallback(DefaultCallbacks):
         policies: Optional[Dict[PolicyID, Policy]] = None,
         **kwargs,
     ):
-        episode.custom_metrics["episode return"] = episode.total_reward
-        episode.custom_metrics["episode length"] = episode.length
-        last_info = episode.last_info_for()
-        episode.custom_metrics["game time"] = last_info["time"]
-        episode.custom_metrics["game score"] = last_info["game_score"]
+        episode_return = episode.get_return()
+        episode_length = len(episode)
+
+        last_info = episode.get_infos(-1)
+
+        metrics_logger.log_value("episode return", episode_return)
+        metrics_logger.log_value("episode length", episode_length)
+        metrics_logger.log_value("game time", last_info["time"])
+        metrics_logger.log_value("game score", last_info["game_score"])
+
         if CONFIG.env.discovered_actions_reward:
-            episode.custom_metrics["num discovered actions"] = np.sum(last_info['discovered_actions'])
+            metrics_logger.log_value(
+                "num discovered actions",
+                np.sum(last_info["discovered_actions"]),
+            )

@@ -1,9 +1,11 @@
 import ray
 from ray import tune
-from ray.air import CheckpointConfig
+from ray.air import CheckpointConfig, RunConfig
 from ray.rllib.algorithms import ImpalaConfig, Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.core.rl_module import RLModuleSpec
 from ray.train import Checkpoint
+from ray.tune import Tuner
 from ray.tune.registry import register_env
 from ray.air.integrations.wandb import WandbLoggerCallback
 
@@ -11,6 +13,7 @@ from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
 from reinforcement_learning.config import CONFIG, ENV_KWARGS, WANDB_KWARGS
 from reinforcement_learning.metrics_callback import MinecraftMetricsCallback
+from reinforcement_learning.model.ray_rl_module import CustomPPORLModule
 
 
 def env_creator(env_config):
@@ -29,31 +32,29 @@ def main():
     train_batch_size = CONFIG.train.iter_env_steps * CONFIG.env.num_envs * max(1, CONFIG.train.num_runners) // 2
     print(f"Train batch size: {train_batch_size}")
 
-    impala_config = (
-        ImpalaConfig()
+    ppo_config = (
+        PPOConfig()
         .environment("Minecraft2D", env_config=ENV_KWARGS)
         .framework("torch")
+        .rl_module(
+            rl_module_spec=RLModuleSpec(
+                module_class=CustomPPORLModule,
+            ),
+        )
         .training(
-            model={
-                "fcnet_hiddens": [CONFIG.model.extractor_dim] + CONFIG.model.dimensions,
-                "fcnet_activation": CONFIG.model.nonlinear,
-            },
-            gamma=CONFIG.impala.gamma,
-            vf_loss_coeff=CONFIG.impala.vf_loss_coeff,
-            entropy_coeff=CONFIG.impala.ent_coef,
+            lr=CONFIG.ppo.lr,
+            gamma=CONFIG.ppo.gamma,
+            lambda_=0.95,
+            entropy_coeff=CONFIG.ppo.ent_coef,
+            num_epochs=CONFIG.ppo.update_epochs,
+            minibatch_size=CONFIG.ppo.batch_size,
             train_batch_size=train_batch_size,
-            vtrace=True,
-            vtrace_clip_rho_threshold=1.0,
-            vtrace_clip_pg_rho_threshold=1.0,
-            replay_proportion=CONFIG.impala.replay_proportion,
-            replay_buffer_num_slots=CONFIG.impala.replay_buffer_num_slots,
         )
         .resources(
             num_gpus=(1 - CONFIG.train.num_runners * CONFIG.train.gpus_per_runner),
             num_cpus_for_main_process=2
         )
         .env_runners(
-            rollout_fragment_length=CONFIG.impala.rollout_fragment_length,
             num_env_runners=CONFIG.train.num_runners,
             num_envs_per_env_runner=CONFIG.env.num_envs,
             num_cpus_per_env_runner=CONFIG.train.cpus_per_runner,
@@ -81,10 +82,10 @@ def main():
         print(f"\nCheckpoint loaded from: {CONFIG.train.load_checkpoint}\n")
 
     results = tune.run(
-        "IMPALA",
+        "PPO",
         restore=checkpoint,
         storage_path=CONFIG.storage_path,
-        config=impala_config.to_dict(),
+        config=ppo_config.get_state(),
         stop=stop_conditions,
         checkpoint_config=checkpoint_config,
         callbacks=[

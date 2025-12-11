@@ -1,11 +1,10 @@
 import os.path
 import re
 import shutil
-from queue import Queue
+from collections import deque
 from typing import Optional
 
 import numpy as np
-
 
 SAVE_DIR = "game_saves"
 
@@ -22,11 +21,12 @@ class CheckpointHandler:
             initial_checkpoints: Optional[list[tuple[int, str]]] = None
     ):
         assert os.path.exists(SAVE_DIR), f"Directory {SAVE_DIR} does not exist."
-        self.checkpoint_names = [Queue(maxsize=max_checkpoints) for _ in range(num_milestones)]
+        self.max_checkpoints = max_checkpoints
+        self.checkpoint_names = [deque(maxlen=max_checkpoints) for _ in range(num_milestones)]
         self.max_reached_milestone = 0  # the index of the first milestone is 1
         if initial_checkpoints:
             for milestone_index, checkpoint_name in initial_checkpoints:
-                self.checkpoint_names[milestone_index].put(checkpoint_name)
+                self.checkpoint_names[milestone_index].append(checkpoint_name)
                 if milestone_index > self.max_reached_milestone:
                     self.max_reached_milestone = milestone_index
 
@@ -37,12 +37,14 @@ class CheckpointHandler:
             save_name = save_match.group(1)
             if milestone_index > self.max_reached_milestone:
                 self.max_reached_milestone = milestone_index
-            if self.checkpoint_names[milestone_index].full():
-                outdated_checkpoint = self.checkpoint_names[milestone_index].get()
-                # remove the outdated checkpoint
+
+            checkpoint_deque = self.checkpoint_names[milestone_index]
+            if len(checkpoint_deque) >= self.max_checkpoints:
+                outdated_checkpoint = checkpoint_deque[0]  # oldest item
                 if os.path.exists(path := os.path.join(SAVE_DIR, outdated_checkpoint)):
                     shutil.rmtree(path)
-            self.checkpoint_names[milestone_index].put(save_name)
+            # deque with maxlen automatically removes oldest when full
+            checkpoint_deque.append(save_name)
             return {"milestone_index": milestone_index, "save_name": save_name}
         return None
 
@@ -50,5 +52,4 @@ class CheckpointHandler:
         if self.max_reached_milestone < 1:
             return ""
         milestone_index = np.random.randint(1, self.max_reached_milestone + 1)
-        # sample a random checkpoint from the milestone
-        return np.random.choice(list(self.checkpoint_names[milestone_index].queue))
+        return np.random.choice(list(self.checkpoint_names[milestone_index]))

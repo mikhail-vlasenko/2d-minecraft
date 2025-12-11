@@ -1,11 +1,7 @@
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Tuple, Type
 
-from gymnasium import spaces
 import torch
 from torch import nn
-
-from stable_baselines3 import PPO
-from stable_baselines3.common.policies import MultiInputActorCriticPolicy
 
 from reinforcement_learning.config import CONFIG
 
@@ -63,11 +59,6 @@ class ResidualNetwork(nn.Module):
 
     def forward_critic(self, features: torch.Tensor) -> torch.Tensor:
         return self.value_net(features)
-
-
-class CustomActorCriticPolicy(MultiInputActorCriticPolicy):
-    def _build_mlp_extractor(self) -> None:
-        self.mlp_extractor = ResidualNetwork(self.features_dim)
 
 
 class ResidualMLP(nn.Module):

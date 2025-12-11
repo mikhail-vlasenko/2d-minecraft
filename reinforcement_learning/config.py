@@ -23,7 +23,7 @@ class EnvConfig:
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 64_000_000
+    env_steps: int = 8_000_000
     time_total_s: Optional[int] = None  # if None, then env_steps is used
     iter_env_steps: int = 256
     load_from: str = None

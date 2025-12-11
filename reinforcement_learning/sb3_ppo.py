@@ -1,16 +1,14 @@
 import numpy as np
-from gymnasium import spaces
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CallbackList, BaseCallback, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
 import wandb
-from torch import nn
 
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
 from reinforcement_learning.config import CONFIG, ENV_KWARGS, WANDB_KWARGS
 from reinforcement_learning.model.feature_extractor import FeatureExtractor
-from reinforcement_learning.model.policy_network import CustomActorCriticPolicy
+from reinforcement_learning.model.sb3_policy import CustomActorCriticPolicy
 
 
 class LoggingCallback(BaseCallback):
