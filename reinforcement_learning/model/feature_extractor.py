@@ -3,8 +3,9 @@ import torch.nn as nn
 import gymnasium as gym
 from torch.nn import MaxPool2d
 
-from python_wrapper.ffi_elements import INVENTORY_SIZE
+from python_wrapper.ffi_elements import INVENTORY_SIZE, NUM_ACTIONS
 from python_wrapper.observation import NUM_MATERIALS, MOB_INFO_SIZE, LOOT_INFO_SIZE
+from python_wrapper.past_actions_wrapper import PastActionsWrapper
 from reinforcement_learning.config import CONFIG
 from reinforcement_learning.model.attentive_pooler import AttentivePooler
 
@@ -52,6 +53,14 @@ class FeatureExtractor(nn.Module):
             nn.Linear(INVENTORY_SIZE, INVENTORY_SIZE),
             nn.GELU(),
         )
+
+        self.use_past_actions = CONFIG.env.use_past_actions
+        if self.use_past_actions:
+            self.past_actions_dim = 16
+            self.past_actions_encoder = nn.Sequential(
+                nn.Linear(PastActionsWrapper.NUM_PAST_ACTIONS * NUM_ACTIONS, self.past_actions_dim),
+                nn.Tanh(),
+            )
 
         self.position_scaler = SymmetricLogScaling()
 
@@ -112,11 +121,23 @@ class FeatureExtractor(nn.Module):
         inventory = observation["inventory_state"] / 4  # arbitrary downscaling
         inventory = self.inventory_encoder(inventory)
 
-        return torch.cat([
+        features = [
             near_materials, pooled_materials, height_features_hor, height_features_vert,
             mob_pool, loot_pool, inventory,
             self.extract_flat_features(observation)
-        ], dim=1)
+        ]
+
+        if self.use_past_actions:
+            past_actions = observation["past_actions"]  # (batch_size, NUM_PAST_ACTIONS)
+            past_actions = past_actions.long()
+            # One-hot encode each action
+            past_actions_onehot = torch.eye(NUM_ACTIONS, device=past_actions.device)[past_actions]
+            # Flatten to (batch_size, NUM_PAST_ACTIONS * NUM_ACTIONS)
+            past_actions_onehot = past_actions_onehot.view(past_actions.size(0), -1)
+            past_actions_encoded = self.past_actions_encoder(past_actions_onehot)
+            features.append(past_actions_encoded)
+
+        return torch.cat(features, dim=1)
 
     def extract_flat_features(self, observation: dict) -> torch.Tensor:
         player_pos = observation["player_pos"]

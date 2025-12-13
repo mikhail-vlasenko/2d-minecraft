@@ -2,10 +2,13 @@ import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CallbackList, BaseCallback, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
 import wandb
 
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
 from python_wrapper.simplified_actions import ActionSimplificationWrapper
+from python_wrapper.stale_score_wrapper import StaleScoreWrapper
+from python_wrapper.past_actions_wrapper import PastActionsWrapper
 from reinforcement_learning.config import CONFIG, ENV_KWARGS, WANDB_KWARGS
 from reinforcement_learning.model.feature_extractor import FeatureExtractor
 from reinforcement_learning.model.sb3_policy import CustomActorCriticPolicy
@@ -74,14 +77,23 @@ class LoggingCallback(BaseCallback):
             self.game_scores = []
 
 
+def apply_wrappers(env):
+    """Apply wrappers in order: past actions (innermost), simplified actions, stale score (outermost)."""
+    if isinstance(env, Monitor):
+        # strip out the Monitor wrapper cause i dont think i need it
+        env = env.env
+    if CONFIG.env.use_past_actions:
+        env = PastActionsWrapper(env)
+    if CONFIG.env.simplified_action_space:
+        env = ActionSimplificationWrapper(env)
+    env = StaleScoreWrapper(env)
+    return env
+
+
 def main():
     run = wandb.init(**WANDB_KWARGS)
 
-    wrapper_class = None
-    if CONFIG.env.simplified_action_space:
-        wrapper_class = ActionSimplificationWrapper
-
-    env = make_vec_env(Minecraft2dEnv, n_envs=CONFIG.env.num_envs, env_kwargs=ENV_KWARGS, wrapper_class=wrapper_class)
+    env = make_vec_env(Minecraft2dEnv, n_envs=CONFIG.env.num_envs, env_kwargs=ENV_KWARGS, wrapper_class=apply_wrappers)
 
     if CONFIG.model.residual:
         policy = CustomActorCriticPolicy

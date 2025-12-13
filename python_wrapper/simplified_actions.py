@@ -1,7 +1,6 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium import Wrapper, ActionWrapper
-from stable_baselines3.common.monitor import Monitor
 
 from python_wrapper.ffi_elements import NUM_ACTIONS
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv
@@ -19,9 +18,6 @@ class ActionSimplificationWrapper(ActionWrapper):
     """
     def __init__(self, env: Minecraft2dEnv):
         Wrapper.__init__(self, env)
-        if isinstance(env, Monitor):
-            # strip out the Monitor wrapper cause i dont think i need it
-            env = env.env
         self.env: Minecraft2dEnv = env
         self.disabled_actions = [
             'Place', 'Craft', 'Consume',

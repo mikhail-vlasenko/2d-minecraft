@@ -18,12 +18,13 @@ class EnvConfig:
     start_loadout: str = 'random'
     checkpoint_starts: float = 0.75
     simplified_action_space: bool = True
+    use_past_actions: bool = True
     seed: Optional[int] = None  # todo
 
 
 @dataclass
 class TrainConfig:
-    env_steps: int = 8_000_000
+    env_steps: int = 32_000_000
     time_total_s: Optional[int] = None  # if None, then env_steps is used
     iter_env_steps: int = 256
     load_from: str = None
