@@ -33,9 +33,9 @@ class TrainConfig:
     save_to: str = f'reinforcement_learning/saved_models/sb3_ppo.pt'
     fall_back_save_to: str = f'reinforcement_learning/saved_models/sb3_ppo_interrupted.pt'
     checkpoints_per_training: int = 16
-    checkpoint_frequency: int = 32  # in training iterations
-    num_runners: int = 8
-    cpus_per_runner: int = 1
+    checkpoint_frequency: int = 64  # in training iterations
+    num_runners: int = 2
+    cpus_per_runner: int = 4
     gpus_per_runner: float = 0
 
 

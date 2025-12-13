@@ -20,7 +20,6 @@ class CheckpointHandler:
             num_milestones: int = 100,
             initial_checkpoints: Optional[list[tuple[int, str]]] = None
     ):
-        assert os.path.exists(SAVE_DIR), f"Directory {SAVE_DIR} does not exist."
         self.max_checkpoints = max_checkpoints
         self.checkpoint_names = [deque(maxlen=max_checkpoints) for _ in range(num_milestones)]
         self.max_reached_milestone = 0  # the index of the first milestone is 1
@@ -31,6 +30,7 @@ class CheckpointHandler:
                     self.max_reached_milestone = milestone_index
 
     def add_checkpoint(self, message_string: str):
+        assert os.path.exists(SAVE_DIR), f"Directory {SAVE_DIR} does not exist. Currently in {os.getcwd()}"
         if ((milestone_match := re.search(r"Milestone completed: *(\d+)", message_string))
                 and (save_match := re.search(r"Game saved as: *(.+?)(?:\s*$|\n)", message_string))):
             milestone_index = int(milestone_match.group(1))
