@@ -3,8 +3,8 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 from python_wrapper.checkpoint_handler import CheckpointHandler
 from python_wrapper.minecraft_2d_env import initialize_minecraft_connection, Minecraft2dEnv
-from python_wrapper.simplified_actions import ActionSimplificationWrapper
 from reinforcement_learning.config import CONFIG, ENV_KWARGS
+from reinforcement_learning.sb3_ppo import apply_wrappers
 
 
 def main():
@@ -21,8 +21,7 @@ def main():
 
     env = Minecraft2dEnv(**ENV_KWARGS)
 
-    if CONFIG.env.simplified_action_space:
-        env = ActionSimplificationWrapper(env)
+    env = apply_wrappers(env)
 
     if CONFIG.train.load_checkpoint:
         model = PPO.load(CONFIG.train.load_checkpoint, env=env)
