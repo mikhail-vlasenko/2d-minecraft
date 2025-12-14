@@ -71,19 +71,31 @@ class ResidualMLP(nn.Module):
     ):
         super().__init__()
 
-        self.activation = activation()
-        layers = []
-        for i in range(num_residual_blocks):
-            layers.append(nn.Sequential(
-                nn.Linear(main_dim, hidden_dim),
-                self.activation,
-                nn.Linear(hidden_dim, main_dim),
-            ))
-        self.hidden_layers = nn.ModuleList(
-            layers
-        )
+        self.activation = activation
+        self.blocks = nn.ModuleList()
+        self.post_block_activations = nn.ModuleList([self.activation() for _ in range(num_residual_blocks)])
+        for _ in range(num_residual_blocks):
+            first_linear = nn.Linear(main_dim, hidden_dim)
+            second_linear = nn.Linear(hidden_dim, main_dim)
+
+            block_layers = [
+                first_linear,
+                self.activation(),
+                second_linear,
+            ]
+            # todo: layer norm?
+
+            nn.init.orthogonal_(first_linear.weight, gain=torch.sqrt(torch.tensor(2.0)))
+            nn.init.constant_(first_linear.bias, 0.0)
+
+            # near-zero init such that at first its close to the identity mapping
+            nn.init.orthogonal_(second_linear.weight, gain=0.01)
+            nn.init.constant_(second_linear.bias, 0.0)
+
+            self.blocks.append(nn.Sequential(*block_layers))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        for layer in self.hidden_layers:
-            x = self.activation(x + layer(x))
+        for block, final_act in zip(self.blocks, self.post_block_activations):
+            residual = block(x)
+            x = final_act(x + residual)
         return x
