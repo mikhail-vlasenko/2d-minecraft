@@ -31,21 +31,25 @@ class CheckpointHandler:
 
     def add_checkpoint(self, message_string: str):
         assert os.path.exists(SAVE_DIR), f"Directory {SAVE_DIR} does not exist. Currently in {os.getcwd()}"
-        if ((milestone_match := re.search(r"Milestone completed: *(\d+)", message_string))
-                and (save_match := re.search(r"Game saved as: *(.+?)(?:\s*$|\n)", message_string))):
-            milestone_index = int(milestone_match.group(1))
-            save_name = save_match.group(1)
-            if milestone_index > self.max_reached_milestone:
-                self.max_reached_milestone = milestone_index
+        try:
+            if ((milestone_match := re.search(r"Milestone completed: *(\d+)", message_string))
+                    and (save_match := re.search(r"Game saved as: *(.+?)(?:\s*$|\n)", message_string))):
+                milestone_index = int(milestone_match.group(1))
+                save_name = save_match.group(1)
+                if milestone_index > self.max_reached_milestone:
+                    self.max_reached_milestone = milestone_index
 
-            checkpoint_deque = self.checkpoint_names[milestone_index]
-            if len(checkpoint_deque) >= self.max_checkpoints:
-                outdated_checkpoint = checkpoint_deque[0]  # oldest item
-                if os.path.exists(path := os.path.join(SAVE_DIR, outdated_checkpoint)):
-                    shutil.rmtree(path)
-            # deque with maxlen automatically removes oldest when full
-            checkpoint_deque.append(save_name)
-            return {"milestone_index": milestone_index, "save_name": save_name}
+                checkpoint_deque = self.checkpoint_names[milestone_index]
+                if len(checkpoint_deque) >= self.max_checkpoints:
+                    outdated_checkpoint = checkpoint_deque[0]  # oldest item
+                    if os.path.exists(path := os.path.join(SAVE_DIR, outdated_checkpoint)):
+                        shutil.rmtree(path)
+                # deque with maxlen automatically removes oldest when full
+                checkpoint_deque.append(save_name)
+                return {"milestone_index": milestone_index, "save_name": save_name}
+        except Exception as e:
+            # rmtree may fail if 2 runs use the same directory
+            print(f"Error adding checkpoint: {e}")
         return None
 
     def sample_checkpoint(self) -> str:

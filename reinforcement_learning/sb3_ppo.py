@@ -108,22 +108,20 @@ def main():
             features_extractor_kwargs=dict(),
         )
 
-    if CONFIG.train.load_checkpoint is not None:
-        print(f"Loading checkpoint from {CONFIG.train.load_checkpoint}")
-        model = PPO.load(CONFIG.train.load_checkpoint, env, tensorboard_log=f"runs/{run.id}")
-    else:
-        model = PPO(policy, env, policy_kwargs=policy_kwargs,
-                    verbose=0, tensorboard_log=f"runs/{run.id}",
-                    learning_rate=CONFIG.ppo.lr,
-                    n_steps=CONFIG.train.iter_env_steps,
-                    batch_size=CONFIG.ppo.batch_size,
-                    ent_coef=CONFIG.ppo.ent_coef,
-                    n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
+    # Always create model with CONFIG hyperparameters
+    model = PPO(policy, env, policy_kwargs=policy_kwargs,
+                verbose=0, tensorboard_log=f"runs/{run.id}",
+                learning_rate=CONFIG.ppo.lr,
+                n_steps=CONFIG.train.iter_env_steps,
+                batch_size=CONFIG.ppo.batch_size,
+                ent_coef=CONFIG.ppo.ent_coef,
+                n_epochs=CONFIG.ppo.update_epochs, gamma=CONFIG.ppo.gamma, gae_lambda=0.95)
 
-    if CONFIG.train.load_from is not None:
-        print(f"Loading model from {CONFIG.train.load_from}")
-        # this loads weights but keeps hyperparameters from the current initialization
-        model.set_parameters(CONFIG.train.load_from)
+    # Load weights and optimizer state from checkpoint, but keep CONFIG hyperparameters
+    weights_path = CONFIG.train.load_from
+    if weights_path is not None:
+        print(f"Loading network weights from {weights_path}")
+        model.set_parameters(weights_path, exact_match=True)
 
     print(model.policy)
 
