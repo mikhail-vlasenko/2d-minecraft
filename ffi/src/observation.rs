@@ -2,7 +2,9 @@ use std::cmp::min;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use interoptopus::{ffi_constant, ffi_type};
+use strum::IntoEnumIterator;
 use game_logic::character::player::Player;
+use game_logic::character::status_effects::StatusEffect;
 use game_logic::crafting::storable::{ALL_STORABLES, Storable};
 use game_logic::is_game_over;
 use game_logic::map_generation::field::Field;
@@ -27,6 +29,8 @@ pub const MAX_MOBS: u32 = 16;  // also max number of loot items
 pub const LOOT_INFO_SIZE: u32 = 3;
 #[ffi_constant]
 pub const NUM_MATERIALS: u32 = 13;
+#[ffi_constant]
+pub const NUM_STATUS_EFFECTS: u32 = 1;  // currently only Speedy
 
 
 #[ffi_type]
@@ -47,6 +51,8 @@ pub struct Observation {
     pub score: i32,
     pub message: *mut c_char,
     pub done: bool,
+    // remaining duration for each status effect (0 if not active)
+    pub status_effects: [i32; NUM_STATUS_EFFECTS as usize],
 }
 
 impl Observation {
@@ -90,6 +96,17 @@ impl Observation {
         let score = player.get_score();
         let message = CString::new(player.message.clone()).unwrap().into_raw();
         let done = is_game_over(player);
+        
+        // Build status_effects array: each index corresponds to a StatusEffect variant,
+        // value is remaining duration (0 if not active)
+        let mut status_effects = [0; NUM_STATUS_EFFECTS as usize];
+        let effect_variants: Vec<StatusEffect> = StatusEffect::iter().collect();
+        for (effect, duration) in player.get_status_effects() {
+            if let Some(idx) = effect_variants.iter().position(|e| e == effect) {
+                status_effects[idx] = *duration;
+            }
+        }
+        
         Self {
             top_materials,
             tile_heights,
@@ -104,6 +121,7 @@ impl Observation {
             score,
             message,
             done,
+            status_effects,
         }
     }
 }
@@ -124,6 +142,7 @@ impl Default for Observation {
             score: 0,
             message: CString::new(String::from("")).unwrap().into_raw(),
             done: false,
+            status_effects: [0; NUM_STATUS_EFFECTS as usize],
         }
     }
 }

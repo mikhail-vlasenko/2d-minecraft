@@ -149,8 +149,11 @@ class FeatureExtractor(nn.Module):
         time = torch.log(observation["time"] + 1) / 7  # becomes 1 at around 1000
         time1 = time % 1  # cyclic time component
         action_mask = observation["action_mask"]
+        status_effects = torch.log(observation["status_effects"] + 1)
         discovered_actions = observation["discovered_actions"]
-        return torch.cat([player_pos, player_rot, hp, time, time1, action_mask, discovered_actions], dim=1)
+        return torch.cat([
+            player_pos, player_rot, hp, time, time1, action_mask, status_effects, discovered_actions
+        ], dim=1)
 
 
 class SymmetricLogScaling(nn.Module):

@@ -10,7 +10,7 @@ from python_wrapper.checkpoint_handler import CheckpointHandler
 from python_wrapper.ffi_elements import (
     init_lib, reset_one, step_one, set_batch_size,
     set_record_replays, connect_env, close_one, c_lib, get_batch_size, set_start_loadout, set_save_on_milestone,
-    INVENTORY_SIZE, MOB_INFO_SIZE, LOOT_INFO_SIZE, NUM_ACTIONS,
+    INVENTORY_SIZE, MOB_INFO_SIZE, LOOT_INFO_SIZE, NUM_ACTIONS, NUM_STATUS_EFFECTS,
 )
 from python_wrapper.observation import (
     get_processed_observation, NUM_MATERIALS, ProcessedObservation,
@@ -111,6 +111,7 @@ class Minecraft2dEnv(gym.Env):
             "loot": Box(low=np.inf, high=np.inf, shape=(self.max_observable_mobs, LOOT_INFO_SIZE), dtype=np.int32),
             "action_mask": spaces.MultiBinary(NUM_ACTIONS),
             "discovered_actions": spaces.MultiBinary(NUM_ACTIONS),
+            "status_effects": Box(low=0, high=np.inf, shape=(NUM_STATUS_EFFECTS,), dtype=np.int32),
         })
 
     def reset(
@@ -200,7 +201,8 @@ class Minecraft2dEnv(gym.Env):
             "mobs": obs.mobs[:self.max_observable_mobs],
             "loot": obs.loot[:self.max_observable_mobs],
             "action_mask": obs.action_mask,
-            "discovered_actions": self.discovered_actions
+            "status_effects": obs.status_effects,
+            "discovered_actions": self.discovered_actions,
         }
 
     @staticmethod

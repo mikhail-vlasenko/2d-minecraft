@@ -226,6 +226,7 @@ pub fn ffi_inventory() -> Inventory {
         .register(constant!(observation::MAX_MOBS))
         .register(constant!(observation::LOOT_INFO_SIZE))
         .register(constant!(observation::NUM_MATERIALS))
+        .register(constant!(observation::NUM_STATUS_EFFECTS))
         
         .inventory()
 }

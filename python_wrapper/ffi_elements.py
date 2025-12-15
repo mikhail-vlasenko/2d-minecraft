@@ -122,6 +122,7 @@ MOB_INFO_SIZE = 8
 MAX_MOBS = 16
 LOOT_INFO_SIZE = 3
 NUM_MATERIALS = 13
+NUM_STATUS_EFFECTS = 1
 
 
 TRUE = ctypes.c_uint8(1)
@@ -178,9 +179,10 @@ class Observation(ctypes.Structure):
         ("score", ctypes.c_int32),
         ("message", ctypes.POINTER(ctypes.c_int8)),
         ("done", ctypes.c_bool),
+        ("status_effects", ctypes.c_int32 * 1),
     ]
 
-    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, loot = None, action_mask = None, score: int = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None):
+    def __init__(self, top_materials = None, tile_heights = None, player_pos = None, player_rot: int = None, hp: int = None, time: float = None, inventory_state = None, mobs = None, loot = None, action_mask = None, score: int = None, message: ctypes.POINTER(ctypes.c_int8) = None, done: bool = None, status_effects = None):
         if top_materials is not None:
             self.top_materials = top_materials
         if tile_heights is not None:
@@ -207,6 +209,8 @@ class Observation(ctypes.Structure):
             self.message = message
         if done is not None:
             self.done = done
+        if status_effects is not None:
+            self.status_effects = status_effects
 
     @property
     def top_materials(self):
@@ -311,6 +315,14 @@ class Observation(ctypes.Structure):
     @done.setter
     def done(self, value: bool):
         return ctypes.Structure.__set__(self, "done", value)
+
+    @property
+    def status_effects(self):
+        return ctypes.Structure.__get__(self, "status_effects")
+
+    @status_effects.setter
+    def status_effects(self, value):
+        return ctypes.Structure.__set__(self, "status_effects", value)
 
 
 
