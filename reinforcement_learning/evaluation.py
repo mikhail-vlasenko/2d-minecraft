@@ -1,17 +1,33 @@
 import glob
 import os
+
+import hydra
+from omegaconf import DictConfig
 import ray
 from ray.rllib.algorithms import Algorithm
 from ray.tune.registry import register_env
 import numpy as np
 from tqdm import tqdm
 
+from python_wrapper.checkpoint_handler import CheckpointHandler
 from python_wrapper.minecraft_2d_env import Minecraft2dEnv, initialize_minecraft_connection
-from reinforcement_learning.config import CONFIG, ENV_KWARGS
-from reinforcement_learning.main import env_creator
+from reinforcement_learning.config import config_from_hydra, make_env_kwargs
 
 
-def evaluate_model(checkpoint_path, num_episodes):
+def make_env_creator(config):
+    """Create env_creator function with config closure."""
+    from python_wrapper.simplified_actions import ActionSimplificationWrapper
+    
+    def env_creator(env_config):
+        env = Minecraft2dEnv(**env_config)
+        if config.env.simplified_action_space:
+            return ActionSimplificationWrapper(env)
+        return env
+    return env_creator
+
+
+def evaluate_model(checkpoint_path, num_episodes, config, env_kwargs):
+    env_creator = make_env_creator(config)
     register_env("Minecraft2D", env_creator)
 
     ray.init()
@@ -20,12 +36,12 @@ def evaluate_model(checkpoint_path, num_episodes):
 
     print("Reinitializing lib connection "
           "because checkpoint loading makes its envs in the training configuration automatically.")
-    initialize_minecraft_connection(num_envs=1, lib_path=CONFIG.env.lib_path, record_replays=True)
+    initialize_minecraft_connection(num_envs=1, lib_path=config.env.lib_path, record_replays=True)
 
-    ENV_KWARGS["num_total_envs"] = 1
-    ENV_KWARGS["record_replays"] = CONFIG.evaluation.record_replays
+    env_kwargs["num_total_envs"] = 1
+    env_kwargs["record_replays"] = config.evaluation.record_replays
 
-    env = env_creator(ENV_KWARGS)
+    env = env_creator(env_kwargs)
 
     episode_rewards = []
     episode_lengths = []
@@ -50,7 +66,7 @@ def evaluate_model(checkpoint_path, num_episodes):
         episode_lengths.append(episode_length)
         final_times.append(info['time'])
         game_scores.append(info['game_score'])
-        if CONFIG.env.discovered_actions_reward:
+        if config.env.discovered_actions_reward:
             discovered_actions.append(info['discovered_actions'].sum())
 
     print(f"\nEvaluation over {num_episodes} episodes:")
@@ -58,7 +74,7 @@ def evaluate_model(checkpoint_path, num_episodes):
     print(f"Average episode length: {np.mean(episode_lengths):.2f} ± {np.std(episode_lengths):.2f}")
     print(f"Average final time: {np.mean(final_times):.2f} ± {np.std(final_times):.2f}")
     print(f"Average game score: {np.mean(game_scores):.2f} ± {np.std(game_scores):.2f}")
-    if CONFIG.env.discovered_actions_reward:
+    if config.env.discovered_actions_reward:
         print(f"Average discovered actions: {np.mean(discovered_actions):.2f} ± {np.std(discovered_actions):.2f}")
         print(f"Max discovered actions: {np.max(discovered_actions)}")
 
@@ -67,9 +83,16 @@ def evaluate_model(checkpoint_path, num_episodes):
     ray.shutdown()
 
 
-if __name__ == "__main__":
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def main(cfg: DictConfig):
+    config = config_from_hydra(cfg)
+    
+    # Create checkpoint handler
+    checkpoint_handler = CheckpointHandler(max_checkpoints=8, initial_checkpoints=[])
+    env_kwargs = make_env_kwargs(config, checkpoint_handler)
+    
     # Find the latest experiment directory
-    experiment_dirs = glob.glob(os.path.join(CONFIG.storage_path, "IMPALA*"))
+    experiment_dirs = glob.glob(os.path.join(config.storage_path, "IMPALA*"))
     latest_experiment = max(experiment_dirs, key=os.path.getmtime)
 
     # Find the latest trial directory within the latest experiment
@@ -79,8 +102,10 @@ if __name__ == "__main__":
     # Find the latest checkpoint file
     checkpoint_files = glob.glob(os.path.join(latest_trial, "checkpoint_*"))
     latest_checkpoint = max(checkpoint_files, key=os.path.getmtime)
-    # if CONFIG.train.load_checkpoint:
-    #     latest_checkpoint = CONFIG.train.load_checkpoint
 
     print(f"Evaluating checkpoint: {latest_checkpoint}")
-    evaluate_model(latest_checkpoint, num_episodes=CONFIG.evaluation.n_games)
+    evaluate_model(latest_checkpoint, num_episodes=config.evaluation.n_games, config=config, env_kwargs=env_kwargs)
+
+
+if __name__ == "__main__":
+    main()

@@ -33,7 +33,7 @@ class ResidualNetwork(nn.Module):
             main_dim=CONFIG.model.residual_main_dim,
             hidden_dim=CONFIG.model.residual_hidden_dim,
             num_residual_blocks=CONFIG.model.residual_num_blocks,
-            activation=nn.Tanh
+            activation=nn.Tanh if CONFIG.model.nonlinear == 'tanh' else nn.GELU,  # todo
         )
 
         self.policy_net = nn.Sequential(

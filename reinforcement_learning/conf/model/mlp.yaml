@@ -1,0 +1,12 @@
+# Standard MLP model configuration (non-residual)
+nonlinear: tanh
+dimensions:
+  - 1024
+  - 512
+  - 512
+  - 512
+residual: false
+residual_main_dim: 1024
+residual_hidden_dim: 1536
+residual_num_blocks: 3
+

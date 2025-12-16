@@ -1,0 +1,26 @@
+# Main Hydra configuration
+# Override with: python sb3_ppo.py env.num_envs=32 ppo.lr=1e-4
+defaults:
+  - env: default
+  - train: default
+  - evaluation: default
+  - model: residual
+  - ppo: default
+  - impala: default
+  - _self_
+
+# Global settings
+storage_path: ${hydra:runtime.cwd}/reinforcement_learning/ray_results
+wandb_resume_id: ""
+
+wandb:
+  project: minecraft-rl
+  entity: mvlasenko
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+

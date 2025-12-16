@@ -1,0 +1,17 @@
+# Training configuration
+env_steps: 64_000_000
+time_total_s: null  # if null, env_steps is used
+iter_env_steps: 256
+load_from: null
+# load_from: reinforcement_learning/saved_models/rl_model_64000000_steps_run_318.zip
+load_checkpoint: null
+# load_checkpoint: reinforcement_learning/ray_results/saved_models/IMPALA3
+save_to: reinforcement_learning/saved_models/sb3_ppo.pt
+fall_back_save_to: reinforcement_learning/saved_models/sb3_ppo_interrupted.pt
+checkpoint_dir: ./reinforcement_learning/saved_models/
+checkpoints_per_training: 16
+checkpoint_frequency: 64  # in training iterations
+num_runners: 2
+cpus_per_runner: 4
+gpus_per_runner: 0.0
+
