@@ -28,22 +28,27 @@ class ResidualNetwork(nn.Module):
         # Save output dimensions, used to create the distributions
         self.latent_dim_pi = last_layer_dim_pi
         self.latent_dim_vf = last_layer_dim_vf
+        self.activation = nn.Tanh if CONFIG.model.nonlinear == 'tanh' else nn.GELU
 
         residual_kwargs = dict(
             main_dim=CONFIG.model.residual_main_dim,
             hidden_dim=CONFIG.model.residual_hidden_dim,
             num_residual_blocks=CONFIG.model.residual_num_blocks,
-            activation=nn.Tanh if CONFIG.model.nonlinear == 'tanh' else nn.GELU,  # todo
+            activation=self.activation,
         )
 
         self.policy_net = nn.Sequential(
+            nn.LayerNorm(feature_dim),
             nn.Linear(feature_dim, CONFIG.model.residual_main_dim),
-            nn.Tanh(),
+            self.activation(),
+            nn.LayerNorm(CONFIG.model.residual_main_dim),
             ResidualMLP(**residual_kwargs),
         )
         self.value_net = nn.Sequential(
+            nn.LayerNorm(feature_dim),
             nn.Linear(feature_dim, CONFIG.model.residual_main_dim),
-            nn.Tanh(),
+            self.activation(),
+            nn.LayerNorm(CONFIG.model.residual_main_dim),
             ResidualMLP(**residual_kwargs),
         )
 
@@ -82,8 +87,8 @@ class ResidualMLP(nn.Module):
                 first_linear,
                 self.activation(),
                 second_linear,
+                nn.LayerNorm(main_dim),
             ]
-            # todo: layer norm?
 
             nn.init.orthogonal_(first_linear.weight, gain=torch.sqrt(torch.tensor(2.0)))
             nn.init.constant_(first_linear.bias, 0.0)
