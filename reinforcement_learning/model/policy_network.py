@@ -28,7 +28,13 @@ class ResidualNetwork(nn.Module):
         # Save output dimensions, used to create the distributions
         self.latent_dim_pi = last_layer_dim_pi
         self.latent_dim_vf = last_layer_dim_vf
-        self.activation = nn.Tanh if CONFIG.model.nonlinear == 'tanh' else nn.GELU
+        activations = {
+            'tanh': nn.Tanh,
+            'gelu': nn.GELU,
+            'relu': nn.ReLU,
+            'leaky_relu': nn.LeakyReLU,
+        }
+        self.activation = activations[CONFIG.model.nonlinear.lower()]
 
         residual_kwargs = dict(
             main_dim=CONFIG.model.residual_main_dim,

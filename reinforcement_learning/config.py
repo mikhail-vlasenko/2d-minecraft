@@ -14,7 +14,7 @@ class EnvConfig:
     num_envs: int = 32
     lib_path: str = 'C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll'
     discovered_actions_reward: float = 25.
-    observation_distance: int = 7
+    observation_distance: int = 8
     max_observable_mobs: int = MAX_MOBS
     start_loadout: str = 'random'
     checkpoint_starts: float = 0.75

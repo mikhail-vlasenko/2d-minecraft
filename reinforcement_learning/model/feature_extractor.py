@@ -20,10 +20,12 @@ class FeatureExtractor(nn.Module):
         self.mob_dim = 16 * self.mob_heads
         self.loot_heads = 8
         self.loot_dim = 8 * self.loot_heads
+        self.inventory_dim = 2 * INVENTORY_SIZE
+        self.past_actions_dim = 16
 
         self.block_encoder = nn.Sequential(
             nn.Linear(NUM_MATERIALS, self.material_channels),
-            nn.Tanh(),  # relu will likely lead to dead neurons, as input is one-hot
+            nn.GELU(),
         )
         self.height_conv_hor = nn.Sequential(
             nn.Conv2d(1, self.height_channels, kernel_size=(1, 3), stride=(1, 1), padding=(0, 0)),
@@ -50,23 +52,22 @@ class FeatureExtractor(nn.Module):
             nn.GELU(),
         )
         self.inventory_encoder = nn.Sequential(
-            nn.Linear(INVENTORY_SIZE, INVENTORY_SIZE),
+            nn.Linear(INVENTORY_SIZE, self.inventory_dim),
             nn.GELU(),
         )
 
         self.use_past_actions = CONFIG.env.use_past_actions
         if self.use_past_actions:
-            self.past_actions_dim = 16
             self.past_actions_encoder = nn.Sequential(
                 nn.Linear(PastActionsWrapper.NUM_PAST_ACTIONS * NUM_ACTIONS, self.past_actions_dim),
-                nn.Tanh(),
+                nn.GELU(),
             )
 
         self.position_scaler = SymmetricLogScaling()
 
         # some spatial invariance for grid-based observations
         self.full_materials_distance = 2  # 5x5 around the player gets full material information
-        self.height_distance = 3  # 7x7 around the player gets height information
+        self.height_distance = 4  # 9x9 around the player gets height information
         self.total_grid_size = 2 * CONFIG.env.observation_distance + 1
         middle = CONFIG.env.observation_distance
         self.materials_grid_start = middle - self.full_materials_distance
@@ -108,6 +109,7 @@ class FeatureExtractor(nn.Module):
         mobs[:, :, :2] = self.position_scaler(mobs[:, :, :2])
         # third is mob health, 0 to 100
         mobs[:, :, 2] = mobs[:, :, 2] / 100
+        # mob kind is already one-hot encoded in positions 3+
         mobs = self.mob_encoder(mobs)
         mob_pool = self.mob_pooler(mobs)
         mob_pool = mob_pool.view(mob_pool.size(0), -1)
@@ -118,7 +120,7 @@ class FeatureExtractor(nn.Module):
         loot_pool = self.loot_pooler(loots)
         loot_pool = loot_pool.view(loot_pool.size(0), -1)
 
-        inventory = observation["inventory_state"] / 4  # arbitrary downscaling
+        inventory = torch.log(observation["inventory_state"] + 1)
         inventory = self.inventory_encoder(inventory)
 
         features = [
