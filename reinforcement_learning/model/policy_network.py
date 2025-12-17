@@ -3,7 +3,7 @@ from typing import Tuple, Type
 import torch
 from torch import nn
 
-from reinforcement_learning.config import CONFIG
+from reinforcement_learning.config import ModelConfig
 
 
 class ResidualNetwork(nn.Module):
@@ -12,49 +12,47 @@ class ResidualNetwork(nn.Module):
     It receives as input the features extracted by the features extractor.
 
     :param feature_dim: dimension of the features extracted with the features_extractor (e.g. features from a CNN)
-    :param last_layer_dim_pi: (int) number of units for the last layer of the policy network
-    :param last_layer_dim_vf: (int) number of units for the last layer of the value network
+    :param model_config: ModelConfig with network hyperparameters
     """
 
     def __init__(
         self,
         feature_dim: int,
-        last_layer_dim_pi: int = CONFIG.model.residual_main_dim,
-        last_layer_dim_vf: int = CONFIG.model.residual_main_dim,
+        model_config: ModelConfig,
     ):
         super().__init__()
 
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
-        self.latent_dim_pi = last_layer_dim_pi
-        self.latent_dim_vf = last_layer_dim_vf
+        self.latent_dim_pi = model_config.residual_main_dim
+        self.latent_dim_vf = model_config.residual_main_dim
         activations = {
             'tanh': nn.Tanh,
             'gelu': nn.GELU,
             'relu': nn.ReLU,
             'leaky_relu': nn.LeakyReLU,
         }
-        self.activation = activations[CONFIG.model.nonlinear.lower()]
+        self.activation = activations[model_config.nonlinear.lower()]
 
         residual_kwargs = dict(
-            main_dim=CONFIG.model.residual_main_dim,
-            hidden_dim=CONFIG.model.residual_hidden_dim,
-            num_residual_blocks=CONFIG.model.residual_num_blocks,
+            main_dim=model_config.residual_main_dim,
+            hidden_dim=model_config.residual_hidden_dim,
+            num_residual_blocks=model_config.residual_num_blocks,
             activation=self.activation,
         )
 
         self.policy_net = nn.Sequential(
             nn.LayerNorm(feature_dim),
-            nn.Linear(feature_dim, CONFIG.model.residual_main_dim),
+            nn.Linear(feature_dim, model_config.residual_main_dim),
             self.activation(),
-            nn.LayerNorm(CONFIG.model.residual_main_dim),
+            nn.LayerNorm(model_config.residual_main_dim),
             ResidualMLP(**residual_kwargs),
         )
         self.value_net = nn.Sequential(
             nn.LayerNorm(feature_dim),
-            nn.Linear(feature_dim, CONFIG.model.residual_main_dim),
+            nn.Linear(feature_dim, model_config.residual_main_dim),
             self.activation(),
-            nn.LayerNorm(CONFIG.model.residual_main_dim),
+            nn.LayerNorm(model_config.residual_main_dim),
             ResidualMLP(**residual_kwargs),
         )
 

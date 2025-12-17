@@ -50,11 +50,9 @@ class EvaluationConfig:
 @dataclass
 class ModelConfig:
     nonlinear: str = 'tanh'
-    dimensions: List[int] = field(default_factory=lambda: [1024, 512, 512, 512])
-    residual: bool = True
     residual_main_dim: int = 1024
     residual_hidden_dim: int = 1536
-    residual_num_blocks: int = 3
+    residual_num_blocks: int = 4
 
 
 @dataclass
@@ -136,9 +134,6 @@ def make_wandb_kwargs(config: Config) -> dict:
         kwargs['id'] = config.wandb_resume_id
     return kwargs
 
-
-# Default config for backwards compatibility (when not using Hydra)
-CONFIG: Config = Config()
 
 # Default checkpoint handler
 checkpoint_handler = CheckpointHandler(

@@ -1,12 +1,5 @@
 # Residual network model configuration
-nonlinear: tanh
-dimensions:
-  - 1024
-  - 512
-  - 512
-  - 512
-residual: true
+nonlinear: relu
 residual_main_dim: 1024
 residual_hidden_dim: 1536
-residual_num_blocks: 3
-
+residual_num_blocks: 4

@@ -1,5 +1,5 @@
 # Training configuration
-env_steps: 64_000_000
+env_steps: 4_000_000
 time_total_s: null  # if null, env_steps is used
 iter_env_steps: 256
 load_from: null

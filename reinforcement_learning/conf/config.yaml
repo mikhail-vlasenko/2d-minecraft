@@ -6,7 +6,6 @@ defaults:
   - evaluation: default
   - model: residual
   - ppo: default
-  - impala: default
   - _self_
 
 # Global settings

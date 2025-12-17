@@ -118,18 +118,12 @@ def main(cfg: DictConfig):
         wrapper_class=make_wrapper_fn(config)
     )
 
-    if config.model.residual:
-        policy = CustomActorCriticPolicy
-        policy_kwargs = dict(
-            features_extractor_class=FeatureExtractor,
-        )
-    else:
-        policy = "MultiInputPolicy"
-        policy_kwargs = dict(
-            net_arch=dict(pi=config.model.dimensions, vf=config.model.dimensions),
-            features_extractor_class=FeatureExtractor,
-            features_extractor_kwargs=dict(),
-        )
+    policy = CustomActorCriticPolicy
+    policy_kwargs = dict(
+        features_extractor_class=FeatureExtractor,
+        features_extractor_kwargs={'config': config},
+        model_config=config.model,
+    )
 
     # Always create model with config hyperparameters
     model = PPO(policy, env, policy_kwargs=policy_kwargs,

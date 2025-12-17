@@ -6,12 +6,12 @@ from torch.nn import MaxPool2d
 from python_wrapper.ffi_elements import INVENTORY_SIZE, NUM_ACTIONS
 from python_wrapper.observation import NUM_MATERIALS, MOB_INFO_SIZE, LOOT_INFO_SIZE
 from python_wrapper.past_actions_wrapper import PastActionsWrapper
-from reinforcement_learning.config import CONFIG
+from reinforcement_learning.config import Config
 from reinforcement_learning.model.attentive_pooler import AttentivePooler
 
 
 class FeatureExtractor(nn.Module):
-    def __init__(self, observation_space):
+    def __init__(self, observation_space, config: Config):
         super(FeatureExtractor, self).__init__()
 
         self.material_channels = 8
@@ -56,7 +56,7 @@ class FeatureExtractor(nn.Module):
             nn.GELU(),
         )
 
-        self.use_past_actions = CONFIG.env.use_past_actions
+        self.use_past_actions = config.env.use_past_actions
         if self.use_past_actions:
             self.past_actions_encoder = nn.Sequential(
                 nn.Linear(PastActionsWrapper.NUM_PAST_ACTIONS * NUM_ACTIONS, self.past_actions_dim),
@@ -68,8 +68,8 @@ class FeatureExtractor(nn.Module):
         # some spatial invariance for grid-based observations
         self.full_materials_distance = 2  # 5x5 around the player gets full material information
         self.height_distance = 4  # 9x9 around the player gets height information
-        self.total_grid_size = 2 * CONFIG.env.observation_distance + 1
-        middle = CONFIG.env.observation_distance
+        self.total_grid_size = 2 * config.env.observation_distance + 1
+        middle = config.env.observation_distance
         self.materials_grid_start = middle - self.full_materials_distance
         self.materials_grid_end = middle + self.full_materials_distance + 1
         self.height_grid_start = middle - self.height_distance
@@ -150,11 +150,12 @@ class FeatureExtractor(nn.Module):
         hp = observation["hp"] / 100  # max hp is 100
         time = torch.log(observation["time"] + 1) / 7  # becomes 1 at around 1000
         time1 = time % 1  # cyclic time component
+        time2 = (time % 2) / 2  # cyclic time component
         action_mask = observation["action_mask"]
         status_effects = torch.log(observation["status_effects"] + 1)
         discovered_actions = observation["discovered_actions"]
         return torch.cat([
-            player_pos, player_rot, hp, time, time1, action_mask, status_effects, discovered_actions
+            player_pos, player_rot, hp, time, time1, time2, action_mask, status_effects, discovered_actions
         ], dim=1)
 
 
