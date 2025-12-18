@@ -2,10 +2,10 @@
 num_envs: 32
 lib_path: C:/Users/Mikhail/RustProjects/2d-minecraft/target/release/ffi.dll
 discovered_actions_reward: 25.0
-observation_distance: 7
+observation_distance: 8
 max_observable_mobs: 16
 start_loadout: random
-checkpoint_starts: 0.75
+checkpoint_starts: 0.5
 simplified_action_space: true
 use_past_actions: true
 seed: null

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import hydra
 from omegaconf import DictConfig
@@ -159,9 +160,11 @@ def main(cfg: DictConfig):
         print("Training interrupted. Saving model anyway.")
         model.save(config.train.fall_back_save_to)
 
+    final_model_path = os.path.join(config.train.checkpoint_dir, f"final_model_{run.id}.zip")
+    model.save(final_model_path)
+
     model_art = wandb.Artifact('sb3_ppo_checkpoint', type='model')
-    # saves the last checkpoint by the callback
-    model_art.add_file(f"./reinforcement_learning/saved_models/rl_model_{config.train.env_steps}_steps.zip")
+    model_art.add_file(final_model_path)
     run.log_artifact(model_art)
 
     env.close()

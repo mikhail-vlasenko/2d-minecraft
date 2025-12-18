@@ -12,7 +12,7 @@ use crate::SETTINGS;
 
 trait BinaryString {
     fn to_binary_string(&self) -> Vec<u8>;
-    fn from_binary_string(data: &Vec<u8>) -> Self;
+    fn from_binary_string(data: &[u8]) -> Result<Self, postcard::Error> where Self: Sized;
 }
 
 impl BinaryString for Field {
@@ -20,11 +20,11 @@ impl BinaryString for Field {
         postcard::to_allocvec(self).unwrap()
     }
 
-    fn from_binary_string(data: &Vec<u8>) -> Self {
-        let mut deserialized: Field = postcard::from_bytes(data).unwrap();
+    fn from_binary_string(data: &[u8]) -> Result<Self, postcard::Error> {
+        let mut deserialized: Field = postcard::from_bytes(data)?;
         let central_chunk = deserialized.get_central_chunk();
         deserialized.load(central_chunk.0, central_chunk.1);
-        deserialized
+        Ok(deserialized)
     }
 }
 
@@ -33,8 +33,8 @@ impl BinaryString for Player {
         postcard::to_allocvec(self).unwrap()
     }
 
-    fn from_binary_string(data: &Vec<u8>) -> Self {
-        postcard::from_bytes(data).unwrap()
+    fn from_binary_string(data: &[u8]) -> Result<Self, postcard::Error> {
+        postcard::from_bytes(data)
     }
 }
 
@@ -43,8 +43,8 @@ impl BinaryString for MilestoneTracker {
         postcard::to_allocvec(self).unwrap()
     }
 
-    fn from_binary_string(data: &Vec<u8>) -> Self {
-        postcard::from_bytes(data).unwrap()
+    fn from_binary_string(data: &[u8]) -> Result<Self, postcard::Error> {
+        postcard::from_bytes(data)
     }
 }
 
@@ -64,7 +64,7 @@ pub fn save_game(field: &Field, player: &Player, milestone_tracker: &MilestoneTr
     }
 }
 
-pub fn load_game(path: &Path) -> Result<(Field, Player, Replay, MilestoneTracker), io::Error> {
+pub fn load_game(path: &Path) -> Result<(Field, Player, Replay, MilestoneTracker), Box<dyn Error>> {
     fn read_file(path: &Path) -> Result<Vec<u8>, io::Error> {
         let mut file = File::open(path)?;
         let mut data = Vec::new();
@@ -72,19 +72,13 @@ pub fn load_game(path: &Path) -> Result<(Field, Player, Replay, MilestoneTracker
         Ok(data)
     }
 
-    let field = Field::from_binary_string(&read_file(&path.join("field.postcard"))?);
-    let player = Player::from_binary_string(&read_file(&path.join("player.postcard"))?);
-    let milestone_tracker = File::open(path.join("milestone_tracker.postcard"))
-        .map_or_else(
-            |_| MilestoneTracker::new(),
-            |mut file| {
-                let mut data = Vec::new();
-                file.read_to_end(&mut data)
-                    .map(|_| MilestoneTracker::from_binary_string(&data))
-                    .unwrap_or_else(|_| MilestoneTracker::new())
-            }
-        );
-    
+    let field = Field::from_binary_string(&read_file(&path.join("field.postcard"))?)?;
+    let player = Player::from_binary_string(&read_file(&path.join("player.postcard"))?)?;
+    let milestone_tracker = match read_file(&path.join("milestone_tracker.postcard")) {
+        Ok(data) => MilestoneTracker::from_binary_string(&data).unwrap_or_else(|_| MilestoneTracker::new()),
+        Err(_) => MilestoneTracker::new(),
+    };
+
     Ok((field, player, Replay::new(), milestone_tracker))
 }
 
