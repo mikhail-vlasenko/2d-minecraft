@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fs::{create_dir_all, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use rand::Rng;
 use crate::auxiliary::replay::Replay;
 use crate::character::milestones::MilestoneTracker;
 use crate::character::player::Player;
@@ -119,6 +120,14 @@ pub fn autosave_game(field: &Field, player: &Player, milestone_tracker: &Milesto
     name.push_str(&format!("ms_{}_", milestone_tracker.get_current_milestone_idx()));
     name.push_str(&format!("score_{}_", player.get_score()));
     name.push_str(&chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string());
+
+    let suffix: String = rand::thread_rng()
+        .sample_iter(&rand::distributions::Alphanumeric)
+        .take(4)
+        .map(char::from)
+        .collect();
+    name.push_str(&format!("_{}", suffix));
+
     let mut path = PathBuf::from(SETTINGS.read().unwrap().save_folder.clone().into_owned());
     path.push(&name);
     save_game(field, player, milestone_tracker, &path);
