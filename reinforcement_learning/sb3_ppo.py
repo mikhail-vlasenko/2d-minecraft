@@ -6,6 +6,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CallbackList, BaseCallback, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
+from gymnasium.wrappers import NormalizeReward
 import wandb
 
 from python_wrapper.checkpoint_handler import CheckpointHandler
@@ -93,6 +94,8 @@ def make_wrapper_fn(config: Config):
             env = PastActionsWrapper(env)
         if config.env.simplified_action_space:
             env = ActionSimplificationWrapper(env)
+        if config.env.normalize_reward:
+            env = NormalizeReward(env, gamma=config.env.reward_norm_gamma, epsilon=1e-8)
         env = StaleScoreWrapper(env)
         return env
     return apply_wrappers

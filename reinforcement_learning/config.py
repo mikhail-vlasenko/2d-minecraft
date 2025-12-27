@@ -20,6 +20,8 @@ class EnvConfig:
     checkpoint_starts: float = 0.75
     simplified_action_space: bool = True
     use_past_actions: bool = True
+    normalize_reward: bool = False
+    reward_norm_gamma: float = 0.999
     seed: Optional[int] = None  # todo
 
 
