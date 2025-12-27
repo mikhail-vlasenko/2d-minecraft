@@ -1,8 +1,7 @@
 # PPO algorithm configuration
 lr: 3e-4
 gamma: 0.995
-update_epochs: 2
+update_epochs: 1
 ent_coef: 0.01
 batch_size: 512
 rollout_fragment_length: auto
-

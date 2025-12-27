@@ -8,7 +8,6 @@ start_loadout: random
 checkpoint_starts: 0.5
 simplified_action_space: true
 use_past_actions: true
-normalize_reward: false
+normalize_reward: true
 reward_norm_gamma: 0.999
 seed: null
-
