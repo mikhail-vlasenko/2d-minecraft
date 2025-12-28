@@ -29,12 +29,19 @@ The grey circle on every game tile indicates the height of the tile. The darker 
 
 <img width="49%" alt="red moon night with damaged house" src="https://github.com/mikhail-vlasenko/2d-minecraft/assets/27450370/2e5c9bd4-b2c1-4944-b81e-4e38d4375851">
 
-## Trained reinforcement learning agent (approximately human-level)
-
-https://github.com/user-attachments/assets/8c894103-8a60-43f3-bcaa-776aa7a0b38b
+## Trained a superhuman reinforcement learning agent
 
 The agent is traveling instead of building a house, which is a viable strategy since the game has 2 kinds of mobs that are difficult to deal with when the player is camping behind walls. 
-It also makes sure to mine all diamonds it sees, as it significantly increases the game score.
+
+It is adept at fighting large amounts of mobs efficiently, and surviving for a long time. It also makes sure to mine the diamonds it sees, as it significantly increases the game score.
+
+Watch it navigate out of this situation
+
+<img width="49%" alt="surrounded by mobs" src="https://github.com/user-attachments/assets/d33e9613-7604-4050-ab4e-ff41c1a6042b" />
+
+https://github.com/user-attachments/assets/8709e4aa-41a0-45a5-9365-5097b63d9e66
+
+Agent of this capability can be trained within a day on a gaming PC.
 
 ## Repository Structure
 
