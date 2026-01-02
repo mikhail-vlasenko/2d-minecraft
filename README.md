@@ -35,11 +35,11 @@ The agent is traveling instead of building a house, which is a viable strategy s
 
 It is adept at fighting large amounts of mobs efficiently, and surviving for a long time. It also makes sure to mine the diamonds it sees, as it significantly increases the game score.
 
-Watch it navigate out of this situation
+Watch it navigate out of this situation by using speed potions that it saved up, melee attacking, eating to restore health, and shooting the bow.
 
-<img width="49%" alt="surrounded by mobs" src="https://github.com/user-attachments/assets/d33e9613-7604-4050-ab4e-ff41c1a6042b" />
+https://github.com/user-attachments/assets/c5715406-d805-400d-b144-439e4eb98774
 
-https://github.com/user-attachments/assets/8709e4aa-41a0-45a5-9365-5097b63d9e66
+(it then proceeds to score 36k)
 
 Agent of this capability can be trained within a day on a gaming PC.
 
