@@ -72,6 +72,19 @@ pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player,
             player.add_message(&format!("Game saved as: {}", save_name));
         }
         
+        if SETTINGS.read().unwrap().record_replays {
+            let mut field_buffer = field.animations_buffer.clone();
+            let mut player_buffer = player.animations_buffer.clone();
+
+            let mut new_tile_animations = field_buffer.get_new_tile_animations();
+            new_tile_animations.extend(player_buffer.get_new_tile_animations());
+
+            let mut new_projectile_animations = field_buffer.get_new_projectile_animations();
+            new_projectile_animations.extend(player_buffer.get_new_projectile_animations());
+
+            replay.record_state(field, player, new_tile_animations, new_projectile_animations);
+        }
+        
         if let Some(animation_manager) = animation_manager {
             if passed_time > 0. {
                 // drop continuous animations if player made an action
@@ -83,9 +96,6 @@ pub fn handle_action(action: &Action, field: &mut Field, player: &mut Player,
         } else { 
             field.animations_buffer.clear();
             player.animations_buffer.clear();
-        }
-        if SETTINGS.read().unwrap().record_replays {
-            replay.record_state(field, player);
         }
     }
 }

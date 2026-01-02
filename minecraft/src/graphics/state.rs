@@ -234,14 +234,14 @@ impl<'a> State<'a> {
             KeyCode::F1 => {
                 if self.active_replay.is_some() {
                     let replay = self.active_replay.as_mut().unwrap();
-                    replay.step_back(&mut self.field, &mut self.player)
+                    replay.step_back(&mut self.field, &mut self.player, Some(&mut self.animation_manager))
                 }
             }
             KeyCode::F2 => { 
                 if self.active_replay.is_some() {
                     let replay = self.active_replay.as_mut().unwrap();
                     if !replay.finished() {
-                        replay.apply_state(&mut self.field, &mut self.player);
+                        replay.apply_state(&mut self.field, &mut self.player, Some(&mut self.animation_manager));
                     }
                 }
             }

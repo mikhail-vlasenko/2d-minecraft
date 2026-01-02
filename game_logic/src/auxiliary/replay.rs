@@ -8,6 +8,7 @@ use crate::crafting::consumable::Consumable;
 use crate::crafting::items::Item;
 use crate::crafting::material::Material;
 use crate::crafting::storable::Storable;
+use crate::auxiliary::animations::{AnimationManager, ProjectileAnimation, TileAnimation};
 use crate::map_generation::field::{AbsolutePos, Field, relative_to_absolute, RelativePos};
 use crate::map_generation::field_observation::get_tile_observation;
 use crate::map_generation::mobs::mob::Mob;
@@ -25,7 +26,9 @@ pub struct ObservableState {
     pub mobs: Vec<Mob>,
     pub player: Player,
     pub time: f32,
-    // todo: animations
+    /// Animations started in this step (from `AnimationsBuffer`). todo: channeling animations
+    pub new_tile_animations: Vec<TileAnimation>,
+    pub new_projectile_animations: Vec<ProjectileAnimation>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Derivative)]
@@ -43,7 +46,13 @@ impl Replay {
         }
     }
     
-    pub fn record_state(&mut self, field: &Field, player: &Player, ) {
+    pub fn record_state(
+        &mut self,
+        field: &Field,
+        player: &Player,
+        new_tile_animations: Vec<TileAnimation>,
+        new_projectile_animations: Vec<ProjectileAnimation>,
+    ) {
         let (top_materials, tile_heights) = get_tile_observation(field, player);
         let loot_positions = self.vec_to_absolute(field.loot_indices(player), player);
         let arrow_positions = self.vec_to_absolute(field.arrow_indices(player), player);
@@ -57,6 +66,8 @@ impl Replay {
             mobs,
             player: player.clone(),
             time,
+            new_tile_animations,
+            new_projectile_animations,
         });
     }
 
@@ -99,7 +110,12 @@ impl Replay {
 
     }
     
-    pub fn apply_state(&mut self, field: &mut Field, player: &mut Player) {
+    pub fn apply_state(
+        &mut self,
+        field: &mut Field,
+        player: &mut Player,
+        animation_manager: Option<&mut AnimationManager>,
+    ) {
         let state = &self.states[self.current_step];
         player.clone_from(&state.player);
         field.set_time(state.time);
@@ -108,16 +124,31 @@ impl Replay {
         self.clear_field_loot(field, player);
         self.place_field_loot(field);
         field.animations_buffer.clear();
+        if let Some(animation_manager) = animation_manager {
+            // These animations are expected to be short-lived, so we just start them at their step.
+            animation_manager.clear();
+            for animation in state.new_tile_animations.iter().copied() {
+                animation_manager.add_tile_animation(animation);
+            }
+            for animation in state.new_projectile_animations.iter().copied() {
+                animation_manager.add_projectile_animation(animation);
+            }
+        }
         self.current_step += 1;
     }
     
-    pub fn step_back(&mut self, field: &mut Field, player: &mut Player) {
+    pub fn step_back(
+        &mut self,
+        field: &mut Field,
+        player: &mut Player,
+        animation_manager: Option<&mut AnimationManager>,
+    ) {
         if self.current_step > 0 {
             self.current_step -= 1;
             if self.current_step > 0 {
                 self.current_step -= 1;
             }
-            self.apply_state(field, player);
+            self.apply_state(field, player, animation_manager);
         }
     }
     
