@@ -9,8 +9,8 @@ Key features:
  - The map is infinite in 2 dimensions.
  - Player needs different tiers of pickaxes to break some blocks.
  - Zombies on unloaded chunks do not vanish. They remain in place until the chunk is loaded again.
- - Banelings (hostile mobs) are better than creepers: they blow up and destroy walls if they can't find a short route to the player, even if the player is a few blocks away from the explosion radius.
- - Zerglings are smart and only attack in groups.
+ - The green round enemies are better than creepers: they blow up and destroy walls if they can't find a short route to the player, even if the player is a few blocks away from the explosion radius.
+ - Fast purple ones are smart and only attack in groups.
  - Self-shooting turrets can be placed to help you defend.
 
 ### AI-friendly
@@ -66,6 +66,5 @@ The video above demonstrates results from a 6-hour training run on a single GPU.
 
 - Most of the blocks - minecraft
 - PLayer - Riley Gombart
-- Zergling and Baneling - Starcraft 2
 - Cow - Minecraft
 - Hit animations - Sinestesia
